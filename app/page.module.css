@@ -1,0 +1,21 @@
+.main {
+  position: relative;
+}
+
+/* Scroll length of sequence 01 (see lib/experience/timeline.ts → SEQUENCE_LENGTH_VH). */
+.track {
+  height: 720vh;
+  height: 720svh;
+}
+
+@media (max-width: 767px), (orientation: portrait) and (max-width: 1024px) {
+  .track {
+    height: 520svh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    height: 420svh;
+  }
+}

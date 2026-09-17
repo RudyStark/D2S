@@ -1,0 +1,277 @@
+.lobby {
+  --lobby: 0;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.lobby > * {
+  opacity: 0;
+  translate: var(--dx, 0) var(--dy, 0);
+  will-change: opacity, translate;
+}
+
+.lobby:not([inert]) > * {
+  pointer-events: auto;
+}
+
+/* ——— Welcome bubble (pinned to the receptionist) ——— */
+
+.bubbleWrap {
+  --ax: 38vw;
+  --ay: 46vh;
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(calc(var(--ax) - 100% - 58px), calc(var(--ay) - 100% + 36px));
+}
+
+.bubble {
+  position: relative;
+  width: 284px;
+  padding: 22px 20px 18px;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 0.94);
+  box-shadow: var(--shadow-float), inset 0 0 0 1px rgb(255 255 255 / 0.7);
+  backdrop-filter: blur(14px);
+}
+
+.bubble::after {
+  content: "";
+  position: absolute;
+  right: -9px;
+  bottom: 22px;
+  width: 20px;
+  height: 20px;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  border-radius: 0 0 4px 0;
+}
+
+.bubbleTitle {
+  font-family: var(--font-display);
+  font-size: 18.5px;
+  font-weight: 700;
+  line-height: 1.32;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.bubbleText {
+  margin-top: 8px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.ask {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.askField {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--line), 0 2px 6px -2px rgb(11 18 56 / 0.08);
+  color: var(--blue);
+  transition: box-shadow 0.25s var(--ease-out);
+}
+
+.askField:focus-within {
+  box-shadow: inset 0 0 0 1.5px var(--blue), 0 2px 10px -2px rgb(21 112 240 / 0.25);
+}
+
+.askField input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.askField input::placeholder {
+  color: var(--text);
+}
+
+.askSend {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue-bright), var(--blue-deep));
+  box-shadow: var(--shadow-blue);
+  color: #fff;
+  cursor: pointer;
+  transition: translate 0.3s var(--ease-out);
+}
+
+.askSend:hover {
+  translate: 2px 0;
+}
+
+.askNote {
+  min-height: 0;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--blue);
+}
+
+.askNote:empty {
+  display: none;
+}
+
+/* ——— Mission panel ——— */
+
+.mission {
+  position: absolute;
+  top: calc(var(--header-h) + 72px);
+  right: calc(var(--gutter) + 170px);
+  width: 342px;
+  padding: 30px 30px 26px;
+  border-radius: var(--radius-lg);
+  background: rgb(255 255 255 / 0.84);
+  box-shadow: var(--shadow-float), inset 0 0 0 1px rgb(255 255 255 / 0.8);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.kicker {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.missionTitle {
+  margin-top: 16px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.13;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.accent {
+  color: var(--blue);
+}
+
+.missionText {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.missionActions {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.wide {
+  width: 100%;
+}
+
+.meet {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meet svg {
+  color: var(--blue);
+}
+
+.benefits {
+  display: grid;
+  gap: 14px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.benefits li {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+}
+
+.benefits svg {
+  color: var(--blue);
+}
+
+/* ——— Figures & cue ——— */
+
+.stats {
+  position: absolute;
+  left: calc(var(--gutter) + 8px);
+  bottom: clamp(28px, 6vh, 60px);
+}
+
+.cue {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(18px, 3.2vh, 34px);
+  margin-left: -80px;
+  width: 160px;
+}
+
+@media (max-width: 1280px) {
+  .mission {
+    right: calc(var(--gutter) + 40px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .bubbleWrap {
+    left: 50%;
+    top: calc(var(--header-h) + 8px);
+    transform: translateX(-50%);
+  }
+
+  .bubble {
+    width: min(340px, calc(100vw - 32px));
+  }
+
+  .bubble::after {
+    display: none;
+  }
+
+  .mission {
+    top: auto;
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+    width: auto;
+    padding: 20px;
+  }
+
+  .missionTitle {
+    font-size: 21px;
+  }
+
+  .missionText,
+  .benefits,
+  .stats,
+  .cue {
+    display: none;
+  }
+}

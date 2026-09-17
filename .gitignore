@@ -1,0 +1,21 @@
+# dependencies & builds
+node_modules
+.next
+out
+*.tsbuildinfo
+next-env.d.ts
+
+# local caches & test output
+.cache
+test-results
+playwright-report
+__pycache__
+
+# review captures (regenerate with `npm run shots`)
+design/captures
+
+# env & system
+.env*
+!.env.example
+.DS_Store
+*.log

@@ -1,0 +1,27 @@
+{
+  "automation": {
+    "width": 472,
+    "height": 1151,
+    "aspect": 0.4101
+  },
+  "support": {
+    "width": 478,
+    "height": 1121,
+    "aspect": 0.4264
+  },
+  "prospection": {
+    "width": 526,
+    "height": 1165,
+    "aspect": 0.4515
+  },
+  "content": {
+    "width": 471,
+    "height": 1178,
+    "aspect": 0.3998
+  },
+  "data": {
+    "width": 465,
+    "height": 1099,
+    "aspect": 0.4231
+  }
+}
