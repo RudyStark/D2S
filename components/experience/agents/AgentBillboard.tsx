@@ -29,6 +29,8 @@ export function AgentBillboard({ agent, height, idle }: AgentBillboardProps) {
   useLayoutEffect(() => {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = 8;
+    // Premultiplied upload keeps mip levels free of white/dark fringes around the cut-out.
+    texture.premultiplyAlpha = true;
     texture.needsUpdate = true;
   }, [texture]);
 
@@ -42,8 +44,14 @@ export function AgentBillboard({ agent, height, idle }: AgentBillboardProps) {
     () =>
       new THREE.MeshBasicMaterial({
         map: texture,
-        transparent: true,
-        alphaTest: 0.04,
+        // Drawn in the opaque pass (custom premultiplied blending) so the agents stay
+        // visible through transmissive glass, with soft edges and no halo.
+        transparent: false,
+        blending: THREE.CustomBlending,
+        blendSrc: THREE.OneFactor,
+        blendDst: THREE.OneMinusSrcAlphaFactor,
+        alphaTest: 0.02,
+        depthWrite: true,
         toneMapped: false,
         side: THREE.DoubleSide,
       }),

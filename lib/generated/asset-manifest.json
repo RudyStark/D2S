@@ -1,4 +1,13 @@
 {
   "agents": [],
-  "plants": []
+  "plants": [
+    "ficus",
+    "olive_a",
+    "olive_b",
+    "olive_c",
+    "pachira_a",
+    "pachira_b",
+    "shrub",
+    "tropical"
+  ]
 }

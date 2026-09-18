@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { QUALITY } from "@/lib/experience/quality";
 import { useExperience } from "@/lib/experience/store";
 import { WORLD } from "@/lib/experience/world";
-import { MATERIALS } from "../materials";
+import { createFloorMaps, MATERIALS } from "../materials";
 
 const skyVertex = /* glsl */ `
   varying vec3 vDir;
@@ -62,28 +62,34 @@ export function SkyDome({ radius = 180 }: { radius?: number }) {
 export function Surroundings() {
   const reflections = useExperience((s) => QUALITY[s.quality].reflections);
   const { halfWidth, depth } = WORLD.plaza;
+  const maps = useMemo(() => createFloorMaps(halfWidth * 2, depth + 40), [halfWidth, depth]);
   return (
     <>
       <SkyDome />
       {/* One floor for plaza and lobby: the threshold is continuous. */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0, (depth - 40) / 2]} receiveShadow name="ground" material={reflections ? undefined : MATERIALS.floor}>
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0, (depth - 40) / 2]} receiveShadow name="ground">
         <planeGeometry args={[halfWidth * 2, depth + 40]} />
-        {reflections && (
+        {reflections ? (
           <MeshReflectorMaterial
-            color="#f0f0ee"
-            roughness={0.22}
+            {...maps}
+            color="#f7f7f6"
+            roughness={0.26}
             metalness={0}
-            envMapIntensity={1}
+            normalScale={new THREE.Vector2(0.14, 0.14)}
+            envMapIntensity={0.9}
             resolution={1024}
-            blur={[420, 140]}
-            mixBlur={1}
-            mixStrength={0.55}
+            blur={[520, 180]}
+            mixBlur={1.1}
+            mixStrength={0.42}
             mixContrast={1}
-            depthScale={1}
-            minDepthThreshold={0.2}
-            maxDepthThreshold={1.6}
+            depthScale={1.1}
+            minDepthThreshold={0.25}
+            maxDepthThreshold={1.5}
+            reflectorOffset={0.004}
             mirror={0}
           />
+        ) : (
+          <primitive object={MATERIALS.floor} attach="material" />
         )}
       </mesh>
     </>

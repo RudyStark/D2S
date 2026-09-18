@@ -34,9 +34,9 @@ export function PostEffects() {
           ref={(pass: { configuration: { gammaCorrection: boolean } } | null) => {
             if (pass) pass.configuration.gammaCorrection = false;
           }}
-          aoRadius={1.1}
-          distanceFalloff={0.9}
-          intensity={1.6}
+          aoRadius={1.6}
+          distanceFalloff={1}
+          intensity={2.4}
           quality="medium"
           halfRes
           color="#3a3f55"

@@ -17,16 +17,38 @@ interface BlockProps {
 }
 
 const unitBox = new THREE.BoxGeometry(1, 1, 1);
+const boxCache = new Map<string, THREE.BoxGeometry>();
 
-/** Axis-aligned box that shares one unit geometry (scaled per instance). */
+/**
+ * Box whose UVs are expressed in metres on every face, so tiled materials keep
+ * a constant texel density whatever the size. Cached per size.
+ */
+export function boxGeometryMeters(sx: number, sy: number, sz: number) {
+  const key = `${sx.toFixed(3)}|${sy.toFixed(3)}|${sz.toFixed(3)}`;
+  let g = boxCache.get(key);
+  if (g) return g;
+  g = new THREE.BoxGeometry(sx, sy, sz);
+  const uv = g.attributes.uv as THREE.BufferAttribute;
+  // Face order: +x, -x, +y, -y, +z, -z (4 vertices each).
+  const dims: [number, number][] = [
+    [sz, sy], [sz, sy], [sx, sz], [sx, sz], [sx, sy], [sx, sy],
+  ];
+  for (let i = 0; i < uv.count; i++) {
+    const [du, dv] = dims[Math.floor(i / 4)];
+    uv.setXY(i, uv.getX(i) * du, uv.getY(i) * dv);
+  }
+  boxCache.set(key, g);
+  return g;
+}
+
+/** Axis-aligned box with metre-based UVs. */
 export function Block({ position, size, material, rotationY = 0, castShadow = true, receiveShadow = true, name }: BlockProps) {
   return (
     <mesh
       name={name}
-      geometry={unitBox}
+      geometry={boxGeometryMeters(size[0], size[1], size[2])}
       material={material}
       position={position}
-      scale={size}
       rotation-y={rotationY}
       castShadow={castShadow}
       receiveShadow={receiveShadow}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Environment, Lightformer } from "@react-three/drei";
+import { Environment } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -9,17 +9,12 @@ import { frame, useExperience } from "@/lib/experience/store";
 import { beatEased } from "@/lib/experience/timeline";
 import { lerp } from "@/lib/math";
 import { LOBBY_LIGHTS } from "../scenes/LobbyZone";
-import { SkyDome } from "../scenes/Surroundings";
-
-const TREE_BLOBS: [number, number, number, number][] = [
-  [-30, 6, 18, 7], [-18, 5, 30, 6], [0, 5, 40, 7], [20, 6, 32, 6], [32, 5, 16, 7], [-36, 4, -6, 6], [36, 4, -8, 6],
-];
 
 const SUN_OFFSET = new THREE.Vector3(-15, 21, 17);
-const SKY_DAY = new THREE.Color("#dcebff");
-const SKY_WARM = new THREE.Color("#fff7ef");
-const GROUND_DAY = new THREE.Color("#efe9e1");
-const GROUND_WARM = new THREE.Color("#f5ede4");
+const SKY_DAY = new THREE.Color("#e6f0ff");
+const SKY_WARM = new THREE.Color("#fffaf4");
+const GROUND_DAY = new THREE.Color("#f4f1ec");
+const GROUND_WARM = new THREE.Color("#f7f2ec");
 
 /**
  * Morning daylight outside, warmer cove lighting inside.
@@ -52,9 +47,9 @@ export function Lighting() {
 
   useFrame(() => {
     const k = beatEased(frame.progress, "lightShift");
-    if (sun.current) sun.current.intensity = lerp(2.9, 2.7, k);
+    if (sun.current) sun.current.intensity = lerp(3.5, 2.9, k);
     if (hemi.current) {
-      hemi.current.intensity = lerp(1.05, 1.2, k);
+      hemi.current.intensity = lerp(1.35, 2.1, k);
       hemi.current.color.copy(SKY_DAY).lerp(SKY_WARM, k);
       hemi.current.groundColor.copy(GROUND_DAY).lerp(GROUND_WARM, k);
     }
@@ -69,8 +64,8 @@ export function Lighting() {
       <hemisphereLight ref={hemi} args={[SKY_DAY, GROUND_DAY, 1.05]} />
       <directionalLight
         ref={sun}
-        color="#fff0dc"
-        intensity={2.9}
+        color="#fff2e0"
+        intensity={3.5}
         castShadow={settings.shadows}
         shadow-mapSize={[settings.shadowMapSize, settings.shadowMapSize]}
         shadow-bias={-0.0003}
@@ -79,26 +74,15 @@ export function Lighting() {
       />
       <group ref={interior}>
         {LOBBY_LIGHTS.map((l, i) => (
-          <pointLight key={i} position={l.position} color="#ffe9d2" intensity={l.intensity} distance={22} decay={2} />
+          <pointLight key={i} position={l.position} color="#fff0e0" intensity={l.intensity} distance={22} decay={2} />
         ))}
       </group>
 
-      {/* Procedural environment (no HDRI download): glass and steel reflect a blue sky, a warm ground and tree masses. */}
-      <Environment frames={1} resolution={256} background={false} environmentIntensity={0.8}>
-        <SkyDome radius={90} />
-        <mesh rotation-x={-Math.PI / 2} position-y={-0.5}>
-          <circleGeometry args={[90, 32]} />
-          <meshBasicMaterial color="#e9e4dc" />
-        </mesh>
-        {TREE_BLOBS.map(([x, y, z, r], i) => (
-          <mesh key={i} position={[x, y, z]} scale={[r, r * 0.8, r]}>
-            <sphereGeometry args={[1, 12, 8]} />
-            <meshBasicMaterial color="#5f7a55" />
-          </mesh>
-        ))}
-        <Lightformer form="rect" intensity={1.6} color="#ffffff" position={[0, 30, 0]} rotation-x={Math.PI / 2} scale={[30, 30, 1]} />
-        <Lightformer form="rect" intensity={1.2} color="#fff1dd" position={[-40, 14, 30]} rotation-y={Math.PI / 3} scale={[24, 10, 1]} />
-      </Environment>
+      {/*
+        CC0 HDRI (Poly Haven, borghese_gardens 1k): blue sky, Mediterranean trees and a warm ground —
+        it is what the glass, the steel and the water reflect. Background stays our gradient sky.
+      */}
+      <Environment files="/hdri/borghese_gardens_1k.hdr" environmentIntensity={0.55} environmentRotation={[0, 2.4, 0]} />
     </>
   );
 }

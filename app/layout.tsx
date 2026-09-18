@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 
-const jakarta = Plus_Jakarta_Sans({
+// Chosen by ink-mask comparison with design/references/01-home-final.png (see d2s-frontend-design skill).
+const interTight = Inter_Tight({
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  variable: "--font-jakarta",
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-inter-tight",
   display: "swap",
 });
 
@@ -31,7 +32,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={`${jakarta.variable} ${inter.variable}`}>
+    <html lang="fr" className={`${interTight.variable} ${inter.variable}`}>
       <body>{children}</body>
     </html>
   );

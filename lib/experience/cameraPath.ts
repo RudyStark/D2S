@@ -29,28 +29,29 @@ export interface CameraKey {
  * The camera cranes up while dollying in: monumental at the door, human inside.
  */
 const DESKTOP: CameraKey[] = [
-  { p: 0.0, pos: [-2.16, 0.5, 13.8], fov: 38, shiftY: 0.25 },
-  { p: 0.1, pos: [-2.12, 0.52, 13.35], fov: 38, shiftY: 0.25 },
-  { p: 0.22, pos: [-1.78, 0.7, 10.5], yaw: -0.8, fov: 38, shiftY: 0.225 },
-  { p: 0.34, pos: [-1.0, 0.98, 7.0], yaw: -1.6, roll: -0.22, fov: 38.5, shiftY: 0.18 },
-  { p: 0.45, pos: [-0.22, 1.16, 3.4], yaw: -0.7, roll: -0.08, fov: 39.5, shiftY: 0.13 },
-  { p: 0.56, pos: [0, 1.24, 0.3], fov: 42.5, shiftY: 0.11 },
-  { p: 0.66, pos: [0.05, 1.23, -1.5], yaw: 0.3, roll: 0.1, fov: 42, shiftY: 0.13 },
-  { p: 0.78, pos: [0.09, 1.2, -2.95], yaw: 0.35, fov: 41, shiftY: 0.16 },
-  { p: 0.9, pos: [0.03, 1.16, -3.95], yaw: 0.1, fov: 40.2, shiftY: 0.18 },
-  { p: 1.0, pos: [0, 1.15, -4.4], fov: 40, shiftY: 0.185 },
+  { p: 0.0, pos: [-0.72, 0.37, 10.26], yaw: 5, fov: 38, shiftY: 0.249 },
+  { p: 0.1, pos: [-0.71, 0.39, 9.92], yaw: 4.8, fov: 38, shiftY: 0.249 },
+  { p: 0.22, pos: [-0.63, 0.58, 8.35], yaw: 4, fov: 38, shiftY: 0.232 },
+  { p: 0.3, pos: [-0.5, 0.75, 6.9], yaw: 3.2, fov: 38.4, shiftY: 0.215, roll: -0.2 },
+  { p: 0.38, pos: [-0.32, 0.92, 5.6], yaw: 2.2, fov: 38.8, shiftY: 0.19, roll: -0.1 },
+  { p: 0.46, pos: [-0.14, 1.04, 4.2], yaw: 1.2, fov: 39.4, shiftY: 0.168 },
+  { p: 0.56, pos: [-0.02, 1.13, 2.2], yaw: 0.4, fov: 41, shiftY: 0.145 },
+  { p: 0.66, pos: [0, 1.18, 0.2], yaw: 0, fov: 42.5, shiftY: 0.128 },
+  { p: 0.78, pos: [0.06, 1.2, -2.0], yaw: 0.3, fov: 41.5, shiftY: 0.15, roll: 0.1 },
+  { p: 0.9, pos: [0.04, 1.17, -3.6], yaw: 0.1, fov: 40.4, shiftY: 0.174 },
+  { p: 1.0, pos: [0, 1.15, -4.4], yaw: 0, fov: 40, shiftY: 0.185 },
 ];
 
 /** Portrait phones: wider lens, closer start, shorter travel; same beats. */
 const MOBILE: CameraKey[] = [
-  { p: 0.0, pos: [-0.35, 1.2, 12.2], fov: 62, shiftY: -0.12 },
-  { p: 0.1, pos: [-0.34, 1.22, 11.8], fov: 62, shiftY: -0.12 },
-  { p: 0.3, pos: [-0.2, 1.36, 7.4], fov: 62, shiftY: -0.06 },
-  { p: 0.45, pos: [-0.05, 1.5, 3.4], fov: 63, shiftY: -0.02 },
-  { p: 0.56, pos: [0, 1.56, 0.3], fov: 66, shiftY: 0 },
-  { p: 0.7, pos: [0.04, 1.62, -1.8], fov: 64, shiftY: 0 },
-  { p: 0.88, pos: [0.02, 1.66, -2.9], fov: 62, shiftY: -0.04 },
-  { p: 1.0, pos: [0, 1.68, -3.2], fov: 62, shiftY: -0.05 },
+  { p: 0.0, pos: [-0.1, 0.9, 9.4], yaw: 4, fov: 60, shiftY: 0.02 },
+  { p: 0.1, pos: [-0.1, 0.92, 9.1], yaw: 3.8, fov: 60, shiftY: 0.02 },
+  { p: 0.3, pos: [-0.05, 1.05, 6.2], yaw: 2.4, fov: 60, shiftY: 0.03 },
+  { p: 0.45, pos: [0, 1.15, 3.2], yaw: 0.8, fov: 61, shiftY: 0.05 },
+  { p: 0.56, pos: [0, 1.2, 0.2], yaw: 0, fov: 64, shiftY: 0.06 },
+  { p: 0.7, pos: [0.03, 1.22, -1.8], yaw: 0.2, fov: 63, shiftY: 0.08 },
+  { p: 0.88, pos: [0.02, 1.2, -2.9], yaw: 0.1, fov: 61, shiftY: 0.1 },
+  { p: 1.0, pos: [0, 1.18, -3.3], yaw: 0, fov: 60, shiftY: 0.11 },
 ];
 
 /**
@@ -58,12 +59,12 @@ const MOBILE: CameraKey[] = [
  * a soft white cut through the doors, then a short settle in the lobby.
  */
 const REDUCED: CameraKey[] = [
-  { p: 0.0, pos: [-2.16, 0.5, 13.8], fov: 38, shiftY: 0.25, veil: 0 },
-  { p: 0.3, pos: [-2.0, 0.56, 12.6], fov: 38, shiftY: 0.25, veil: 0 },
-  { p: 0.4, pos: [-1.96, 0.57, 12.3], fov: 38, shiftY: 0.25, veil: 1 },
-  { p: 0.46, pos: [0, 1.15, -3.2], fov: 40, shiftY: 0.185, veil: 1 },
-  { p: 0.58, pos: [0, 1.15, -3.4], fov: 40, shiftY: 0.185, veil: 0 },
-  { p: 1.0, pos: [0, 1.15, -4.4], fov: 40, shiftY: 0.185, veil: 0 },
+  { p: 0.0, pos: [-0.72, 0.37, 10.26], yaw: 5, fov: 38, shiftY: 0.249, veil: 0 },
+  { p: 0.3, pos: [-0.7, 0.42, 9.3], yaw: 4.7, fov: 38, shiftY: 0.245, veil: 0 },
+  { p: 0.4, pos: [-0.69, 0.43, 9.05], yaw: 4.6, fov: 38, shiftY: 0.244, veil: 1 },
+  { p: 0.46, pos: [0, 1.15, -3.2], yaw: 0, fov: 40, shiftY: 0.185, veil: 1 },
+  { p: 0.58, pos: [0, 1.15, -3.4], yaw: 0, fov: 40, shiftY: 0.185, veil: 0 },
+  { p: 1.0, pos: [0, 1.15, -4.4], yaw: 0, fov: 40, shiftY: 0.185, veil: 0 },
 ];
 
 export const CAMERA_KEYS: Record<CameraProfile, CameraKey[]> = {

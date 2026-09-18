@@ -16,7 +16,7 @@
   --success: #22c55e;
 
   /* Type */
-  --font-display: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-display: var(--font-inter-tight), "Inter Tight", system-ui, sans-serif;
   --font-body: var(--font-inter), "Inter", system-ui, sans-serif;
 
   /* Shape & depth */
@@ -34,7 +34,19 @@
 
   /* Layout */
   --gutter: clamp(20px, 4vw, 72px);
-  --header-h: 104px;
+  --header-h: 76px;
+  /*
+   * Design unit. Desktop layouts are calibrated in px on the 1672×861 reference viewport
+   * (design/references, minus browser chrome) and written as calc(N * var(--u)).
+   */
+  --u: 1px;
+}
+
+@media (min-width: 1025px) {
+  :root {
+    --u: min(calc(100vw / 1672), calc(100svh / 861));
+    --header-h: calc(96 * var(--u));
+  }
 }
 
 *,

@@ -19,12 +19,26 @@ One world, metres, +Z = street, Z = 0 = glass façade, −Z = inside. Zones are 
 ## Camera
 - Channels (x, y, z, yaw, pitch, roll, fov, shiftY, veil) use monotone cubic interpolation: no overshoot, C1.
 - Keep pitch ≈ 0. Frame with `shiftY` (tilt-shift via `setViewOffset`) so verticals stay vertical.
-- Measured compositions: façade = camera (−2.16, 0.5, 13.8), fov 38, shift 0.25; lobby = (0, 1.15, −4.4), fov 40, shift 0.185.
+- Compositions are *solved*, not guessed: measure screen points on the reference (scripts/measure.mjs), then
+  back-project them through the camera model (fov 38, principal point 836 / 645 at shift 0.249) to get world positions.
+  Façade p=0 = camera (−0.72, 0.37, 10.26) yaw 5°, fov 38, shift 0.249 — the low camera and the small yaw are what make
+  the entrance read as architecture. Lobby p=1 = (0, 1.15, −4.4), fov 40, shift 0.185.
 - Inertia lives in `CameraRig` (damp λ 9) on top of the director smoothing (λ 4.8). Drift ≤ 12 mm, no shake.
+
+## Materials & vegetation
+- Textures are CC0 Poly Haven, recoloured to white stone / white plaster; geometry UVs are in metres
+  (`boxGeometryMeters`) so texel density is constant. Floor = `MeshReflectorMaterial` + marble maps (high tier).
+- Vegetation is GLB only (`npm run assets:plants`): sphere clusters are banned. Reuse 3–5 models with rotation,
+  ±15 % scale and a hue shift; one shared breeze uniform drives the sway.
+- Bloom works on HDR values: keep `luminanceThreshold` ≈ 4, only emissive strips reach it.
 
 ## Objects
 - `Block`/`FloorBlock`/`InstancedBoxes` share one unit box. Repeated items → instancing.
-- Glass: `MATERIALS.glass` (opacity ~0.2, env reflections), never transmission on mobile.
+- Glass: real transmission on the high tier (`setGlassQuality`), transparent + env reflections below.
+  **Anything that must stay visible through transmissive glass has to render in the opaque pass**: agents and canvas
+  wall type use `transparent: false` + `CustomBlending` + `renderOrder` (transparent objects are skipped by the
+  transmission pass). Troika SDF text is transparent → wall type is drawn into a canvas texture instead.
+- Curved signage: `WallType` with `curveRadius` expects the position of the **cylinder axis**, not the front face.
 - Doors: `SlidingDoors` reads the `doors` beat 1:1 (reversible). Door leaves sit in front of the glass plane (z 0.12).
 - Logo: `LogoMesh` reads `LOGO_SRC`; `bendRadius` tessellates then bends positions and normals.
 

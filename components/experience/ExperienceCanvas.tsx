@@ -9,6 +9,7 @@ import { setCanvasActive } from "@/lib/experience/director";
 import { QUALITY, type QualityTier } from "@/lib/experience/quality";
 import { useExperience } from "@/lib/experience/store";
 import { CameraRig } from "./camera/CameraRig";
+import { setGlassQuality } from "./materials";
 import { PostEffects } from "./effects/PostEffects";
 import { Lighting } from "./lights/Lighting";
 import { World } from "./World";
@@ -43,6 +44,11 @@ export default function ExperienceCanvas() {
     setCanvasActive(true);
     return () => setCanvasActive(false);
   }, []);
+
+  // Real refraction only where it is affordable; lower tiers keep a reflective transparent glass.
+  useEffect(() => {
+    setGlassQuality(quality === "high");
+  }, [quality]);
 
   return (
     <Canvas

@@ -13,6 +13,16 @@ import styles from "./Header.module.css";
 import { ArrowRight, ChevronDown, Globe } from "./Icons";
 import { Logo } from "./Logo";
 
+/** Measured left edge of each nav label: façade (01) → reception (03). */
+const NAV_X: [number, number][] = [
+  [475, 483],
+  [578, 582],
+  [719, 720],
+  [869, 867],
+  [1020, 1017],
+  [1142, 1138],
+];
+
 function LanguageSwitch() {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -40,9 +50,9 @@ function LanguageSwitch() {
         aria-label="Langue : français"
         onClick={() => setOpen((v) => !v)}
       >
-        <Globe size={18} />
+        <Globe />
         <span>FR</span>
-        <ChevronDown size={14} />
+        <ChevronDown />
       </button>
       {open && (
         <ul className={styles.langMenu}>
@@ -83,10 +93,11 @@ export function Header() {
         <Logo className={styles.logo} />
         <nav aria-label="Navigation principale" className={styles.nav} data-open={menuOpen} id="main-nav">
           <ul>
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.map((item, i) => {
               const active = item.href === pathname;
+              const [x0, x1] = NAV_X[i] ?? [0, 0];
               return (
-                <li key={item.href}>
+                <li key={item.href} style={{ "--x0": x0, "--x1": x1 } as React.CSSProperties}>
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
@@ -108,7 +119,7 @@ export function Header() {
           </ul>
         </nav>
         <div className={styles.actions}>
-          <Button href={CONTACT_HREF} icon={<ArrowRight size={20} />} className={styles.cta}>
+          <Button href={CONTACT_HREF} icon={<ArrowRight className={styles.ctaIcon} />} className={styles.cta}>
             Parlons de votre projet
           </Button>
           <LanguageSwitch />

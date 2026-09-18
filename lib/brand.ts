@@ -10,7 +10,7 @@ export const COLORS = {
   blue: "#1570f0",
   blueDeep: "#0b55f0",
   cyan: "#129be6",
-  wallType: "#6b7391",
+  wallType: "#5d6688",
   white: "#ffffff",
   marble: "#f3f3f1",
   steel: "#c9ced6",

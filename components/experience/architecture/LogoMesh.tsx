@@ -15,6 +15,8 @@ interface LogoMeshProps {
   depth?: number;
   /** Wrap the logo around a vertical cylinder of this radius (curved walls). */
   bendRadius?: number;
+  /** Vertical stretch (reference signage is slightly taller than the source artwork). */
+  scaleY?: number;
   material: THREE.Material;
   src?: string;
 }
@@ -34,7 +36,7 @@ function normalizeGeometry(g: THREE.BufferGeometry) {
  * The brand logo in 3D, built from the same SVG file as the header.
  * Filled paths (D2S) are extruded; stroked paths (STUDIO) become flat ribbons.
  */
-export function LogoMesh({ width, depth = 0.05, bendRadius, material, src = LOGO_SRC }: LogoMeshProps) {
+export function LogoMesh({ width, depth = 0.05, bendRadius, scaleY = 1, material, src = LOGO_SRC }: LogoMeshProps) {
   const svg = useLoader(SVGLoader, src);
 
   const geometry = useMemo(() => {
@@ -68,7 +70,7 @@ export function LogoMesh({ width, depth = 0.05, bendRadius, material, src = LOGO
     const cx = (box.min.x + box.max.x) / 2;
     const cy = (box.min.y + box.max.y) / 2;
     merged.translate(-cx, -cy, 0);
-    merged.scale(s, -s, -s);
+    merged.scale(s, -s * scaleY, -s);
 
     if (bendRadius) {
       // Long cap/stroke triangles would cut through the curve: subdivide first.
@@ -93,7 +95,7 @@ export function LogoMesh({ width, depth = 0.05, bendRadius, material, src = LOGO
     }
     merged.computeBoundingSphere();
     return merged;
-  }, [svg, width, depth, bendRadius]);
+  }, [svg, width, depth, bendRadius, scaleY]);
 
   useLayoutEffect(() => () => geometry.dispose(), [geometry]);
 

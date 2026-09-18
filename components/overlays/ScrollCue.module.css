@@ -1,42 +1,78 @@
 .cue {
   display: grid;
   justify-items: center;
-  gap: 10px;
-  color: var(--ink-soft);
+  color: #26336a;
+}
+
+.ring {
+  position: relative;
+  display: block;
+  width: calc(56 * var(--u));
+  height: calc(56 * var(--u));
+  border-radius: 50%;
+  border: 1px solid rgb(11 18 56 / 0.16);
+  background: rgb(255 255 255 / 0.18);
+}
+
+.ring::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(-4 * var(--u));
+  width: 1px;
+  height: calc(7 * var(--u));
+  background: rgb(11 18 56 / 0.3);
 }
 
 .mouse {
-  position: relative;
-  display: block;
-  width: 26px;
-  height: 40px;
-  border-radius: 14px;
-  border: 1.5px solid rgb(11 18 56 / 0.55);
-  background: rgb(255 255 255 / 0.4);
+  position: absolute;
+  left: 50%;
+  top: calc(17 * var(--u));
+  width: calc(14 * var(--u));
+  height: calc(22 * var(--u));
+  border: max(1px, calc(1.5 * var(--u))) solid currentColor;
+  border-radius: calc(7 * var(--u));
+  translate: -50% 0;
 }
 
 .wheel {
   position: absolute;
   left: 50%;
-  top: 8px;
-  width: 3px;
-  height: 7px;
-  border-radius: 2px;
-  background: var(--ink-soft);
+  top: calc(4 * var(--u));
+  width: max(1px, calc(1.6 * var(--u)));
+  height: calc(4 * var(--u));
+  border-radius: 1px;
+  background: currentColor;
   translate: -50% 0;
   animation: wheel 2.2s var(--ease-in-out) infinite;
 }
 
+.smile {
+  position: absolute;
+  left: 50%;
+  top: calc(44 * var(--u));
+  width: calc(14 * var(--u));
+  height: calc(7 * var(--u));
+  translate: -50% 0;
+}
+
 .text {
-  font-size: 11.5px;
+  margin: calc(16 * var(--u)) 0 0;
+  padding-left: 0.26em;
+  font-family: var(--font-body);
+  font-size: max(10px, calc(10.5 * var(--u)));
   font-weight: 500;
-  line-height: 1.7;
+  line-height: calc(17 * var(--u));
   letter-spacing: 0.26em;
   text-align: center;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .chevron {
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+  margin-top: calc(-1 * var(--u));
   color: var(--blue);
   animation: nudge 2.2s var(--ease-in-out) infinite;
 }
@@ -48,7 +84,7 @@
     opacity: 1;
   }
   60% {
-    translate: -50% 8px;
+    translate: -50% calc(5 * var(--u));
     opacity: 0;
   }
 }

@@ -5,6 +5,7 @@ import { AgentSlot } from "./agents/AgentSlot";
 import { FacadeZone } from "./scenes/FacadeZone";
 import { LobbyZone } from "./scenes/LobbyZone";
 import { Surroundings } from "./scenes/Surroundings";
+import { Breeze } from "./vegetation/Plants";
 
 /**
  * The continuous world. Zones are laid out along −Z and share one floor, one sky and one light rig.
@@ -14,6 +15,7 @@ export function World() {
   return (
     <>
       <Surroundings />
+      <Breeze />
       <FacadeZone />
       <LobbyZone />
       {CASTING.map(({ zone, ...placement }) => (
