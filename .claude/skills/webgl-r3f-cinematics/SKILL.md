@@ -31,6 +31,22 @@ One world, metres, +Z = street, Z = 0 = glass façade, −Z = inside. Zones are 
 - Vegetation is GLB only (`npm run assets:plants`): sphere clusters are banned. Reuse 3–5 models with rotation,
   ±15 % scale and a hue shift; one shared breeze uniform drives the sway.
 - Bloom works on HDR values: keep `luminanceThreshold` ≈ 4, only emissive strips reach it.
+- three r186: a material without its own `envMap` gets `scene.environmentIntensity`, and its
+  `envMapIntensity` is **ignored**. Metals/glass that need their own reflection strength are listed
+  in `ENV_BOUND` (materials.ts) and receive the HDRI via `bindEnvironment` (Lighting).
+- The HDRI is an outdoor garden: indoor metal uses `steelInterior` (env ×0.6), otherwise frames mirror the sky.
+- No `anisotropy` on thin metal frames: under the low sun through the glazing it turns them into glowing bars.
+- A `roughnessMap` multiplies `roughness` (brushed map ≈ 0.47 → set 0.68 for ≈ 0.32 effective).
+- Curved geometries (Cylinder/Lathe) have 0–1 UVs: clone maps with `withRepeat`, or rebuild UVs in metres
+  (pots: arc length along the profile, circumference snapped to whole tiles).
+- Floor: drei's reflector *multiplies* albedo by (1 − mirror + reflection × mixStrength). Indoors the albedo
+  is lower with `mirror` 0.42 so reflections read; the plaza (z > 0) is patched brighter and additive.
+- Water (`water/WaterSurface.tsx`): three `Reflector` with a custom shader (its render only runs when the
+  water is drawn). Keep the water radius inside the coping, and objects 20 cm from a camera must not receive
+  the sun shadow (shadow-map texels show as a knit pattern).
+- Lobby material QA: `node scripts/lobby-crops.mjs --tag X [--debug]` (crops A–F vs ref 03 + clipping %).
+  In capture mode `window.__d2s.three` exposes `{ scene, gl }` for live probes (note: Lighting's useFrame
+  re-imposes light intensities every frame — toggle `visible` to test a light).
 
 ## Objects
 - `Block`/`FloorBlock`/`InstancedBoxes` share one unit box. Repeated items → instancing.

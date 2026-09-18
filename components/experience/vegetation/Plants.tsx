@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import { useExperience } from "@/lib/experience/store";
 import { boxGeometryMeters } from "../architecture/primitives";
-import { MATERIALS } from "../materials";
+import { MATERIALS, PLANTER_TILE } from "../materials";
 
 /**
  * Vegetation from optimised CC0 Poly Haven models (scripts/build-plants.mjs).
@@ -105,20 +105,35 @@ export function Breeze() {
   return null;
 }
 
-const potGeometry = new THREE.LatheGeometry(
-  [
-    new THREE.Vector2(0, 0),
-    new THREE.Vector2(0.88, 0),
-    new THREE.Vector2(0.94, 0.04),
-    new THREE.Vector2(1, 0.9),
-    new THREE.Vector2(1, 0.985),
-    new THREE.Vector2(0.985, 1),
-    new THREE.Vector2(0.93, 1),
-    new THREE.Vector2(0.93, 0.96),
-    new THREE.Vector2(0, 0.96),
-  ],
-  64,
-);
+/** Tapered pot with a thin, slightly rounded rim (unit radius × unit height). */
+const POT_PROFILE: [number, number][] = [
+  [0, 0], [0.88, 0], [0.94, 0.04], [1, 0.9], [1, 0.975], [0.99, 0.995], [0.975, 1],
+  [0.905, 1], [0.895, 0.99], [0.895, 0.93], [0, 0.93],
+];
+const potCache = new Map<string, THREE.LatheGeometry>();
+
+/**
+ * Pot geometry for a given size with UVs in metres: v follows the profile's arc length
+ * (no vertical stretch), u wraps the circumference over a whole number of tiles (no seam).
+ */
+function potGeometry(radius: number, height: number) {
+  const key = `${radius.toFixed(3)}|${height.toFixed(3)}`;
+  const cached = potCache.get(key);
+  if (cached) return cached;
+  const points = POT_PROFILE.map(([x, y]) => new THREE.Vector2(x * radius, y * height));
+  const segments = 72;
+  const g = new THREE.LatheGeometry(points, segments);
+  const lengths = [0];
+  for (let j = 1; j < points.length; j++) lengths.push(lengths[j - 1] + points[j].distanceTo(points[j - 1]));
+  const around = Math.max(1, Math.round((2 * Math.PI * radius) / PLANTER_TILE)) * PLANTER_TILE;
+  const uv = g.attributes.uv as THREE.BufferAttribute;
+  for (let i = 0; i <= segments; i++)
+    for (let j = 0; j < points.length; j++) uv.setXY(i * points.length + j, (i / segments) * around, lengths[j]);
+  uv.needsUpdate = true;
+  potCache.set(key, g);
+  return g;
+}
+
 const soilMaterial = new THREE.MeshStandardMaterial({ color: "#6f6458", roughness: 1 });
 
 interface PlanterProps {
@@ -130,20 +145,27 @@ interface PlanterProps {
   /** Plant height above the pot. */
   plantHeight?: number;
   square?: boolean;
+  /** Mineral (default) or satin ceramic. */
+  finish?: "stone" | "ceramic";
   seed?: number;
 }
 
-/** White satin planter + CC0 plant. */
-export function Planter({ position, kind, radius = 0.4, potHeight = 0.8, plantHeight = 1.2, square = false, seed = 1 }: PlanterProps) {
+/** Mineral or ceramic planter + CC0 plant, grounded by a soft contact shadow. */
+export function Planter({ position, kind, radius = 0.4, potHeight = 0.8, plantHeight = 1.2, square = false, finish = "stone", seed = 1 }: PlanterProps) {
+  const material = finish === "ceramic" ? MATERIALS.planterCeramic : MATERIALS.planterStone;
+  const shadow = square ? radius * 2.9 : radius * 2.75;
   return (
     <group position={position}>
+      <mesh material={MATERIALS.contactShadow} rotation-x={-Math.PI / 2} position-y={0.004} scale={[shadow, shadow, 1]} renderOrder={1}>
+        <planeGeometry args={[1, 1]} />
+      </mesh>
       {square ? (
-        <mesh geometry={boxGeometryMeters(radius * 2, potHeight, radius * 2)} material={MATERIALS.stone} position-y={potHeight / 2} castShadow receiveShadow />
+        <mesh geometry={boxGeometryMeters(radius * 2, potHeight, radius * 2)} material={material} position-y={potHeight / 2} castShadow receiveShadow />
       ) : (
-        <mesh geometry={potGeometry} material={MATERIALS.stone} scale={[radius, potHeight, radius]} castShadow receiveShadow />
+        <mesh geometry={potGeometry(radius, potHeight)} material={material} castShadow receiveShadow />
       )}
-      <mesh material={soilMaterial} rotation-x={-Math.PI / 2} position-y={potHeight * 0.965}>
-        {square ? <planeGeometry args={[radius * 1.86, radius * 1.86]} /> : <circleGeometry args={[radius * 0.93, 32]} />}
+      <mesh material={soilMaterial} rotation-x={-Math.PI / 2} position-y={potHeight * (square ? 0.965 : 0.945)}>
+        {square ? <planeGeometry args={[radius * 1.86, radius * 1.86]} /> : <circleGeometry args={[radius * 0.9, 32]} />}
       </mesh>
       <Plant kind={kind} position={[0, potHeight * 0.95, 0]} height={plantHeight} seed={seed} />
     </group>

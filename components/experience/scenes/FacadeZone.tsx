@@ -13,7 +13,7 @@ import { WallType } from "../architecture/WallType";
 import { SlidingDoors } from "../doors/SlidingDoors";
 import { MATERIALS } from "../materials";
 import { Planter, Plant } from "../vegetation/Plants";
-import { WaterSurface } from "../water/WaterSurface";
+import { PoolFloor, WaterSurface } from "../water/WaterSurface";
 
 const F = WORLD.facade;
 const P = WORLD.pool;
@@ -197,17 +197,33 @@ function Pool() {
       ].map(([x, y]) => new THREE.Vector2(x, y)),
     [],
   );
-  const geometry = useMemo(() => new THREE.LatheGeometry(profile, 160), [profile]);
+  const geometry = useMemo(() => {
+    // UVs in metres (Lathe UVs are 0–1): v = arc length along the profile, u = circumference.
+    const segments = 160;
+    const g = new THREE.LatheGeometry(profile, segments);
+    const lengths = [0];
+    for (let j = 1; j < profile.length; j++) lengths.push(lengths[j - 1] + profile[j].distanceTo(profile[j - 1]));
+    const around = 2 * Math.PI * P.outerR;
+    const uv = g.attributes.uv as THREE.BufferAttribute;
+    for (let i = 0; i <= segments; i++)
+      for (let j = 0; j < profile.length; j++) uv.setXY(i * profile.length + j, (i / segments) * around, lengths[j]);
+    uv.needsUpdate = true;
+    return g;
+  }, [profile]);
+  // Polished white marble coping (veined, no joints), same stone as the reception desk top.
   const material = useMemo(() => {
-    const m = MATERIALS.stone.clone();
+    const m = MATERIALS.deskStone.clone();
     m.side = THREE.DoubleSide;
     return m;
   }, []);
 
   return (
     <group name="pool" position={[P.center[0], 0, P.center[1]]}>
-      <mesh geometry={geometry} material={material} castShadow receiveShadow />
-      <WaterSurface radius={P.innerR - 0.02} y={P.water} />
+      {/* No received sun shadow: 20 cm from the p=0 camera, the shadow-map texels read as a knit pattern. */}
+      <mesh geometry={geometry} material={material} castShadow />
+      <PoolFloor radius={P.innerR - 0.005} y={0.018} />
+      {/* The water runs into the coping chamfer: no gap to see the basin floor through. */}
+      <WaterSurface radius={P.innerR + 0.01} y={P.water} />
     </group>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { MeshReflectorMaterial } from "@react-three/drei";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import * as THREE from "three";
 import { QUALITY } from "@/lib/experience/quality";
 import { useExperience } from "@/lib/experience/store";
@@ -58,11 +58,46 @@ export function SkyDome({ radius = 180 }: { radius?: number }) {
   );
 }
 
+/**
+ * The floor is one plane from the plaza to the lobby. Its albedo and `mirror` blend are tuned
+ * for the interior (reflections must read against a slightly darker stone); outside, in full
+ * sun, that would turn the paving grey. The plaza side (z > 0) gets a brighter albedo and a
+ * purely additive reflection, blending across the threshold.
+ */
+const PLAZA_ALBEDO_GAIN = 1.3;
+
+function patchFloorZones(material: THREE.MeshStandardMaterial | null) {
+  if (!material || material.userData.zonePatched) return;
+  material.userData.zonePatched = true;
+  const base = material.onBeforeCompile.bind(material);
+  material.onBeforeCompile = (shader, renderer) => {
+    base(shader, renderer);
+    shader.vertexShader = `varying float vFloorZ;\n${shader.vertexShader}`.replace(
+      "#include <begin_vertex>",
+      "#include <begin_vertex>\n  vFloorZ = (modelMatrix * vec4(position, 1.0)).z;",
+    );
+    shader.fragmentShader = `varying float vFloorZ;\n${shader.fragmentShader}`.replace(
+      "#include <map_fragment>",
+      `#include <map_fragment>
+      float plazaK = smoothstep(-0.2, 1.8, vFloorZ);
+      diffuseColor.rgb *= mix(1.0, ${PLAZA_ALBEDO_GAIN.toFixed(2)}, plazaK);`,
+    );
+    // drei's reflector blend (MeshReflectorMaterial.js): no mirror term on the plaza.
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "((1.0 - min(1.0, mirror)) + newMerge.rgb * mixStrength)",
+      "((1.0 - min(1.0, mirror * (1.0 - plazaK))) + newMerge.rgb * mixStrength)",
+    );
+  };
+  material.customProgramCacheKey = () => "floor-zones";
+  material.needsUpdate = true;
+}
+
 /** Gradient sky dome + continuous polished floor shared by every zone. */
 export function Surroundings() {
   const reflections = useExperience((s) => QUALITY[s.quality].reflections);
   const { halfWidth, depth } = WORLD.plaza;
   const maps = useMemo(() => createFloorMaps(halfWidth * 2, depth + 40), [halfWidth, depth]);
+  const floorRef = useCallback((m: THREE.MeshStandardMaterial | null) => patchFloorZones(m), []);
   return (
     <>
       <SkyDome />
@@ -71,22 +106,21 @@ export function Surroundings() {
         <planeGeometry args={[halfWidth * 2, depth + 40]} />
         {reflections ? (
           <MeshReflectorMaterial
+            ref={floorRef}
             {...maps}
-            color="#f7f7f6"
-            roughness={0.26}
+            color="#c8cacb"
+            roughness={0.2}
             metalness={0}
-            normalScale={new THREE.Vector2(0.14, 0.14)}
-            envMapIntensity={0.9}
             resolution={1024}
-            blur={[520, 180]}
-            mixBlur={1.1}
-            mixStrength={0.42}
+            blur={[300, 90]}
+            mixBlur={6}
+            mixStrength={0.95}
             mixContrast={1}
-            depthScale={1.1}
-            minDepthThreshold={0.25}
-            maxDepthThreshold={1.5}
+            depthScale={0.9}
+            minDepthThreshold={0.4}
+            maxDepthThreshold={1.25}
             reflectorOffset={0.004}
-            mirror={0}
+            mirror={0.42}
           />
         ) : (
           <primitive object={MATERIALS.floor} attach="material" />

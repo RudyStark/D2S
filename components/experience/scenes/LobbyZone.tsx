@@ -8,6 +8,7 @@ import { LogoMesh } from "../architecture/LogoMesh";
 import { Stele } from "../architecture/Stele";
 import { WallType } from "../architecture/WallType";
 import { MATERIALS } from "../materials";
+import { getSpillTexture } from "../textures";
 import { Sofa, CoffeeTable } from "../furniture/Lounge";
 import { Plant, Planter } from "../vegetation/Plants";
 
@@ -61,7 +62,7 @@ function Shell() {
           <Block material={MATERIALS.plasterWarm} position={[s * HW, 0.06, BACK / 2]} size={[0.3, 0.12, -BACK]} castShadow={false} />
         </group>
       ))}
-      <InstancedBoxes items={sideMullions} material={MATERIALS.steel} castShadow />
+      <InstancedBoxes items={sideMullions} material={MATERIALS.steelInterior} castShadow />
       <Block material={MATERIALS.plasterWarm} position={[0, L.ceiling / 2, BACK - 0.2]} size={[HW * 2, L.ceiling, 0.4]} />
       <InstancedBoxes items={spots} material={MATERIALS.coolLight} />
       <InstancedBoxes items={coves} material={MATERIALS.coveLight} />
@@ -88,20 +89,21 @@ function Columns() {
 
 function Reception() {
   const { desk, drum } = L;
-  const body = useArcGeometry(desk.innerR, desk.outerR, desk.halfAngle, desk.height - 0.1);
+  const body = useArcGeometry(desk.innerR, desk.outerR, desk.halfAngle, desk.height - 0.1, 64, 0.012);
   const plinth = useArcGeometry(desk.innerR + 0.12, desk.outerR - 0.12, desk.halfAngle - 0.015, 0.1);
-  const top = useArcGeometry(desk.innerR - 0.07, desk.outerR + 0.06, desk.halfAngle + 0.014, 0.05);
+  const top = useArcGeometry(desk.innerR - 0.07, desk.outerR + 0.075, desk.halfAngle + 0.016, 0.085, 64, 0.012);
   const glow = useArcGeometry(desk.outerR - 0.12, desk.outerR + 0.005, desk.halfAngle - 0.01, 0.05);
-  const spill = useArcGeometry(desk.outerR - 0.1, desk.outerR + 1.5, desk.halfAngle + 0.03, 0.004);
   const reveal = useArcGeometry(desk.innerR - 0.02, desk.outerR + 0.02, desk.halfAngle + 0.006, 0.05);
   const platform = useArcGeometry(drum.radius, desk.innerR, desk.halfAngle + 0.25, 0.45);
   const drumFront = drum.centerZ + drum.radius;
+  // Warm, local, diffuse spill: a soft ellipse, never a flat additive band.
   const floorGlow = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
-        color: "#ffcf9a",
+        color: "#ffd9b0",
+        alphaMap: getSpillTexture(),
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.09,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         toneMapped: false,
@@ -112,8 +114,9 @@ function Reception() {
   return (
     <group name="reception">
       {/* Feature drum */}
-      <mesh material={MATERIALS.lacquer} position={[0, drum.height / 2, drum.centerZ]} castShadow receiveShadow>
-        <cylinderGeometry args={[drum.radius, drum.radius, drum.height, 96]} />
+      {/* thetaStart = π puts the UV seam at the back of the drum */}
+      <mesh material={MATERIALS.featurePlaster} position={[0, drum.height / 2, drum.centerZ]} castShadow receiveShadow>
+        <cylinderGeometry args={[drum.radius, drum.radius, drum.height, 128, 1, false, Math.PI, Math.PI * 2]} />
       </mesh>
       {/* Ceiling recess + warm cove around the drum */}
       <mesh material={MATERIALS.plasterWarm} position={[0, L.ceiling - 0.14, drum.centerZ]} rotation-x={Math.PI / 2}>
@@ -128,8 +131,10 @@ function Reception() {
       {/* Curved type: position is the drum axis, the geometry wraps at curveRadius. */}
       <WallType
         lines={["DES AGENTS IA", "POUR UN MONDE", "PLUS AMBITIEUX."]}
-        position={[0, 5.02, drum.centerZ]}
-        size={0.16}
+        position={[0, 5.04, drum.centerZ]}
+        size={0.17}
+        weight={600}
+        color="#4f5878"
         align="center"
         dash={false}
         curveRadius={drum.radius + 0.012}
@@ -137,21 +142,23 @@ function Reception() {
 
       {/* Curved desk */}
       <group position={[0, 0, desk.centerZ]}>
-        {/* White lacquer shell on a recessed, back-lit plinth */}
-        <mesh geometry={body} material={MATERIALS.lacquer} position-y={0.1} castShadow receiveShadow />
-        <mesh geometry={plinth} material={MATERIALS.plasterWarm} receiveShadow />
-        <mesh geometry={reveal} material={MATERIALS.steelDark} position-y={desk.height - 0.055} />
-        <mesh geometry={top} material={MATERIALS.stone} position-y={desk.height} castShadow receiveShadow />
-        {/* Warm light line under the counter and its spill on the floor */}
-        <mesh geometry={glow} material={MATERIALS.coveLight} position-y={0.04} />
-        <mesh geometry={spill} material={floorGlow} position-y={0.002} renderOrder={1} />
+        {/* Satin solid-surface body on a recessed matte plinth; marble top over a dark reveal */}
+        <mesh geometry={body} material={MATERIALS.solidSurface} position-y={0.1} castShadow receiveShadow />
+        <mesh geometry={plinth} material={MATERIALS.plinth} receiveShadow />
+        <mesh geometry={reveal} material={MATERIALS.darkSatin} position-y={desk.height - 0.055} />
+        <mesh geometry={top} material={MATERIALS.deskStone} position-y={desk.height} castShadow receiveShadow />
+        {/* Warm light line under the counter and its soft spill on the floor */}
+        <mesh geometry={glow} material={MATERIALS.deskGlow} position-y={0.04} />
       </group>
+      <mesh material={floorGlow} rotation-x={-Math.PI / 2} position={[0, 0.003, desk.centerZ + desk.outerR + 0.15]} scale={[1, 0.34, 1]} renderOrder={1}>
+        <planeGeometry args={[7, 7]} />
+      </mesh>
 
       {/* Laptop, lid facing the visitor */}
       <group position={[0.62, desk.height + 0.045, desk.centerZ + desk.innerR + 0.18]} rotation-y={0.12}>
-        <Block material={MATERIALS.steel} position={[0, 0.008, 0]} size={[0.36, 0.016, 0.25]} castShadow={false} />
+        <Block material={MATERIALS.steelInterior} position={[0, 0.008, 0]} size={[0.36, 0.016, 0.25]} castShadow={false} />
         <group position={[0, 0.016, 0.12]} rotation-x={0.28}>
-          <Block material={MATERIALS.steel} position={[0, 0.12, 0]} size={[0.36, 0.24, 0.012]} castShadow={false} />
+          <Block material={MATERIALS.steelInterior} position={[0, 0.12, 0]} size={[0.36, 0.24, 0.012]} castShadow={false} />
         </group>
       </group>
       <Block material={MATERIALS.steelDark} position={[-0.9, desk.height + 0.145, desk.centerZ + desk.innerR + 0.2]} size={[0.14, 0.2, 0.1]} castShadow={false} />
@@ -217,7 +224,7 @@ function Offices() {
           ))}
         </group>
       ))}
-      <InstancedBoxes items={partitions} material={MATERIALS.steel} />
+      <InstancedBoxes items={partitions} material={MATERIALS.steelInterior} />
     </group>
   );
 }
@@ -235,22 +242,22 @@ export function LobbyZone() {
 
       <Planter position={[-4.1, 0, -15.3]} kind="tropical" radius={0.46} potHeight={0.85} plantHeight={1.4} seed={11} />
       <Planter position={[4.1, 0, -15.3]} kind="tropical" radius={0.46} potHeight={0.85} plantHeight={1.5} seed={12} />
-      <Planter position={[-5.9, 0, -18.6]} kind="pachira_a" radius={0.55} potHeight={1} plantHeight={2.3} seed={13} />
-      <Planter position={[5.9, 0, -18.6]} kind="pachira_b" radius={0.55} potHeight={1} plantHeight={2.2} seed={14} />
+      <Planter position={[-5.9, 0, -18.6]} kind="pachira_a" radius={0.55} potHeight={1} plantHeight={2.3} finish="ceramic" seed={13} />
+      <Planter position={[5.9, 0, -18.6]} kind="pachira_b" radius={0.55} potHeight={1} plantHeight={2.2} finish="ceramic" seed={14} />
       <Planter position={[-9.8, 0, -8.8]} kind="ficus" radius={0.6} potHeight={0.7} plantHeight={2.1} square seed={17} />
       <Planter position={[9.9, 0, -9.0]} kind="ficus" radius={0.6} potHeight={0.7} plantHeight={2} square seed={18} />
       <Planter position={[-6.9, 0, -5.4]} kind="tropical" radius={0.44} potHeight={0.85} plantHeight={1.3} seed={19} />
-      <Planter position={[7.2, 0, -12.8]} kind="pachira_a" radius={0.5} potHeight={0.9} plantHeight={2} seed={20} />
+      <Planter position={[7.2, 0, -12.8]} kind="pachira_a" radius={0.5} potHeight={0.9} plantHeight={2} finish="ceramic" seed={20} />
     </group>
   );
 }
 
 export const LOBBY_LIGHTS: { position: THREE.Vector3Tuple; intensity: number }[] = [
-  { position: [0, 5.2, -3.2], intensity: 40 },
-  { position: [0, 6.4, -14.2], intensity: 60 },
-  { position: [0, 2.6, -13.2], intensity: 18 },
-  { position: [-6.5, 6.2, -8.5], intensity: 34 },
-  { position: [6.5, 6.2, -8.5], intensity: 34 },
-  { position: [-6, 6.2, -20], intensity: 26 },
-  { position: [6, 6.2, -20], intensity: 26 },
+  { position: [0, 5.4, -3.2], intensity: 11 },
+  { position: [0, 6.6, -13.6], intensity: 15 },
+  { position: [0, 2.8, -12.4], intensity: 4 },
+  { position: [-6.5, 6.4, -8.5], intensity: 10 },
+  { position: [6.5, 6.4, -8.5], intensity: 10 },
+  { position: [-6, 6.4, -20], intensity: 8 },
+  { position: [6, 6.4, -20], intensity: 8 },
 ];

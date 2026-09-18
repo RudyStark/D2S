@@ -18,6 +18,7 @@ export function PostEffects() {
   const quality = useExperience((s) => s.quality);
   const settings = QUALITY[quality];
   const gl = useThree((s) => s.gl);
+  const debugMaterials = useExperience((s) => s.debugMaterials);
 
   useLayoutEffect(() => {
     gl.toneMapping = settings.postprocessing ? THREE.NoToneMapping : THREE.NeutralToneMapping;
@@ -34,9 +35,9 @@ export function PostEffects() {
           ref={(pass: { configuration: { gammaCorrection: boolean } } | null) => {
             if (pass) pass.configuration.gammaCorrection = false;
           }}
-          aoRadius={1.6}
-          distanceFalloff={1}
-          intensity={2.4}
+          aoRadius={0.55}
+          distanceFalloff={0.4}
+          intensity={1.4}
           quality="medium"
           halfRes
           color="#3a3f55"
@@ -44,7 +45,7 @@ export function PostEffects() {
       ) : (
         <></>
       )}
-      {settings.bloom ? <Bloom mipmapBlur luminanceThreshold={4} luminanceSmoothing={0.3} intensity={0.22} radius={0.6} /> : <></>}
+      {settings.bloom && !debugMaterials ? <Bloom mipmapBlur luminanceThreshold={1.8} luminanceSmoothing={0.35} intensity={0.16} radius={0.55} /> : <></>}
       <ToneMapping mode={ToneMappingMode.NEUTRAL} />
       <SMAA />
     </EffectComposer>

@@ -154,3 +154,9 @@ svg {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* ?debugMaterials=1 — inspect the 3D materials without any DOM layer on top. */
+html[data-debug-materials] main section,
+html[data-debug-materials] header {
+  visibility: hidden;
+}

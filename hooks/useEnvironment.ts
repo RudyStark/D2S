@@ -13,6 +13,7 @@ const TIERS: QualityTier[] = ["high", "medium", "low"];
  *   ?p=0.45        freeze the sequence at a progress value
  *   ?quality=low   force a tier (also disables auto-downgrade)
  *   ?capture=1     visual tests: no auto-downgrade, exposes window.__d2s
+ *   ?debugMaterials=1  materials only: no agents, no bloom, no DOM overlays
  */
 export function useEnvironment() {
   useEffect(() => {
@@ -34,6 +35,9 @@ export function useEnvironment() {
     const capture = params.get("capture") === "1";
     const forcedQuality = params.get("quality") as QualityTier | null;
     store.setDebug(debug);
+    const debugMaterials = params.get("debugMaterials") === "1";
+    store.setDebugMaterials(debugMaterials);
+    document.documentElement.toggleAttribute("data-debug-materials", debugMaterials);
     store.setLockQuality(debug || capture || !!forcedQuality);
     store.setQuality(forcedQuality && TIERS.includes(forcedQuality) ? forcedQuality : detectQualityTier());
     store.setWebgl(hasWebGL2() ? "ok" : "unavailable");

@@ -4,7 +4,7 @@ import { use, useLayoutEffect, useMemo } from "react";
 import * as THREE from "three";
 import { COLORS } from "@/lib/brand";
 
-const FONT_URL = "/fonts/montserrat-500.woff";
+const FONTS = { 500: "/fonts/montserrat-500.woff", 600: "/fonts/montserrat-600.woff" } as const;
 const FAMILY = "D2SWallType";
 /** Canvas resolution, pixels per metre. */
 const PPM = 1100;
@@ -12,11 +12,14 @@ const PPM = 1100;
 let fontPromise: Promise<void> | null = null;
 function loadFont() {
   if (!fontPromise) {
-    fontPromise = new FontFace(FAMILY, `url(${FONT_URL})`, { weight: "500" })
-      .load()
-      .then((face) => {
-        document.fonts.add(face);
-      })
+    fontPromise = Promise.all(
+      Object.entries(FONTS).map(([weight, url]) =>
+        new FontFace(FAMILY, `url(${url})`, { weight }).load().then((face) => {
+          document.fonts.add(face);
+        }),
+      ),
+    )
+      .then(() => undefined)
       .catch(() => undefined);
   }
   return fontPromise;
@@ -36,6 +39,7 @@ interface WallTypeProps {
   curveRadius?: number;
   tracking?: number;
   lineHeight?: number;
+  weight?: 500 | 600;
 }
 
 /**
@@ -54,6 +58,7 @@ export function WallType({
   curveRadius,
   tracking = 0.28,
   lineHeight = 2.05,
+  weight = 500,
 }: WallTypeProps) {
   use(loadFont());
 
@@ -62,7 +67,7 @@ export function WallType({
     const pitch = px * lineHeight;
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d")!;
-    const font = `500 ${px}px ${FAMILY}, Montserrat, sans-serif`;
+    const font = `${weight} ${px}px ${FAMILY}, Montserrat, sans-serif`;
     ctx.font = font;
     ctx.letterSpacing = `${tracking * px}px`;
     const widths = lines.map((l) => ctx.measureText(l).width - tracking * px);
@@ -88,7 +93,7 @@ export function WallType({
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 8;
     return { texture: t, width: canvas.width / PPM, height: canvas.height / PPM, pad: pad / PPM };
-  }, [lines, size, color, dash, align, tracking, lineHeight]);
+  }, [lines, size, color, dash, align, tracking, lineHeight, weight]);
 
   const material = useMemo(
     () =>

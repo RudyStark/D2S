@@ -111,7 +111,7 @@ export function InstancedBoxes({
 }
 
 /** Horizontal ring sector (desk bodies, curved benches) extruded upwards. */
-export function useArcGeometry(innerR: number, outerR: number, halfAngle: number, height: number, segments = 48) {
+export function useArcGeometry(innerR: number, outerR: number, halfAngle: number, height: number, segments = 48, bevel = 0) {
   const geometry = useMemo(() => {
     const shape = new THREE.Shape();
     // Arc centred on −Z so the convex side faces +Z (towards the entrance).
@@ -120,13 +120,21 @@ export function useArcGeometry(innerR: number, outerR: number, halfAngle: number
     shape.absarc(0, 0, outerR, a0, a1, false);
     shape.absarc(0, 0, innerR, a1, a0, true);
     shape.closePath();
-    const g = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false, curveSegments: segments });
+    // A few millimetres of bevel break the perfectly mathematical edges (reads as real joinery).
+    const g = new THREE.ExtrudeGeometry(shape, {
+      depth: height - bevel * 2,
+      bevelEnabled: bevel > 0,
+      bevelSize: bevel,
+      bevelThickness: bevel,
+      bevelSegments: 3,
+      curveSegments: segments,
+    });
     // Shape lives in XY (+Y = entrance side). Rotating +90° about X maps Y→Z and the
     // extrusion to −Y; lifting by `height` puts the body on the floor. Winding is preserved.
     g.rotateX(Math.PI / 2);
-    g.translate(0, height, 0);
+    g.translate(0, height - bevel, 0);
     return g;
-  }, [innerR, outerR, halfAngle, height, segments]);
+  }, [innerR, outerR, halfAngle, height, segments, bevel]);
 
   useLayoutEffect(() => () => geometry.dispose(), [geometry]);
   return geometry;

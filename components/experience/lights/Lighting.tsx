@@ -1,16 +1,28 @@
 "use client";
 
 import { Environment } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { QUALITY } from "@/lib/experience/quality";
 import { frame, useExperience } from "@/lib/experience/store";
 import { beatEased } from "@/lib/experience/timeline";
 import { lerp } from "@/lib/math";
+import { bindEnvironment } from "../materials";
 import { LOBBY_LIGHTS } from "../scenes/LobbyZone";
 
 const SUN_OFFSET = new THREE.Vector3(-15, 21, 17);
+
+/** Large diffuse ceiling panels over the lobby: soft top-down gradients that reveal relief. */
+const CEILING_PANELS: { position: THREE.Vector3Tuple; size: [number, number]; intensity: number }[] = [
+  { position: [0, 7.1, -12.2], size: [7, 4.5], intensity: 3.2 },
+  { position: [-6.2, 7.1, -9], size: [4.5, 7], intensity: 2.4 },
+  { position: [6.2, 7.1, -9], size: [4.5, 7], intensity: 2.4 },
+  { position: [0, 7.1, -5], size: [8, 3.5], intensity: 2.2 },
+];
+
+let areaLightsReady = false;
 const SKY_DAY = new THREE.Color("#e6f0ff");
 const SKY_WARM = new THREE.Color("#fffaf4");
 const GROUND_DAY = new THREE.Color("#f4f1ec");
@@ -27,6 +39,11 @@ export function Lighting() {
   const hemi = useRef<THREE.HemisphereLight>(null);
   const interior = useRef<THREE.Group>(null);
   const target = useMemo(() => new THREE.Object3D(), []);
+  const panels = useRef<THREE.Group>(null);
+  if (!areaLightsReady && typeof window !== "undefined") {
+    RectAreaLightUniformsLib.init();
+    areaLightsReady = true;
+  }
 
   useLayoutEffect(() => {
     const light = sun.current;
@@ -45,33 +62,57 @@ export function Lighting() {
     light.shadow.needsUpdate = true;
   }, [target, settings.shadowMapSize]);
 
+  // The HDRI loads asynchronously: bind it to the materials that scale their own reflections.
+  const scene = useThree((s) => s.scene);
+  const boundEnv = useRef<THREE.Texture | null>(null);
+
   useFrame(() => {
+    if (scene.environment && scene.environment !== boundEnv.current) {
+      boundEnv.current = scene.environment;
+      bindEnvironment(scene);
+    }
     const k = beatEased(frame.progress, "lightShift");
-    if (sun.current) sun.current.intensity = lerp(3.5, 2.9, k);
+    if (sun.current) sun.current.intensity = lerp(2.6, 1.9, k);
     if (hemi.current) {
-      hemi.current.intensity = lerp(1.35, 2.1, k);
+      hemi.current.intensity = lerp(0.6, 0.95, k);
       hemi.current.color.copy(SKY_DAY).lerp(SKY_WARM, k);
       hemi.current.groundColor.copy(GROUND_DAY).lerp(GROUND_WARM, k);
     }
     interior.current?.children.forEach((child, i) => {
       (child as THREE.PointLight).intensity = LOBBY_LIGHTS[i].intensity * lerp(0.45, 1, k);
     });
+    panels.current?.children.forEach((child, i) => {
+      (child as THREE.RectAreaLight).intensity = CEILING_PANELS[i].intensity * lerp(0.5, 1, k);
+    });
   });
 
   return (
     <>
       <primitive object={target} />
-      <hemisphereLight ref={hemi} args={[SKY_DAY, GROUND_DAY, 1.05]} />
+      <hemisphereLight ref={hemi} args={[SKY_DAY, GROUND_DAY, 0.55]} />
       <directionalLight
         ref={sun}
         color="#fff2e0"
-        intensity={3.5}
+        intensity={2.6}
         castShadow={settings.shadows}
         shadow-mapSize={[settings.shadowMapSize, settings.shadowMapSize]}
         shadow-bias={-0.0003}
         shadow-normalBias={0.035}
         shadow-radius={4}
       />
+      <group ref={panels}>
+        {CEILING_PANELS.map((p, i) => (
+          <rectAreaLight
+            key={i}
+            position={p.position}
+            width={p.size[0]}
+            height={p.size[1]}
+            intensity={p.intensity}
+            color="#fff6ec"
+            rotation-x={-Math.PI / 2}
+          />
+        ))}
+      </group>
       <group ref={interior}>
         {LOBBY_LIGHTS.map((l, i) => (
           <pointLight key={i} position={l.position} color="#fff0e0" intensity={l.intensity} distance={22} decay={2} />
@@ -82,7 +123,7 @@ export function Lighting() {
         CC0 HDRI (Poly Haven, borghese_gardens 1k): blue sky, Mediterranean trees and a warm ground —
         it is what the glass, the steel and the water reflect. Background stays our gradient sky.
       */}
-      <Environment files="/hdri/borghese_gardens_1k.hdr" environmentIntensity={0.55} environmentRotation={[0, 2.4, 0]} />
+      <Environment files="/hdri/borghese_gardens_1k.hdr" environmentIntensity={0.95} environmentRotation={[0, 2.4, 0]} />
     </>
   );
 }

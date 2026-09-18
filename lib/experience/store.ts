@@ -15,6 +15,8 @@ interface ExperienceState {
   debug: boolean;
   /** Visual tests / debug: keep the requested tier, never auto-downgrade. */
   lockQuality: boolean;
+  /** ?debugMaterials=1 — no agents, no bloom, no DOM overlays: materials only. */
+  debugMaterials: boolean;
   setReady: (ready: boolean) => void;
   setWebgl: (webgl: ExperienceState["webgl"]) => void;
   setProfile: (profile: CameraProfile) => void;
@@ -22,6 +24,7 @@ interface ExperienceState {
   setReducedMotion: (reducedMotion: boolean) => void;
   setDebug: (debug: boolean) => void;
   setLockQuality: (lockQuality: boolean) => void;
+  setDebugMaterials: (debugMaterials: boolean) => void;
 }
 
 export const useExperience = create<ExperienceState>((set) => ({
@@ -32,6 +35,7 @@ export const useExperience = create<ExperienceState>((set) => ({
   reducedMotion: false,
   debug: false,
   lockQuality: false,
+  debugMaterials: false,
   setReady: (ready) => set({ ready }),
   setWebgl: (webgl) => set({ webgl }),
   setProfile: (profile) => set({ profile }),
@@ -39,6 +43,7 @@ export const useExperience = create<ExperienceState>((set) => ({
   setReducedMotion: (reducedMotion) => set({ reducedMotion }),
   setDebug: (debug) => set({ debug }),
   setLockQuality: (lockQuality) => set({ lockQuality }),
+  setDebugMaterials: (debugMaterials) => set({ debugMaterials }),
 }));
 
 export interface ScreenAnchor {
