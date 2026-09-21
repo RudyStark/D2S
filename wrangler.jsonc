@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Must match the Worker name in the Cloudflare dashboard (Workers Builds deploys to it).
+  "name": "d2s",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-21",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  // No WORKER_SELF_REFERENCE (only used for ISR revalidation, which the site does not use)
+  // and no IMAGES binding (next/image is not used).
+  "observability": {
+    "enabled": true
+  }
+}

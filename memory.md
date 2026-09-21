@@ -10,8 +10,9 @@ Fichier tenu à jour à la main. Chargé automatiquement via `CLAUDE.md`. Mettre
 - Ne pas refaire layout / caméra / scroll / positions d'agents / DOM sans demande explicite.
 - Agents = PNG 2.5D temporaires derrière `<AgentSlot type=… />` (GLB riggés plus tard) — **ne pas régénérer les PNG**.
 - Pas d'assets douteux : CC0 uniquement (Poly Haven), pas de téléchargement massif.
-- **Mobile gelé (19/09)** : le mobile aura un autre design → ne plus faire de modifs ni de QA mobile tant que
-  l'utilisateur ne le demande pas. Desktop uniquement.
+- **Version mobile (21/09) : faite par ChatGPT, NE PAS LA MODIFIER** (`components/mobile/`, `AdaptiveHome`,
+  `tests/mobile/`, `design/MOBILE.md`). Claude travaille sur le desktop uniquement, sans QA mobile, sauf
+  demande explicite. Voir la section « Version mobile 2D ».
 
 ## Projet
 Site immersif de D2S Studio (agence IA) : un seul monde 3D continu traversé au scroll.
@@ -260,7 +261,7 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   bénéfices en bandeau teinté (3 colonnes) au pied. Mobile : panneau simple inchangé.
 
 ## Sections sous l'accueil (sans 3D) : Services puis Agents
-- Ordre : piste 3D → `ServicesSection` → `AgentsSection` (app/page.tsx). Le lobby reste derrière, flouté par le
+- Ordre : piste 3D → `ServicesSection` → `AgentsSection` (`components/home/DesktopHome.tsx` depuis le 21/09). Le lobby reste derrière, flouté par le
   voile fixe `.backdrop` de Services (opacité = `frame.services`, 0 → 1 à l'arrivée de la section).
 - Contenu dans `lib/services.ts` (textes réécrits à partir du brief client, décision du 19/09) :
   · Services = l'offre. Intro « L'IA qui s'adapte à vous, pas l'inverse. » ; service 01 « Agents IA Plug & Play »
@@ -378,30 +379,55 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   (`castShadow={zone === "facade"}` dans World). Coût mesuré : ~4 % FPS à p=1, ~7 % à p=0.
 - Sources originales gardées dans `.cache/agents/<type>.source.glb` (gitignoré) pour reconstruire.
 
+## Version mobile 2D (21/09) — faite par ChatGPT, ne pas modifier
+- Arrivée sur `main` par ccc448b (« feat: ajouter l'expérience mobile 2D ») + merge f398893, tirés le 21/09.
+  Développée sur une branche `mobile` partie de 581dd1c. Doc complète : `design/MOBILE.md`.
+- Aiguillage : `app/page.tsx` = `<StructuredData />` + `<AdaptiveHome />` (`components/home/`).
+  `AdaptiveHome` teste `(max-width: 1024px)` : ≤ 1024 px → `MobileHome` ; > 1024 px → `DesktopHome` en import
+  dynamique `ssr: false` (écran « Chargement de l'agence » neutre en attendant). Le HTML pré-rendu (celui que
+  lisent les robots et le noscript) est donc le MOBILE.
+- ⚠️ Conséquences pour le travail desktop :
+  · La composition de l'accueil desktop (Header, ExperienceRoot, overlays, sections Services → Contact) est
+    maintenant dans `components/home/DesktopHome.tsx`, plus dans `app/page.tsx`.
+  · Les règles `@media (max-width: 1024px)` des composants desktop ne s'affichent plus sur l'accueil.
+  · Modules PARTAGÉS avec le mobile (toute modif s'y répercute, garder leurs formes/exports) :
+    `lib/team`, `lib/services`, `lib/diagnostic`, `lib/site` (FAQ), `lib/contact-content`, `lib/legal`,
+    `components/ui/Logo`, `components/ui/Icons`, `hooks/useInView`, `components/overlays/AgentDemos`
+    (chargé à la demande dans `MobileAgentDialog`), et l'API `/api/contact`.
+  · Le mobile n'importe ni le director, ni le store 3D, ni R3F : ne jamais y ajouter de dépendance 3D.
+- Contenu mobile : scroll natif, accueil → mission / May → services / méthode → 5 agents → diagnostic → FAQ →
+  contact ; menu et fiches en `<dialog>` ; portraits WebP 2D d'origine ; même formulaire et même API.
+- Tests mobiles : `npx playwright test -c playwright.mobile.config.ts` (`tests/mobile/home.spec.ts`,
+  11 scénarios, 320 → 1024 px ; annoncés au vert par ChatGPT, pas relancés par Claude).
+
+## Déploiement Cloudflare Workers (21/09)
+- Hébergement choisi par l'utilisateur : Cloudflare Workers Builds, relié au dépôt GitHub (branche `main`), Worker
+  nommé **`d2s`**. Réglages du tableau de bord : build `npm run build`, deploy `npx wrangler deploy` (inchangés).
+- 1er échec : sans config dans le dépôt, wrangler lançait `@opennextjs/cloudflare migrate` à la volée, qui ajoutait
+  un binding `WORKER_SELF_REFERENCE` vers « d2s-studio-site » (nom du package.json) → Worker introuvable (10143).
+- Config versionnée : `wrangler.jsonc` (name `d2s`, main `.open-next/worker.js`, assets `.open-next/assets`,
+  `nodejs_compat`, SANS self-reference ni IMAGES : pas d'ISR ni de next/image), `open-next.config.ts` (cache
+  incrémental = static assets, lecture seule : toutes les pages sont prérendues), `public/_headers` (cache
+  immuable de `/_next/static`). `@opennextjs/cloudflare` 1.20.6 + `wrangler` 4.136.1 en devDependencies exactes.
+- Scripts : `build` = `opennextjs-cloudflare build` (qui appelle `build:next` = `next build`, précédé du
+  manifeste d'assets via `prebuild:next`) ; `preview` (workerd local, port 8787, config `d2s-cloudflare` du
+  launch.json) ; `deploy`. `wrangler deploy` détecte `open-next.config.ts` et délègue à `opennextjs-cloudflare
+  deploy` (qui remplit le cache dans les assets) — il ne construit rien : le build doit avoir produit `.open-next`.
+- ⚠️ PIÈGE : `enableCacheInterception: true` casse Next 16 — les préchargements par segment
+  (`next-router-segment-prefetch: /_tree`) recevaient la page entière → le client re-préchargeait en boucle
+  (des dizaines de milliers de requêtes `/?_rsc=`). Laisser l'option désactivée.
+- API contact : IP lue d'abord dans `cf-connecting-ip` (x-forwarded-for est falsifiable derrière Cloudflare).
+- Vérifié en local (workerd) : pages, 308, 404, en-têtes/CSP, cache HIT, `/api/contact` (415, 422, 503 sans
+  webhook), 3D façade + lobby en desktop, plus de boucle ; `wrangler deploy --dry-run` OK (1,39 Mo gzip, sous la
+  limite de 3 Mo du plan gratuit). En local, les curl avec en-tête Origin prennent un 400 du proxy wrangler dev
+  (normal) ; le préchargement de `/nos-services` échoue en http local (redirection upgradée en https par la CSP).
+- Variables Cloudflare à renseigner : `NEXT_PUBLIC_SITE_URL` = variable de BUILD (lue au build : canonical, OG,
+  sitemap) ; `CONTACT_WEBHOOK_URL` = variable/secret du Worker (runtime).
+
 ## En cours / à faire
-- 21/09/2026 — **Mobile demandé par l'utilisateur**, fin du gel mobile précédent. Branche dédiée
-  `mobile` depuis `581dd1c4f8239e8783bc0298ba1def701344dbb2` ; `main` reste inchangée.
-  Maquette image présentée avant le code. `AdaptiveHome` choisit le parcours au seuil de 1024 px :
-  mobile pré-rendu, desktop chargé dynamiquement seulement au-dessus. `DesktopHome` conserve la
-  composition précédente ; aucun changement des composants/styles desktop, du director, des caméras
-  ou des assets 3D. Données structurées conservées dans la page serveur.
-- Mobile : `components/mobile/`, scroll natif avec apparitions légères et réduction des animations,
-  logo/couleurs/typos existants, portraits WebP 2D d'origine. Accueil → mission/May → services/méthode
-  → cinq agents → diagnostic → FAQ → contact. Menu et fiches en `<dialog>`, navigation au clavier,
-  démonstrations DOM à la demande. Classement RH de Diva empilé dans un wrapper mobile uniquement.
-  Diagnostic partagé (`lib/diagnostic.ts`), résumé transmis et retirable, besoin pré-sélectionné depuis
-  les agents, question à May transmise au contact. API contact inchangée ; erreur = saisie conservée.
-- QA mobile : les 11 scénarios Playwright ont passé (suite initiale puis relance des trois attentes
-  de test corrigées ; démonstrations des cinq agents revalidées à 320 px). Six largeurs 320–1024 px,
-  sans débordement horizontal, sans canvas, appel WebGL ni téléchargement de modèle/texture 3D.
-  Formulaire testé avec réponses HTTP interceptées, sans envoyer de demande réelle. Captures revues
-  dans `design/captures/mobile-work/` (gitignoré) ; détails et commande dans `design/MOBILE.md`.
-  Les fontes de test sont fournies par Fontsource via Next/webpack (Google Fonts inaccessible ici),
-  sans changement de `app/layout.tsx`. TypeScript et build production webpack validés.
-  Desktop : sources préservées, géométrie DOM des sections
-  inchangée en mode de secours WebGL ; validation pixel complète de la scène GPU non concluante dans
-  cet environnement logiciel. Le formulaire production dépend toujours de `CONTACT_WEBHOOK_URL`.
 - Zones suivantes (services, réf 05) : à démarrer quand demandé.
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
 - 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
   contact, mission, marque D2S AIgency, menu, correctifs du rendu. Plus rien de non commité à cette date.
+- 581dd1c (poussé sur main, 21/09) : halo + « AI » animé en 3D, méthode pilotée par le scroll, RGPD
+  (pages légales), sécurité (en-têtes, API), SEO + IA (métadonnées, JSON-LD, FAQ, llms.txt, robots, sitemap).

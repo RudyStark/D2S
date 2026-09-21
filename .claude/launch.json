@@ -4,8 +4,25 @@
     {
       "name": "d2s-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "3217"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3217"
+      ],
       "port": 3217
+    },
+    {
+      "name": "d2s-cloudflare",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "opennextjs-cloudflare",
+        "preview",
+        "--port",
+        "8787"
+      ],
+      "port": 8787
     }
   ]
 }

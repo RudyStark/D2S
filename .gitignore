@@ -19,3 +19,9 @@ design/captures
 !.env.example
 .DS_Store
 *.log
+
+# Cloudflare (OpenNext / wrangler)
+.open-next
+.wrangler
+.dev.vars*
+!.dev.vars.example
