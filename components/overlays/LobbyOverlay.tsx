@@ -11,6 +11,7 @@ import { clamp, smootherstep } from "@/lib/math";
 import glass from "./Glass.module.css";
 import styles from "./LobbyOverlay.module.css";
 import { ScrollCue } from "./ScrollCue";
+import { AGENTS_ID } from "./AgentsSection";
 import { SERVICES_ID } from "./ServicesSection";
 
 /**
@@ -159,7 +160,18 @@ export function LobbyOverlay() {
             >
               Découvrir nos services
             </Button>
-            <Button href="/nos-agents-ia" variant="secondary" className={styles.wide}>
+            {/* Scroll on the page: following the link would redirect to "/" and remount the 3D world. */}
+            <Button
+              href={`/#${AGENTS_ID}`}
+              variant="secondary"
+              className={styles.wide}
+              onClick={(e) => {
+                const target = document.getElementById(AGENTS_ID);
+                if (!target) return;
+                e.preventDefault();
+                scrollToElement(target);
+              }}
+            >
               <span className={styles.meet}>
                 <People size={22} />
                 Rencontrer nos agents

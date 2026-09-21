@@ -6,12 +6,13 @@ import { AGENTS } from "@/components/experience/agents/agents.config";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight, ChevronRight, Play, Sparkle } from "@/components/ui/Icons";
 import { setInteractive, useFrameUpdate } from "@/hooks/useFrameUpdate";
-import { scrollToProgress } from "@/lib/experience/director";
+import { scrollToElement, scrollToProgress } from "@/lib/experience/director";
 import { frame } from "@/lib/experience/store";
 import { beat, beatEased } from "@/lib/experience/timeline";
 import { easeOutCubic } from "@/lib/math";
 import { contactClick } from "@/lib/contact";
 import { CONTACT_HREF } from "@/lib/navigation";
+import { AGENTS_ID } from "./AgentsSection";
 import styles from "./HeroOverlay.module.css";
 import { ScrollCue } from "./ScrollCue";
 
@@ -91,7 +92,17 @@ export function HeroOverlay() {
       </div>
 
       <div ref={aside} className={styles.aside}>
-        <Link href="/nos-agents-ia" className={styles.team}>
+        <Link
+          href={`/#${AGENTS_ID}`}
+          className={styles.team}
+          onClick={(e) => {
+            // Same page: scroll instead of navigating (the redirect would remount the 3D world).
+            const target = document.getElementById(AGENTS_ID);
+            if (!target) return;
+            e.preventDefault();
+            scrollToElement(target);
+          }}
+        >
           <span className={styles.avatars} aria-hidden="true">
             {TEAM.map((a) => (
               // eslint-disable-next-line @next/next/no-img-element -- 96px decorative avatars

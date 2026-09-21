@@ -424,7 +424,21 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - Variables Cloudflare à renseigner : `NEXT_PUBLIC_SITE_URL` = variable de BUILD (lue au build : canonical, OG,
   sitemap) ; `CONTACT_WEBHOOK_URL` = variable/secret du Worker (runtime).
 
+## ⚠️ PIÈGE : lien vers une page qui redirige = rechargement de la 3D
+- « Rencontrer nos agents » (lobby) et le lien équipe du Hero pointaient vers `/nos-agents-ia` → redirection 308
+  vers `/#…` → Next re-rendait l'accueil, le monde 3D était démonté/remonté et le bandeau « Le décor 3D s'est
+  interrompu » apparaissait (21/09). Corrigé : `href="/#nos-agents-ia"` + `onClick` → `preventDefault()` +
+  `scrollToElement()`, comme le menu. Règle : sur l'accueil, tout lien vers une section se fait au scroll,
+  jamais par navigation. Vérifié en Playwright : 0 navigation, même canvas, section atteinte (façade et lobby).
+- Test navigateur : le panneau intégré masqué met la page en `visibilityState: hidden` (rAF gelé, Lenis ne
+  défile plus) → tester les scrolls en Playwright headless.
+
 ## En cours / à faire
+- Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
+  NS IONOS → matt / wanda.ns.cloudflare.com. Zone : 5 CNAME DNS only (autodiscover, _dmarc, _domainconnect,
+  s1/s2-ionos._domainkey), 2 MX IONOS, SPF ; A/AAAA de la page d'attente IONOS supprimés. DNSSEC n'était pas
+  actif. À faire une fois la zone ACTIVE (accord global à redemander) : domaine perso du Worker d2s,
+  `www` → apex (301), Always Use HTTPS, `NEXT_PUBLIC_SITE_URL=https://d2saigency.com` (build) + redéploiement.
 - Zones suivantes (services, réf 05) : à démarrer quand demandé.
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
 - 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
