@@ -1,0 +1,24 @@
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  color: var(--text);
+  background: #f7f9fd;
+  font-size: 13px;
+}
+.desktopInitial {
+  display: none;
+}
+@media (min-width: 1025px) {
+  .mobile {
+    display: none;
+  }
+  .desktopInitial {
+    display: block;
+  }
+}

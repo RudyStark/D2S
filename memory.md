@@ -379,6 +379,28 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - Sources originales gardées dans `.cache/agents/<type>.source.glb` (gitignoré) pour reconstruire.
 
 ## En cours / à faire
+- 21/09/2026 — **Mobile demandé par l'utilisateur**, fin du gel mobile précédent. Branche dédiée
+  `mobile` depuis `581dd1c4f8239e8783bc0298ba1def701344dbb2` ; `main` reste inchangée.
+  Maquette image présentée avant le code. `AdaptiveHome` choisit le parcours au seuil de 1024 px :
+  mobile pré-rendu, desktop chargé dynamiquement seulement au-dessus. `DesktopHome` conserve la
+  composition précédente ; aucun changement des composants/styles desktop, du director, des caméras
+  ou des assets 3D. Données structurées conservées dans la page serveur.
+- Mobile : `components/mobile/`, scroll natif avec apparitions légères et réduction des animations,
+  logo/couleurs/typos existants, portraits WebP 2D d'origine. Accueil → mission/May → services/méthode
+  → cinq agents → diagnostic → FAQ → contact. Menu et fiches en `<dialog>`, navigation au clavier,
+  démonstrations DOM à la demande. Classement RH de Diva empilé dans un wrapper mobile uniquement.
+  Diagnostic partagé (`lib/diagnostic.ts`), résumé transmis et retirable, besoin pré-sélectionné depuis
+  les agents, question à May transmise au contact. API contact inchangée ; erreur = saisie conservée.
+- QA mobile : les 11 scénarios Playwright ont passé (suite initiale puis relance des trois attentes
+  de test corrigées ; démonstrations des cinq agents revalidées à 320 px). Six largeurs 320–1024 px,
+  sans débordement horizontal, sans canvas, appel WebGL ni téléchargement de modèle/texture 3D.
+  Formulaire testé avec réponses HTTP interceptées, sans envoyer de demande réelle. Captures revues
+  dans `design/captures/mobile-work/` (gitignoré) ; détails et commande dans `design/MOBILE.md`.
+  Les fontes de test sont fournies par Fontsource via Next/webpack (Google Fonts inaccessible ici),
+  sans changement de `app/layout.tsx`. TypeScript et build production webpack validés.
+  Desktop : sources préservées, géométrie DOM des sections
+  inchangée en mode de secours WebGL ; validation pixel complète de la scène GPU non concluante dans
+  cet environnement logiciel. Le formulaire production dépend toujours de `CONTACT_WEBHOOK_URL`.
 - Zones suivantes (services, réf 05) : à démarrer quand demandé.
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
 - 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
