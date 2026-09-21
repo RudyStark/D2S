@@ -11,9 +11,11 @@ export const WORLD = {
     /** Door opening (between the steel posts). */
     halfOpening: 2.07,
     doorHeight: 3.3,
-    post: { width: 0.18, depth: 0.3, front: 0.06 },
-    transom: { bottom: 3.3, top: 3.45 },
-    sign: { width: 3.44, height: 1.3, bottom: 3.36, depth: 0.2, front: 0.3, radius: 0.12, logoWidth: 2.06, logoScaleY: 1.15 },
+    /** Slim satin-steel posts (01/02 references: ~12 px at the p=0 camera). */
+    post: { width: 0.1, depth: 0.2, front: 0.06 },
+    transom: { bottom: 3.3, top: 3.39 },
+    /** Backlit sign: slightly lower than the reference crop so the entrance keeps the lead. */
+    sign: { width: 3.24, height: 1.2, bottom: 3.36, depth: 0.2, front: 0.3, radius: 0.11, logoWidth: 1.92, logoScaleY: 1 },
     glassHeight: 8.4,
     /** White panel carrying AUTOMATISER / SIMPLIFIER…, left of the entrance. */
     leftPanel: { from: -3.62, to: -2.25, height: 4.25 },
@@ -24,7 +26,11 @@ export const WORLD = {
     wingEnd: 13,
     parapet: 12,
   },
-  pool: { center: [-5.55, 10.55] as const, outerR: 4.62, innerR: 4.42, rim: 0.22, water: 0.195 },
+  /**
+   * Raised basin, solved from 01-home-final: its inner edge back-projected through the p=0 camera
+   * fits a circle of r 3.17 m centred on (−4.28, 9.84) (±4 cm). Thin 16 cm stone coping.
+   */
+  pool: { center: [-4.28, 9.84] as const, outerR: 3.33, innerR: 3.17, rim: 0.22, water: 0.175 },
   lobby: {
     halfWidth: 13,
     depth: 30,

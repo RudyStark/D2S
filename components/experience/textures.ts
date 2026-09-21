@@ -5,8 +5,11 @@ import * as THREE from "three";
  *  - marble: tone variation from marble_01 (blurred so its small ashlar joints disappear),
  *    fine veins, optional large-format slab joints.
  *  - terrazzo: off-white mineral base with very fine aggregate, for planters.
- * Everything is generated once per page; textures are shared and cloned per object when
- * a different repeat is needed.
+ *
+ * They are BAKED, not generated at runtime: painting them in the page cost ~2.8 s of blocked main
+ * thread during loading (canvas blur + per-pixel passes), and Safari has no canvas `filter`, so the
+ * result differed there. `node scripts/bake-textures.mjs` paints every entry of BAKED_TEXTURES in
+ * Chromium and writes public/textures/baked/<name>.webp; the site only loads those files.
  */
 
 function seeded(seed: number) {
@@ -17,13 +20,9 @@ function seeded(seed: number) {
   };
 }
 
+/** Through three's DefaultLoadingManager, so the site loader counts it. */
 function loadImage(url: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = url;
-  });
+  return new THREE.ImageLoader().loadAsync(url);
 }
 
 interface MarbleOptions {
@@ -92,135 +91,109 @@ function parseHex(hex: string) {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-/** White polished marble. Returns immediately; the canvas is refined once marble_01 has loaded. */
-export function createMarbleTexture({
-  size,
-  slabs,
-  seed,
-  veins,
-  veinStrength = 1,
-  veinWidth = 1,
-  tone = 0.55,
-  slabTone = 0.06,
-  base = "#f1f1ef",
-}: MarbleOptions) {
+/** White polished marble, painted from marble_01's albedo. */
+function paintMarble(
+  img: HTMLImageElement,
+  { size, slabs, seed, veins, veinStrength = 1, veinWidth = 1, tone = 0.55, slabTone = 0.06, base = "#f1f1ef" }: MarbleOptions,
+) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, size, size);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.anisotropy = 8;
+  const rnd = seeded(seed);
+  // Low-frequency tone from the real stone, blurred so its small-format joints vanish,
+  // re-centred on the base colour with an explicit gain.
+  const toneLayer = document.createElement("canvas");
+  toneLayer.width = toneLayer.height = size;
+  const tctx = toneLayer.getContext("2d", { willReadFrequently: true })!;
+  tctx.filter = `blur(${Math.round(size / 110)}px)`;
+  for (let ty = -1; ty <= 1; ty++) for (let tx = -1; tx <= 1; tx++) tctx.drawImage(img, tx * size, ty * size, size, size);
+  const pixels = tctx.getImageData(0, 0, size, size);
+  const d = pixels.data;
+  let mean = 0;
+  for (let i = 0; i < d.length; i += 4) mean += d[i];
+  mean /= d.length / 4;
+  const [br, bg, bb] = parseHex(base);
+  for (let i = 0; i < d.length; i += 4) {
+    const dev = (d[i] - mean) * tone;
+    d[i] = br + dev;
+    d[i + 1] = bg + dev;
+    d[i + 2] = bb + dev * 1.05;
+  }
+  ctx.putImageData(pixels, 0, 0);
 
-  loadImage("/textures/marble_diff.webp")
-    .then((img) => {
-      const rnd = seeded(seed);
-      // Low-frequency tone from the real stone, blurred so its small-format joints vanish,
-      // re-centred on the base colour with an explicit gain.
-      const toneLayer = document.createElement("canvas");
-      toneLayer.width = toneLayer.height = size;
-      const tctx = toneLayer.getContext("2d", { willReadFrequently: true })!;
-      tctx.filter = `blur(${Math.round(size / 110)}px)`;
-      for (let ty = -1; ty <= 1; ty++) for (let tx = -1; tx <= 1; tx++) tctx.drawImage(img, tx * size, ty * size, size, size);
-      const pixels = tctx.getImageData(0, 0, size, size);
-      const d = pixels.data;
-      let mean = 0;
-      for (let i = 0; i < d.length; i += 4) mean += d[i];
-      mean /= d.length / 4;
-      const [br, bg, bb] = parseHex(base);
-      for (let i = 0; i < d.length; i += 4) {
-        const dev = (d[i] - mean) * tone;
-        d[i] = br + dev;
-        d[i + 1] = bg + dev;
-        d[i + 2] = bb + dev * 1.05;
+  // Per-slab tone shift.
+  if (slabs > 0) {
+    const s = size / slabs;
+    for (let j = 0; j < slabs; j++)
+      for (let i = 0; i < slabs; i++) {
+        const d = (rnd() - 0.5) * slabTone;
+        ctx.fillStyle = d > 0 ? `rgba(255,255,255,${d})` : `rgba(120,118,112,${-d})`;
+        ctx.fillRect(i * s, j * s, s, s);
       }
-      ctx.putImageData(pixels, 0, 0);
+  }
 
-      // Per-slab tone shift.
-      if (slabs > 0) {
-        const s = size / slabs;
-        for (let j = 0; j < slabs; j++)
-          for (let i = 0; i < slabs; i++) {
-            const d = (rnd() - 0.5) * slabTone;
-            ctx.fillStyle = d > 0 ? `rgba(255,255,255,${d})` : `rgba(120,118,112,${-d})`;
-            ctx.fillRect(i * s, j * s, s, s);
-          }
-      }
+  // Fine veins, slightly softened; drawn on a 3×3 wrap so they tile seamlessly.
+  const layer = document.createElement("canvas");
+  layer.width = layer.height = size;
+  const lctx = layer.getContext("2d")!;
+  lctx.lineCap = "round";
+  lctx.lineJoin = "round";
+  for (let ty = -1; ty <= 1; ty++)
+    for (let tx = -1; tx <= 1; tx++) {
+      lctx.save();
+      lctx.translate(tx * size, ty * size);
+      drawVeins(lctx, size, veins, veinStrength, veinWidth, seeded(seed * 3 + 1));
+      lctx.restore();
+    }
+  ctx.filter = "blur(0.6px)";
+  ctx.drawImage(layer, 0, 0);
+  ctx.filter = "none";
 
-      // Fine veins, slightly softened; drawn on a 3×3 wrap so they tile seamlessly.
-      const layer = document.createElement("canvas");
-      layer.width = layer.height = size;
-      const lctx = layer.getContext("2d")!;
-      lctx.lineCap = "round";
-      lctx.lineJoin = "round";
-      for (let ty = -1; ty <= 1; ty++)
-        for (let tx = -1; tx <= 1; tx++) {
-          lctx.save();
-          lctx.translate(tx * size, ty * size);
-          drawVeins(lctx, size, veins, veinStrength, veinWidth, seeded(seed * 3 + 1));
-          lctx.restore();
-        }
-      ctx.filter = "blur(0.6px)";
-      ctx.drawImage(layer, 0, 0);
-      ctx.filter = "none";
-
-      // Large-format joints: hair-thin, light grey — scale cue only.
-      if (slabs > 0) {
-        const s = size / slabs;
-        ctx.fillStyle = "rgba(160,162,166,0.5)";
-        const w = Math.max(1, size / 800);
-        for (let i = 0; i <= slabs; i++) {
-          ctx.fillRect(i * s - w / 2, 0, w, size);
-          ctx.fillRect(0, i * s - w / 2, size, w);
-        }
-      }
-      texture.needsUpdate = true;
-    })
-    .catch(() => undefined);
-
-  return texture;
+  // Large-format joints: hair-thin, light grey — scale cue only.
+  if (slabs > 0) {
+    const s = size / slabs;
+    ctx.fillStyle = "rgba(160,162,166,0.5)";
+    const w = Math.max(1, size / 800);
+    for (let i = 0; i <= slabs; i++) {
+      ctx.fillRect(i * s - w / 2, 0, w, size);
+      ctx.fillRect(0, i * s - w / 2, size, w);
+    }
+  }
+  return canvas;
 }
 
 /**
  * Roughness companion for large floors: marble_01's roughness, blurred so its small-format
  * joints disappear, plus slightly rougher slab joints (they catch less reflection).
  */
-export function createMarbleRoughness({ size, slabs }: { size: number; slabs: number }) {
+function paintMarbleRoughness(img: HTMLImageElement, { size, slabs }: { size: number; slabs: number }) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = "rgb(128,128,128)";
   ctx.fillRect(0, 0, size, size);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.anisotropy = 8;
-  loadImage("/textures/marble_rough.webp")
-    .then((img) => {
-      ctx.filter = `blur(${Math.round(size / 90)}px)`;
-      for (let ty = -1; ty <= 1; ty++) for (let tx = -1; tx <= 1; tx++) ctx.drawImage(img, tx * size, ty * size, size, size);
-      ctx.filter = "none";
-      if (slabs > 0) {
-        const s = size / slabs;
-        const w = Math.max(2, size / 900);
-        ctx.fillStyle = "rgba(235,235,235,0.9)";
-        for (let i = 0; i <= slabs; i++) {
-          ctx.fillRect(i * s - w / 2, 0, w, size);
-          ctx.fillRect(0, i * s - w / 2, size, w);
-        }
-      }
-      texture.needsUpdate = true;
-    })
-    .catch(() => undefined);
-  return texture;
+  ctx.filter = `blur(${Math.round(size / 90)}px)`;
+  for (let ty = -1; ty <= 1; ty++) for (let tx = -1; tx <= 1; tx++) ctx.drawImage(img, tx * size, ty * size, size, size);
+  ctx.filter = "none";
+  if (slabs > 0) {
+    const s = size / slabs;
+    const w = Math.max(2, size / 900);
+    ctx.fillStyle = "rgba(235,235,235,0.9)";
+    for (let i = 0; i <= slabs; i++) {
+      ctx.fillRect(i * s - w / 2, 0, w, size);
+      ctx.fillRect(0, i * s - w / 2, size, w);
+    }
+  }
+  return canvas;
 }
 
 /**
  * Mineral / micro-terrazzo planter surface: off-white, soft mottling at 1–15 cm and a very
  * fine aggregate. `size` px cover one tile (see PLANTER_TILE in materials).
  */
-export function createTerrazzoTexture(size = 1024, seed = 5) {
+function paintTerrazzo({ size, seed }: { size: number; seed: number }) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -262,11 +235,48 @@ export function createTerrazzoTexture(size = 1024, seed = 5) {
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
   }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
+  return canvas;
+}
+
+/** Every baked texture: one place for their parameters (the bake script and the runtime share it). */
+export const BAKED_TEXTURES = {
+  /** Floor: large-format white marble, 2 × 2 slabs of 2.1 m per tile, hair-line joints, fine veins. */
+  floorMarble: { kind: "marble", srgb: true, options: { size: 2048, slabs: 2, seed: 3, veins: 14, veinStrength: 1.3, veinWidth: 4, tone: 2.2, slabTone: 0.1, base: "#f0f1f1" } },
+  /** Floor roughness companion (rougher slab joints). */
+  floorRoughness: { kind: "marbleRoughness", srgb: false, options: { size: 1024, slabs: 2 } },
+  /** Desk top / coping / planter stone: veined, no joints. */
+  deskMarble: { kind: "marble", srgb: true, options: { size: 1024, slabs: 0, seed: 7, veins: 9, veinStrength: 1.1 } },
+  /** Planters: micro-terrazzo. */
+  terrazzo: { kind: "terrazzo", srgb: true, options: { size: 1024, seed: 5 } },
+} as const;
+
+export type BakedTextureName = keyof typeof BAKED_TEXTURES;
+
+const bakedLoader = typeof window !== "undefined" ? new THREE.TextureLoader() : null;
+
+/** Loads a baked texture (tracked by the site loader). A new Texture per call: set its repeat freely. */
+export function bakedTexture(name: BakedTextureName) {
+  const texture = bakedLoader ? bakedLoader.load(`/textures/baked/${name}.webp`) : new THREE.Texture();
+  if (BAKED_TEXTURES[name].srgb) texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.anisotropy = 8;
   return texture;
+}
+
+/** Bake tool (scripts/bake-textures.mjs, capture mode only): paints every entry, returns PNG data URLs. */
+export async function bakeTextures() {
+  const [marble, rough] = await Promise.all([loadImage("/textures/marble_diff.webp"), loadImage("/textures/marble_rough.webp")]);
+  const out: Record<string, string> = {};
+  for (const [name, entry] of Object.entries(BAKED_TEXTURES)) {
+    const canvas =
+      entry.kind === "marble"
+        ? paintMarble(marble, entry.options as MarbleOptions)
+        : entry.kind === "marbleRoughness"
+          ? paintMarbleRoughness(rough, entry.options as { size: number; slabs: number })
+          : paintTerrazzo(entry.options as { size: number; seed: number });
+    out[name] = canvas.toDataURL("image/png");
+  }
+  return out;
 }
 
 /** Clone a shared map with its own repeat, leaving the original untouched. */

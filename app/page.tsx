@@ -1,6 +1,10 @@
 import { ExperienceRoot } from "@/components/experience/ExperienceRoot";
 import { HeroOverlay } from "@/components/overlays/HeroOverlay";
 import { LobbyOverlay } from "@/components/overlays/LobbyOverlay";
+import { AgentsSection } from "@/components/overlays/AgentsSection";
+import { ContactSection } from "@/components/overlays/ContactSection";
+import { DiagnosticSection } from "@/components/overlays/DiagnosticSection";
+import { ServicesSection } from "@/components/overlays/ServicesSection";
 import { SkipToLobby } from "@/components/overlays/SkipToLobby";
 import { Header } from "@/components/ui/Header";
 import styles from "./page.module.css";
@@ -21,6 +25,11 @@ export default function Home() {
         <HeroOverlay />
         <LobbyOverlay />
         <div id={TRACK_ID} className={styles.track} aria-hidden="true" />
+        {/* Scrolling on from the reception, over the blurred lobby (no new 3D): services, agents, diagnostic, contact. */}
+        <ServicesSection />
+        <AgentsSection />
+        <DiagnosticSection />
+        <ContactSection />
       </main>
     </>
   );

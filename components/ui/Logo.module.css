@@ -1,0 +1,55 @@
+/*
+ * The "AI" of AIgency is the only living part of the logo: a soft glow that breathes and a light that
+ * sweeps across the glyph every few seconds. Everything stops under reduced motion.
+ */
+.logo {
+  display: block;
+  width: var(--logo-w, auto);
+  height: auto;
+  color: var(--logo-ink, #0d1340);
+}
+
+.ai {
+  filter: drop-shadow(0 0 calc(3 * var(--u, 1px)) rgb(26 134 245 / 0.35));
+}
+
+.logo[data-animated="true"] .ai {
+  animation: glow 4.5s ease-in-out infinite;
+}
+
+@keyframes glow {
+  50% {
+    filter: drop-shadow(0 0 calc(7 * var(--u, 1px)) rgb(26 134 245 / 0.7));
+  }
+}
+
+.sweep {
+  transform-box: view-box;
+  opacity: 0;
+}
+
+.logo[data-animated="true"] .sweep {
+  animation: sweep 5.5s cubic-bezier(0.55, 0, 0.3, 1) infinite;
+}
+
+@keyframes sweep {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+    translate: var(--sweep, 400px) 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo[data-animated="true"] .ai,
+  .logo[data-animated="true"] .sweep {
+    animation: none;
+  }
+}

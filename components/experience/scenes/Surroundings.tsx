@@ -64,7 +64,9 @@ export function SkyDome({ radius = 180 }: { radius?: number }) {
  * sun, that would turn the paving grey. The plaza side (z > 0) gets a brighter albedo and a
  * purely additive reflection, blending across the threshold.
  */
-const PLAZA_ALBEDO_GAIN = 1.3;
+const PLAZA_ALBEDO_GAIN = 1.12;
+const PLAZA_REFLECTION_GAIN = 1.65;
+const PLAZA_BLUR_SCALE = 0.7;
 
 function patchFloorZones(material: THREE.MeshStandardMaterial | null) {
   if (!material || material.userData.zonePatched) return;
@@ -82,11 +84,17 @@ function patchFloorZones(material: THREE.MeshStandardMaterial | null) {
       float plazaK = smoothstep(-0.2, 1.8, vFloorZ);
       diffuseColor.rgb *= mix(1.0, ${PLAZA_ALBEDO_GAIN.toFixed(2)}, plazaK);`,
     );
-    // drei's reflector blend (MeshReflectorMaterial.js): no mirror term on the plaza.
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "((1.0 - min(1.0, mirror)) + newMerge.rgb * mixStrength)",
-      "((1.0 - min(1.0, mirror * (1.0 - plazaK))) + newMerge.rgb * mixStrength)",
-    );
+    // drei's reflector blend (MeshReflectorMaterial.js): on the plaza no mirror term, a slightly
+    // stronger and less blurred reflection (diffuse silhouettes of agents, frames and sky).
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "((1.0 - min(1.0, mirror)) + newMerge.rgb * mixStrength)",
+        `((1.0 - min(1.0, mirror * (1.0 - plazaK))) + newMerge.rgb * mixStrength * mix(1.0, ${PLAZA_REFLECTION_GAIN.toFixed(2)}, plazaK))`,
+      )
+      .replace(
+        "blurFactor = min(1.0, mixBlur * reflectorRoughnessFactor);",
+        `blurFactor = min(1.0, mixBlur * reflectorRoughnessFactor * mix(1.0, ${PLAZA_BLUR_SCALE.toFixed(2)}, plazaK));`,
+      );
   };
   material.customProgramCacheKey = () => "floor-zones";
   material.needsUpdate = true;
@@ -95,6 +103,7 @@ function patchFloorZones(material: THREE.MeshStandardMaterial | null) {
 /** Gradient sky dome + continuous polished floor shared by every zone. */
 export function Surroundings() {
   const reflections = useExperience((s) => QUALITY[s.quality].reflections);
+  const reflectionResolution = useExperience((s) => QUALITY[s.quality].reflectionResolution);
   const { halfWidth, depth } = WORLD.plaza;
   const maps = useMemo(() => createFloorMaps(halfWidth * 2, depth + 40), [halfWidth, depth]);
   const floorRef = useCallback((m: THREE.MeshStandardMaterial | null) => patchFloorZones(m), []);
@@ -111,7 +120,7 @@ export function Surroundings() {
             color="#c8cacb"
             roughness={0.2}
             metalness={0}
-            resolution={1024}
+            resolution={reflectionResolution}
             blur={[300, 90]}
             mixBlur={6}
             mixStrength={0.95}

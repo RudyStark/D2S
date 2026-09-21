@@ -49,7 +49,10 @@ export function useEnvironment() {
     }
 
     if (debug || capture) {
-      (window as unknown as { __d2s: unknown }).__d2s = { frame, store: useExperience };
+      const d2s: Record<string, unknown> = { frame, store: useExperience };
+      (window as unknown as { __d2s: unknown }).__d2s = d2s;
+      // Texture bake tool (scripts/bake-textures.mjs): loaded only in capture mode.
+      if (capture) void import("@/components/experience/textures").then((m) => (d2s.bakeTextures = m.bakeTextures));
     }
 
     motionQuery.addEventListener("change", apply);

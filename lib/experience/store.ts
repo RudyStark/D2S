@@ -8,6 +8,8 @@ import type { QualityTier } from "./quality";
  */
 interface ExperienceState {
   ready: boolean;
+  /** Asset loading (three's DefaultLoadingManager), published by the canvas for the site loader. */
+  assets: { loaded: number; total: number; active: boolean; started: boolean };
   webgl: "pending" | "ok" | "unavailable";
   profile: CameraProfile;
   quality: QualityTier;
@@ -17,7 +19,12 @@ interface ExperienceState {
   lockQuality: boolean;
   /** ?debugMaterials=1 — no agents, no bloom, no DOM overlays: materials only. */
   debugMaterials: boolean;
+  /** Desktop lobby → services transition rendered in 3D (depth of field): the DOM veil stays light. */
+  focusPull: boolean;
+  /** The GPU dropped the WebGL context: the 3D layer is blank until it comes back or the page reloads. */
+  glLost: boolean;
   setReady: (ready: boolean) => void;
+  setAssets: (assets: ExperienceState["assets"]) => void;
   setWebgl: (webgl: ExperienceState["webgl"]) => void;
   setProfile: (profile: CameraProfile) => void;
   setQuality: (quality: QualityTier) => void;
@@ -25,10 +32,13 @@ interface ExperienceState {
   setDebug: (debug: boolean) => void;
   setLockQuality: (lockQuality: boolean) => void;
   setDebugMaterials: (debugMaterials: boolean) => void;
+  setFocusPull: (focusPull: boolean) => void;
+  setGlLost: (glLost: boolean) => void;
 }
 
 export const useExperience = create<ExperienceState>((set) => ({
   ready: false,
+  assets: { loaded: 0, total: 0, active: false, started: false },
   webgl: "pending",
   profile: "desktop",
   quality: "high",
@@ -36,7 +46,10 @@ export const useExperience = create<ExperienceState>((set) => ({
   debug: false,
   lockQuality: false,
   debugMaterials: false,
+  focusPull: false,
+  glLost: false,
   setReady: (ready) => set({ ready }),
+  setAssets: (assets) => set({ assets }),
   setWebgl: (webgl) => set({ webgl }),
   setProfile: (profile) => set({ profile }),
   setQuality: (quality) => set({ quality }),
@@ -44,12 +57,22 @@ export const useExperience = create<ExperienceState>((set) => ({
   setDebug: (debug) => set({ debug }),
   setLockQuality: (lockQuality) => set({ lockQuality }),
   setDebugMaterials: (debugMaterials) => set({ debugMaterials }),
+  setFocusPull: (focusPull) => set({ focusPull }),
+  setGlLost: (glLost) => set({ glLost }),
 }));
 
 export interface ScreenAnchor {
   x: number;
   y: number;
   /** In front of the camera and inside the frame. */
+  visible: boolean;
+}
+
+export interface ScreenRect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
   visible: boolean;
 }
 
@@ -66,8 +89,14 @@ export const frame = {
   fps: 60,
   /** Settled when the smoothed progress has caught up with the target. */
   settled: true,
+  /** Instant jump requested: the camera rig skips its inertia for one frame. */
+  snap: false,
   camera: { x: 0, y: 0, z: 0, fov: 40, veil: 0 },
   anchors: {} as Record<string, ScreenAnchor>,
+  /** Services section arrival below the lobby: 0 = below the fold, 1 = section top at the viewport top. */
+  services: 0,
+  /** Screen rect (CSS px) of 3D objects the DOM must avoid covering (e.g. the hero veil). */
+  rects: {} as Record<string, ScreenRect>,
 };
 
 export type FrameState = typeof frame;

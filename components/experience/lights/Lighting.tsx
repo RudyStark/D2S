@@ -27,6 +27,11 @@ const SKY_DAY = new THREE.Color("#e6f0ff");
 const SKY_WARM = new THREE.Color("#fffaf4");
 const GROUND_DAY = new THREE.Color("#f4f1ec");
 const GROUND_WARM = new THREE.Color("#f7f2ec");
+/** Neutral daylight on the façade, the warmer tone once inside (lobby values unchanged at p = 1). */
+const SUN_DAY = new THREE.Color("#fff8ef");
+const SUN_WARM = new THREE.Color("#fff2e0");
+const ENV_DAY = 1.1;
+const ENV_LOBBY = 0.95;
 
 /**
  * Morning daylight outside, warmer cove lighting inside.
@@ -72,17 +77,22 @@ export function Lighting() {
       bindEnvironment(scene);
     }
     const k = beatEased(frame.progress, "lightShift");
-    if (sun.current) sun.current.intensity = lerp(2.6, 1.9, k);
+    if (sun.current) {
+      sun.current.intensity = lerp(2.6, 1.9, k);
+      sun.current.color.copy(SUN_DAY).lerp(SUN_WARM, k);
+    }
+    scene.environmentIntensity = lerp(ENV_DAY, ENV_LOBBY, k);
     if (hemi.current) {
       hemi.current.intensity = lerp(0.6, 0.95, k);
       hemi.current.color.copy(SKY_DAY).lerp(SKY_WARM, k);
       hemi.current.groundColor.copy(GROUND_DAY).lerp(GROUND_WARM, k);
     }
     interior.current?.children.forEach((child, i) => {
-      (child as THREE.PointLight).intensity = LOBBY_LIGHTS[i].intensity * lerp(0.45, 1, k);
+      // Seen from the street the lobby must read bright through the glass (01-home-final).
+      (child as THREE.PointLight).intensity = LOBBY_LIGHTS[i].intensity * lerp(0.7, 1, k);
     });
     panels.current?.children.forEach((child, i) => {
-      (child as THREE.RectAreaLight).intensity = CEILING_PANELS[i].intensity * lerp(0.5, 1, k);
+      (child as THREE.RectAreaLight).intensity = CEILING_PANELS[i].intensity * lerp(0.72, 1, k);
     });
   });
 
@@ -92,7 +102,7 @@ export function Lighting() {
       <hemisphereLight ref={hemi} args={[SKY_DAY, GROUND_DAY, 0.55]} />
       <directionalLight
         ref={sun}
-        color="#fff2e0"
+        color={SUN_DAY}
         intensity={2.6}
         castShadow={settings.shadows}
         shadow-mapSize={[settings.shadowMapSize, settings.shadowMapSize]}
@@ -123,7 +133,7 @@ export function Lighting() {
         CC0 HDRI (Poly Haven, borghese_gardens 1k): blue sky, Mediterranean trees and a warm ground —
         it is what the glass, the steel and the water reflect. Background stays our gradient sky.
       */}
-      <Environment files="/hdri/borghese_gardens_1k.hdr" environmentIntensity={0.95} environmentRotation={[0, 2.4, 0]} />
+      <Environment files="/hdri/borghese_gardens_1k.hdr" environmentIntensity={ENV_LOBBY} environmentRotation={[0, 2.4, 0]} />
     </>
   );
 }

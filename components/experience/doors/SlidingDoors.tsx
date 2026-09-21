@@ -13,7 +13,7 @@ const F = WORLD.facade;
 const LEAF_W = F.halfOpening;
 const LEAF_H = F.doorHeight - 0.02;
 const TRAVEL = F.halfOpening - 0.05;
-const RAIL = 0.05;
+const RAIL = 0.035;
 
 function DoorLeaf({ side }: { side: -1 | 1 }) {
   // Pull bar on the meeting edge (towards the centre line), both faces.
@@ -64,7 +64,7 @@ export function SlidingDoors({ z = 0 }: { z?: number }) {
         <DoorLeaf side={1} />
       </group>
       {/* Head rail */}
-      <Block material={MATERIALS.steel} position={[0, F.doorHeight + 0.06, 0.02]} size={[F.halfOpening * 2 + 0.3, 0.12, 0.22]} />
+      <Block material={MATERIALS.steel} position={[0, F.doorHeight + 0.04, 0.02]} size={[F.halfOpening * 2 + 0.2, 0.08, 0.14]} />
     </group>
   );
 }

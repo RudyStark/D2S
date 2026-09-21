@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { AGENTS } from "@/components/experience/agents/agents.config";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight, ChevronRight, Play, Sparkle } from "@/components/ui/Icons";
@@ -10,10 +10,10 @@ import { scrollToProgress } from "@/lib/experience/director";
 import { frame } from "@/lib/experience/store";
 import { beat, beatEased } from "@/lib/experience/timeline";
 import { easeOutCubic } from "@/lib/math";
+import { contactClick } from "@/lib/contact";
 import { CONTACT_HREF } from "@/lib/navigation";
 import styles from "./HeroOverlay.module.css";
 import { ScrollCue } from "./ScrollCue";
-import { StatStrip } from "./StatStrip";
 
 const TEAM = [AGENTS.automation, AGENTS.support, AGENTS.data];
 
@@ -26,7 +26,7 @@ export function HeroOverlay() {
   const copy = useRef<HTMLDivElement>(null);
   const aside = useRef<HTMLDivElement>(null);
   const cue = useRef<HTMLDivElement>(null);
-
+  const haze = useRef<HTMLDivElement>(null);
   useFrameUpdate(({ progress }) => {
     const t = beatEased(progress, "heroFade");
     const visible = 1 - t;
@@ -37,11 +37,20 @@ export function HeroOverlay() {
     if (copy.current) copy.current.style.transform = `translate3d(0, ${(-t * 46).toFixed(2)}px, 0)`;
     if (aside.current) aside.current.style.transform = `translate3d(${(t * 30).toFixed(2)}px, ${(t * 12).toFixed(2)}px, 0)`;
     if (cue.current) cue.current.style.opacity = (1 - easeOutCubic(beat(progress, "scrollHint"))).toFixed(3);
+    // Cut the veil around the black planter block (published by the 3D scene each frame).
+    const planter = frame.rects.heroPlanter;
+    if (haze.current) {
+      const s = haze.current.style;
+      const on = planter?.visible;
+      s.setProperty("--cut-left", on ? `${planter.left.toFixed(1)}px` : "200vw");
+      s.setProperty("--cut-top", on ? `${planter.top.toFixed(1)}px` : "200vh");
+      s.setProperty("--cut-bottom", on ? `${planter.bottom.toFixed(1)}px` : "200vh");
+    }
   });
 
   return (
     <section ref={section} className={styles.hero} aria-labelledby="hero-title">
-      <div className={styles.haze} aria-hidden="true" />
+      <div ref={haze} className={styles.haze} aria-hidden="true" />
 
       <div ref={copy} className={styles.copy}>
         <p className={styles.badge}>
@@ -60,7 +69,7 @@ export function HeroOverlay() {
           et libérer ce qui compte vraiment.
         </p>
         <div className={styles.actions}>
-          <Button href={CONTACT_HREF} icon={<ArrowRight />} className={styles.primary}>
+          <Button href={CONTACT_HREF} icon={<ArrowRight />} className={styles.primary} onClick={contactClick({ source: "hero" })}>
             Démarrer un projet
           </Button>
           <Button
@@ -75,14 +84,6 @@ export function HeroOverlay() {
             Découvrir nos agents
           </Button>
         </div>
-        <StatStrip className={styles.stats} />
-        <p className={styles.motto} aria-hidden="true">
-          Ideas
-          <br />
-          Agents
-          <br />
-          Real impact
-        </p>
       </div>
 
       <div ref={cue} className={styles.cue}>

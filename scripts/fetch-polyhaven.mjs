@@ -9,7 +9,14 @@ const UA = { "User-Agent": "d2s-studio-asset-pipeline/1.0" };
 
 export const SOURCES = {
   models: ["searsia_lucida", "shrub_04", "potted_plant_02", "pachira_aquatica_01", "potted_plant_01"],
-  textures: { marble_01: ["Diffuse", "Rough", "nor_gl"], white_plaster_02: ["Diffuse", "Rough", "nor_gl"] },
+  textures: {
+    marble_01: ["Diffuse", "Rough", "nor_gl"],
+    white_plaster_02: ["Diffuse", "Rough", "nor_gl"],
+    // Pool coping (teak-toned oiled hardwood). 2k colour: the coping passes ~20 cm from the p=0 camera.
+    oak_veneer_01: ["Diffuse", "Rough", "nor_gl"],
+  },
+  /** Textures also fetched at 2k (colour map only). */
+  textures2k: { oak_veneer_01: ["Diffuse"] },
   hdris: ["borghese_gardens"],
 };
 
@@ -32,6 +39,7 @@ for (const [id, maps] of Object.entries(SOURCES.textures)) {
   const d = await files(id);
   const label = { Diffuse: "diff", Rough: "rough", nor_gl: "nor" };
   for (const m of maps) await save(d[m]["1k"].jpg.url, path.join(cache, "tex", `${id}_${label[m]}_1k.jpg`));
+  for (const m of SOURCES.textures2k[id] ?? []) await save(d[m]["2k"].jpg.url, path.join(cache, "tex", `${id}_${label[m]}_2k.jpg`));
   console.log("texture", id);
 }
 for (const id of SOURCES.hdris) {

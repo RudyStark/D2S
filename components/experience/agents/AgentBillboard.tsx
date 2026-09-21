@@ -5,7 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useExperience } from "@/lib/experience/store";
-import { getRadialTexture, MATERIALS } from "../materials";
+import { AgentGroundShadow } from "./AgentGroundShadow";
 import type { AgentDefinition } from "./agents.config";
 
 interface AgentBillboardProps {
@@ -16,8 +16,9 @@ interface AgentBillboardProps {
 
 /**
  * Temporary 2.5D agent: pre-rendered cut-out on a plane, pivot at the feet.
- * Unlit on purpose (the character is already lit in its render); receives a soft
- * contact shadow and casts an alpha-tested silhouette shadow.
+ * Unlit on purpose (the character is already lit in its render). Grounded by soft decals:
+ * a tight contact under the shoes, a wide occlusion and a faint directional shadow away from
+ * the sun. The card casts no shadow-map shadow (edge-on to the sun it smears into a thin line).
  */
 export function AgentBillboard({ agent, height, idle }: AgentBillboardProps) {
   const texture = useTexture(agent.image);
@@ -68,21 +69,13 @@ export function AgentBillboard({ agent, height, idle }: AgentBillboardProps) {
     [texture],
   );
 
-  const shadowMaterial = useMemo(() => {
-    const m = MATERIALS.shadow.clone();
-    m.alphaMap = getRadialTexture();
-    m.map = null;
-    return m;
-  }, []);
-
   useLayoutEffect(
     () => () => {
       geometry.dispose();
       material.dispose();
       depthMaterial.dispose();
-      shadowMaterial.dispose();
     },
-    [geometry, material, depthMaterial, shadowMaterial],
+    [geometry, material, depthMaterial],
   );
 
   useFrame(({ clock }) => {
@@ -101,12 +94,9 @@ export function AgentBillboard({ agent, height, idle }: AgentBillboardProps) {
         geometry={geometry}
         material={material}
         customDepthMaterial={depthMaterial}
-        castShadow
         renderOrder={2}
       />
-      <mesh rotation-x={-Math.PI / 2} position-y={0.004} material={shadowMaterial} renderOrder={1}>
-        <planeGeometry args={[width * 1.25, width * 0.62]} />
-      </mesh>
+      <AgentGroundShadow width={width} cast />
     </group>
   );
 }

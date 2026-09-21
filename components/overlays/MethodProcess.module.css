@@ -1,0 +1,464 @@
+/*
+ * "Notre méthode" — frosted panel, design units. Timeline states driven by --active and data-state
+ * (todo / active / done); the active step's progress bar runs for --step-ms while the process plays.
+ */
+.method {
+  display: grid;
+  grid-template-columns: calc(300 * var(--u)) 1fr;
+  column-gap: calc(46 * var(--u));
+  width: calc(1253 * var(--u));
+  padding: calc(34 * var(--u)) calc(36 * var(--u)) calc(30 * var(--u));
+  border-radius: calc(26 * var(--u));
+  background: rgb(255 255 255 / 0.86);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.9),
+    0 24px 60px -32px rgb(11 18 56 / 0.32);
+  backdrop-filter: blur(16px);
+  color: var(--ink);
+}
+
+/* ——— Intro ——— */
+.kicker {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: max(11px, calc(13.75 * var(--u)));
+  font-weight: 500;
+  color: var(--blue);
+}
+
+.title {
+  margin: calc(8 * var(--u)) 0 0;
+  font-family: var(--font-display);
+  font-size: max(18px, calc(26 * var(--u)));
+  font-weight: 700;
+  line-height: calc(29 * var(--u));
+  letter-spacing: -0.014em;
+}
+
+.accent {
+  background: linear-gradient(90deg, #0b52ef 0%, #1570f0 40%, #14a6e2 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text {
+  margin: calc(14 * var(--u)) 0 0;
+  font-family: var(--font-body);
+  font-size: max(11.5px, calc(14.25 * var(--u)));
+  line-height: calc(21 * var(--u));
+  color: var(--text);
+}
+
+.promises {
+  display: grid;
+  gap: calc(10 * var(--u));
+  margin: calc(18 * var(--u)) 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-body);
+  font-size: max(11px, calc(13.5 * var(--u)));
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.promises li {
+  display: flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
+}
+
+.promiseIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+  border-radius: 50%;
+  background: var(--blue-tint);
+  color: var(--blue);
+}
+
+.promiseIcon svg {
+  width: calc(13 * var(--u));
+  height: calc(13 * var(--u));
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(12 * var(--u));
+  margin-top: calc(24 * var(--u));
+  height: calc(48 * var(--u));
+  padding: 0 calc(26 * var(--u));
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1.5px var(--blue);
+  font-family: var(--font-body);
+  font-size: max(11.5px, calc(13.75 * var(--u)));
+  font-weight: 600;
+  color: var(--ink);
+  transition: background 0.3s var(--ease-out);
+}
+
+.cta svg {
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
+  color: var(--blue);
+  transition: translate 0.3s var(--ease-out);
+}
+
+.cta:hover {
+  background: var(--blue-tint);
+}
+
+.cta:hover svg {
+  translate: 3px 0;
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+/* ——— Timeline ——— */
+.timeline {
+  position: relative;
+}
+
+/* Rail between the first and last step icons; the fill follows the active step. */
+.track {
+  position: absolute;
+  left: 12.5%;
+  right: 12.5%;
+  top: calc(26 * var(--u));
+  height: 3px;
+  border-radius: 3px;
+  background: rgb(21 112 240 / 0.12);
+}
+
+.trackFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--active) / (var(--steps) - 1) * 100%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #14a6e2, #1570f0);
+  box-shadow: 0 0 10px rgb(21 112 240 / 0.45);
+  transition: width 0.8s var(--ease-out);
+}
+
+.method[data-started="false"] .trackFill {
+  width: 0;
+}
+
+.tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.tab {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding: 0 calc(10 * var(--u)) calc(6 * var(--u));
+  border: 0;
+  border-radius: calc(16 * var(--u));
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    opacity 0.6s var(--ease-out),
+    translate 0.6s var(--ease-out);
+  transition-delay: calc(var(--i) * 110ms);
+}
+
+.method[data-started="false"] .tab {
+  opacity: 0;
+  translate: 0 calc(14 * var(--u));
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+}
+
+.tabIcon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(54 * var(--u));
+  height: calc(54 * var(--u));
+  border-radius: 50%;
+  background: linear-gradient(180deg, #f3f7ff, #e4edfc);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.9), 0 6px 14px -8px rgb(21 112 240 / 0.4);
+  color: rgb(21 112 240 / 0.75);
+  transition:
+    background 0.45s var(--ease-out),
+    color 0.45s var(--ease-out),
+    box-shadow 0.45s var(--ease-out),
+    scale 0.45s var(--ease-out);
+}
+
+.tabIcon svg {
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+}
+
+.tab[data-state="active"] .tabIcon {
+  scale: 1.08;
+  background: linear-gradient(135deg, #1a86f5, #0b55f0);
+  color: #fff;
+  box-shadow:
+    0 0 0 calc(7 * var(--u)) rgb(21 112 240 / 0.12),
+    0 12px 26px -10px rgb(21 112 240 / 0.7);
+}
+
+.tab[data-state="done"] .tabIcon {
+  color: var(--blue);
+  background: linear-gradient(180deg, #ffffff, #eaf2ff);
+}
+
+/* Small green tick on completed steps. */
+.tabDone {
+  position: absolute;
+  right: calc(-3 * var(--u));
+  bottom: calc(-3 * var(--u));
+  display: grid;
+  place-items: center;
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 2px #fff;
+  color: #fff;
+  scale: 0;
+  transition: scale 0.35s var(--ease-out);
+}
+
+.tabDone svg {
+  width: calc(12 * var(--u));
+  height: calc(12 * var(--u));
+}
+
+.tab[data-state="done"] .tabDone {
+  scale: 1;
+}
+
+/* Step number sits above the rail, never on it. */
+.tabIndex {
+  position: absolute;
+  left: calc(50% + 36 * var(--u));
+  top: calc(-2 * var(--u));
+  font-family: var(--font-body);
+  font-size: max(10px, calc(12.5 * var(--u)));
+  font-weight: 500;
+  color: var(--text-soft);
+  transition: color 0.4s var(--ease-out);
+}
+
+.tab[data-state="active"] .tabIndex {
+  color: var(--blue);
+}
+
+.tabTitle {
+  margin-top: calc(14 * var(--u));
+  font-family: var(--font-display);
+  font-size: max(11.5px, calc(14.75 * var(--u)));
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--ink-soft);
+  transition: color 0.4s var(--ease-out);
+}
+
+.tab[data-state="active"] .tabTitle {
+  color: var(--ink);
+}
+
+.tabSummary {
+  margin-top: calc(6 * var(--u));
+  max-width: calc(200 * var(--u));
+  font-family: var(--font-body);
+  font-size: max(10.5px, calc(13 * var(--u)));
+  line-height: calc(18 * var(--u));
+  color: var(--text);
+}
+
+.tabProgress {
+  position: relative;
+  width: calc(64 * var(--u));
+  height: 3px;
+  margin-top: calc(12 * var(--u));
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgb(21 112 240 / 0.1);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tabProgress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--blue);
+  transform-origin: left;
+  scale: 0 1;
+}
+
+.tab[data-state="active"] .tabProgress {
+  opacity: 1;
+}
+
+.method[data-playing="true"] .tab[data-state="active"] .tabProgress::after {
+  animation: step-progress var(--step-ms) linear forwards;
+}
+
+.method:not([data-playing="true"]) .tab[data-state="active"] .tabProgress::after {
+  scale: 1 1;
+}
+
+@keyframes step-progress {
+  to {
+    scale: 1 1;
+  }
+}
+
+.tab:hover .tabTitle {
+  color: var(--blue);
+}
+
+/* ——— Detail card ——— */
+.panel {
+  margin-top: calc(18 * var(--u));
+  border-radius: calc(18 * var(--u));
+  background: linear-gradient(180deg, rgb(244 248 254 / 0.95), rgb(236 242 251 / 0.9));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.9);
+  overflow: hidden;
+}
+
+.panelInner {
+  display: grid;
+  grid-template-columns: 1fr calc(300 * var(--u));
+  gap: calc(28 * var(--u));
+  padding: calc(22 * var(--u)) calc(26 * var(--u));
+  animation: panel-in 0.55s var(--ease-out);
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    translate: calc(14 * var(--u)) 0;
+  }
+}
+
+.panelStep {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: max(9.5px, calc(11 * var(--u)));
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+
+.panelStep span {
+  color: var(--text-soft);
+}
+
+.panelTitle {
+  margin: calc(6 * var(--u)) 0 0;
+  font-family: var(--font-display);
+  font-size: max(15px, calc(20 * var(--u)));
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.panelText {
+  margin: calc(8 * var(--u)) 0 0;
+  font-family: var(--font-body);
+  font-size: max(11.5px, calc(14.25 * var(--u)));
+  line-height: calc(22 * var(--u));
+  color: var(--text);
+}
+
+.panelFacts {
+  display: grid;
+  gap: calc(10 * var(--u));
+  margin: 0;
+}
+
+.fact {
+  padding: calc(11 * var(--u)) calc(14 * var(--u));
+  border-radius: calc(14 * var(--u));
+  background: #fff;
+  box-shadow: 0 6px 16px -12px rgb(11 18 56 / 0.3);
+}
+
+.fact dt {
+  font-family: var(--font-body);
+  font-size: max(9.5px, calc(10.75 * var(--u)));
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.fact dd {
+  margin: calc(4 * var(--u)) 0 0;
+  font-family: var(--font-body);
+  font-size: max(11.5px, calc(13.75 * var(--u)));
+  font-weight: 600;
+  line-height: calc(19 * var(--u));
+  color: var(--ink);
+}
+
+/* ——— Proof: figures + quote ——— */
+@media (max-width: 1024px) {
+  .method {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 28px;
+    width: auto;
+    padding: 24px 20px;
+  }
+
+  .track {
+    display: none;
+  }
+
+  .tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 10px;
+  }
+
+  .tabIndex {
+    display: none;
+  }
+
+  .panelInner {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .trackFill,
+  .tabIcon,
+  .tabDone {
+    transition: none;
+  }
+
+  .panelInner {
+    animation: none;
+  }
+
+  .method[data-started="false"] .tab {
+    opacity: 1;
+    translate: none;
+  }
+}

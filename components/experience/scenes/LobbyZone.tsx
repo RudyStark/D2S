@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useFrame } from "@react-three/fiber";
+import { useLayoutEffect, useMemo } from "react";
 import * as THREE from "three";
+import { useExperience } from "@/lib/experience/store";
 import { WORLD } from "@/lib/experience/world";
 import { Block, FloorBlock, InstancedBoxes, useArcGeometry, type BoxInstance } from "../architecture/primitives";
 import { LogoMesh } from "../architecture/LogoMesh";
-import { Stele } from "../architecture/Stele";
+import { SignHalo } from "../architecture/SignHalo";
 import { WallType } from "../architecture/WallType";
 import { MATERIALS } from "../materials";
 import { getSpillTexture } from "../textures";
@@ -13,6 +15,55 @@ import { Sofa, CoffeeTable } from "../furniture/Lounge";
 import { Plant, Planter } from "../vegetation/Plants";
 
 const L = WORLD.lobby;
+
+/** Height of the drum logo's centre. */
+const LOGO_Y = 5.72;
+/** Light sweep across the drum logo: one pass of SWEEP_DURATION every SWEEP_PERIOD seconds. */
+const SWEEP_PERIOD = 7;
+const SWEEP_DURATION = 1.5;
+
+/**
+ * Drum logo lacquer with a travelling highlight: a narrow slanted band of cool light crosses the letters
+ * (emissive, so it reads on the navy), then the logo rests. Reduced motion: no sweep.
+ */
+function useLogoSweep() {
+  const reducedMotion = useExperience((s) => s.reducedMotion);
+  const material = useMemo(() => {
+    const m = MATERIALS.logo.clone();
+    const uniforms = { uSweep: { value: -10 } };
+    m.userData.uniforms = uniforms;
+    m.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, uniforms);
+      shader.vertexShader = `varying vec3 vSweepWorld;\n${shader.vertexShader}`.replace(
+        "#include <project_vertex>",
+        "#include <project_vertex>\n  vSweepWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;",
+      );
+      shader.fragmentShader = `uniform float uSweep;\nvarying vec3 vSweepWorld;\n${shader.fragmentShader}`.replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+        float sweepD = (vSweepWorld.x - uSweep) + 0.5 * (vSweepWorld.y - ${LOGO_Y.toFixed(2)});
+        totalEmissiveRadiance += vec3(0.62, 0.78, 1.0) * 1.5 * exp(-sweepD * sweepD / 0.012);`,
+      );
+    };
+    m.customProgramCacheKey = () => "logo-sweep";
+    return m;
+  }, []);
+
+  useLayoutEffect(() => () => material.dispose(), [material]);
+
+  useFrame(({ clock }) => {
+    const u = material.userData.uniforms as { uSweep: { value: number } };
+    const t = (clock.elapsedTime % SWEEP_PERIOD) / SWEEP_DURATION;
+    if (reducedMotion || t >= 1) {
+      u.uSweep.value = -10;
+      return;
+    }
+    const k = t * t * (3 - 2 * t);
+    u.uSweep.value = -1.8 + 3.6 * k;
+  });
+
+  return { material };
+}
 const HW = L.halfWidth;
 const BACK = -L.depth;
 const SLAB_TOP = 8.6;
@@ -80,14 +131,16 @@ function Columns() {
           <FloorBlock material={MATERIALS.plaster} position={[s * 8.4, 0, -24]} size={[1.0, L.ceiling, 0.9]} />
         </group>
       ))}
-      {/* Engraved pilasters, as in design/references/04-lobby-clean.png */}
-      <WallType lines={["AUTOMATISER", "SIMPLIFIER", "ACCÉLÉRER", "GRANDIR"]} position={[-8.95, 5.35, -14.945]} size={0.15} />
-      <WallType lines={["HUMAN", "IDEAS", "AI IMPACT"]} position={[7.55, 5.55, -14.945]} size={0.18} />
     </group>
   );
 }
 
+/** Desk lettering: caps centred ~0.72 m high on the 1.16 m front (cap top ≈ top − 0.55·size). */
+const DESK_TYPE_SIZE = 0.17;
+const DESK_TYPE_TOP = 0.72 + 0.9 * DESK_TYPE_SIZE;
+
 function Reception() {
+  const logoSweep = useLogoSweep();
   const { desk, drum } = L;
   const body = useArcGeometry(desk.innerR, desk.outerR, desk.halfAngle, desk.height - 0.1, 64, 0.012);
   const plinth = useArcGeometry(desk.innerR + 0.12, desk.outerR - 0.12, desk.halfAngle - 0.015, 0.1);
@@ -125,12 +178,19 @@ function Reception() {
       <mesh material={MATERIALS.coveLight} position={[0, L.ceiling - 0.1, drum.centerZ]} rotation-x={Math.PI / 2}>
         <torusGeometry args={[drum.radius + 0.34, 0.055, 10, 128]} />
       </mesh>
-      <group position={[0, 5.72, drumFront + 0.05]}>
-        <LogoMesh width={2.05} depth={0.05} bendRadius={drum.radius + 0.05} material={MATERIALS.logo} />
+      {/*
+        Drum logo: halo-lit stand-off letters (2 cm off the plaster, same language as the façade sign) and
+        a slow light sweep across the lacquer every few seconds.
+      */}
+      <group position={[0, LOGO_Y, drumFront + 0.003]}>
+        <SignHalo width={2.05} bendRadius={drum.radius + 0.003} intensity={1.15} color="#fff4e6" />
       </group>
-      {/* Curved type: position is the drum axis, the geometry wraps at curveRadius. */}
+      <group position={[0, LOGO_Y, drumFront + 0.07]}>
+        <LogoMesh width={2.05} depth={0.05} bendRadius={drum.radius + 0.07} material={logoSweep.material} />
+      </group>
+      {/* Slogan (no effect). Curved type: position is the drum axis, the geometry wraps at curveRadius. */}
       <WallType
-        lines={["DES AGENTS IA", "POUR UN MONDE", "PLUS AMBITIEUX."]}
+        lines={["VOTRE ÉQUIPE,", "AUGMENTÉE", "PAR L’IA."]}
         position={[0, 5.04, drum.centerZ]}
         size={0.17}
         weight={600}
@@ -150,6 +210,18 @@ function Reception() {
         {/* Warm light line under the counter and its soft spill on the floor */}
         <mesh geometry={glow} material={MATERIALS.deskGlow} position-y={0.04} />
       </group>
+      {/* Desk front lettering (user request): same type as the slogan, wrapped on the counter's curve. */}
+      <WallType
+        lines={["INFORMATIONS"]}
+        position={[0, DESK_TYPE_TOP, desk.centerZ]}
+        size={DESK_TYPE_SIZE}
+        weight={600}
+        color="#4f5878"
+        align="center"
+        dash={false}
+        tracking={0.34}
+        curveRadius={desk.outerR + 0.012 + 0.004} // body bevel (12 mm) pushes the front face out
+      />
       <mesh material={floorGlow} rotation-x={-Math.PI / 2} position={[0, 0.003, desk.centerZ + desk.outerR + 0.15]} scale={[1, 0.34, 1]} renderOrder={1}>
         <planeGeometry args={[7, 7]} />
       </mesh>
@@ -175,7 +247,6 @@ function Lounge() {
       <Sofa position={[-6.6, 0, -12.8]} rotationY={0.5} width={2.2} />
       <Sofa position={[5.6, 0, -6.6]} rotationY={-0.95} width={2.5} />
       <CoffeeTable position={[-3.5, 0, -6.9]} />
-      <Stele position={[4.7, 0, -11.4]} rotationY={-0.3} />
     </group>
   );
 }

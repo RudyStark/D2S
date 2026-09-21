@@ -7,11 +7,22 @@ export interface QualitySettings {
   postprocessing: boolean;
   ambientOcclusion: boolean;
   bloom: boolean;
+  /** Real planar reflections (floor + basin water). Kept down to "medium": they carry the look. */
   reflections: boolean;
+  /** Floor reflector render-target size (px). */
+  reflectionResolution: number;
+  /** Water reflector size as a share of the viewport. */
+  waterReflectionScale: number;
   antialias: boolean;
+  /** MSAA samples of the post-processing input buffer (SMAA alone leaves thin letters stair-stepped). */
+  msaa: number;
 }
 
 export const QUALITY: Record<QualityTier, QualitySettings> = {
+  /*
+   * Degradation order = least visible first: AO, pixel ratio and shadow size go before the reflections,
+   * which are dropped only on "low" (the basin and the polished floor are the signature of the scene).
+   */
   high: {
     dpr: [1, 2],
     shadows: true,
@@ -20,7 +31,10 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     ambientOcclusion: true,
     bloom: true,
     reflections: true,
-    antialias: false, // SMAA in the composer instead
+    reflectionResolution: 1024,
+    waterReflectionScale: 0.6,
+    antialias: false, // MSAA + SMAA in the composer instead
+    msaa: 4,
   },
   medium: {
     dpr: [1, 1.5],
@@ -29,8 +43,11 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     postprocessing: true,
     ambientOcclusion: false,
     bloom: true,
-    reflections: false,
+    reflections: true,
+    reflectionResolution: 512,
+    waterReflectionScale: 0.42,
     antialias: false,
+    msaa: 2,
   },
   low: {
     dpr: [1, 1.25],
@@ -40,13 +57,36 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     ambientOcclusion: false,
     bloom: false,
     reflections: false,
+    reflectionResolution: 256,
+    waterReflectionScale: 0.3,
     antialias: true,
+    msaa: 0,
   },
 };
+
+/*
+ * Pixel budget. A retina screen in a wide window asks for a 4× bigger buffer than the CSS size, and with
+ * MSAA + HDR + reflections that is what makes the GPU give up (lost context → blank canvas). The tier's
+ * pixel ratio is therefore capped so the drawing buffer stays under ~4.2 Mpx.
+ */
+const MAX_PIXELS = 4_200_000;
+
+export function cappedDpr([min, max]: [number, number]): [number, number] {
+  if (typeof window === "undefined") return [min, max];
+  const pixels = window.innerWidth * window.innerHeight;
+  const fit = Math.sqrt(MAX_PIXELS / Math.max(1, pixels));
+  return [min, Math.max(1, Math.min(max, window.devicePixelRatio || 1, Number(fit.toFixed(2))))];
+}
 
 /** First guess before any frame is measured; PerformanceMonitor refines it at runtime. */
 export function detectQualityTier(): QualityTier {
   if (typeof window === "undefined") return "high";
+  // The GPU dropped the context earlier in this session: come back gentler, lower again if it happened twice.
+  try {
+    const trouble = Number(sessionStorage.getItem("d2s:gpu-trouble") ?? 0);
+    if (trouble >= 2) return "low";
+    if (trouble === 1) return "medium";
+  } catch {}
   const nav = navigator as Navigator & { deviceMemory?: number };
   const cores = nav.hardwareConcurrency ?? 4;
   const memory = nav.deviceMemory ?? 8;

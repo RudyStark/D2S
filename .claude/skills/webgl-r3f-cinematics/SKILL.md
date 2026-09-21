@@ -44,6 +44,17 @@ One world, metres, +Z = street, Z = 0 = glass façade, −Z = inside. Zones are 
 - Water (`water/WaterSurface.tsx`): three `Reflector` with a custom shader (its render only runs when the
   water is drawn). Keep the water radius inside the coping, and objects 20 cm from a camera must not receive
   the sun shadow (shadow-map texels show as a knit pattern).
+- Façade QA: `node scripts/facade-qa.mjs --tag X [--debug] [--p 0]` (overlay-50, diff, 8 crops vs ref 01).
+  Solve positions instead of guessing: `node scripts/camera-probe.mjs '<json>'` back-projects reference pixels
+  onto world planes (the pool circle was fitted this way).
+- Signage policy (client decision): the only inscriptions are the façade D2S sign and the lobby drum logo + its
+  tagline. No wall type, steles or decorative mottos elsewhere.
+- Agent cards cast no shadow-map shadow (edge-on to the sun it is a thin smear): three soft decals instead.
+- Loading: the world (agents included) is one Suspense boundary; the site loader (`SiteLoader`) opens only after
+  `ready`. Never render before `ready` (director), never add drei `<Preload all/>` (6× cubemap render in one task),
+  never paint big procedural canvases at runtime — add them to `BAKED_TEXTURES` and run `scripts/bake-textures.mjs`.
+- Adaptive quality (`AdaptiveQuality` in ExperienceCanvas): judged only 3 s after the reveal, declines under ~30 fps.
+  Reflections are the signature: `medium` keeps them (lower resolution); only `low` drops them.
 - Lobby material QA: `node scripts/lobby-crops.mjs --tag X [--debug]` (crops A–F vs ref 03 + clipping %).
   In capture mode `window.__d2s.three` exposes `{ scene, gl }` for live probes (note: Lighting's useFrame
   re-imposes light intensities every frame — toggle `visible` to test a light).

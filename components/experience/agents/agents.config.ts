@@ -30,9 +30,10 @@ const define = (type: AgentType, label: string): AgentDefinition => ({
 });
 
 export const AGENTS: Record<AgentType, AgentDefinition> = {
-  automation: define("automation", "Automatisation"),
-  support: define("support", "Support client"),
-  prospection: define("prospection", "Prospection"),
-  content: define("content", "Création de contenu"),
-  data: define("data", "Analyse de données"),
+  // Keys are the model/casting slots; labels are the agents' roles (lib/team.ts holds the full profiles).
+  automation: define("automation", "Diva · Coordinatrice RH"),
+  support: define("support", "Loic · Support client"),
+  prospection: define("prospection", "May · Commerciale"),
+  content: define("content", "Déa · Créatrice de contenu"),
+  data: define("data", "Morgan · Analyste de données"),
 };

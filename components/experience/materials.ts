@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { COLORS } from "@/lib/brand";
-import { createMarbleRoughness, createMarbleTexture, createTerrazzoTexture, getContactShadowTexture, withRepeat } from "./textures";
+import { bakedTexture, getContactShadowTexture, withRepeat } from "./textures";
 
 /**
  * Shared materials. Geometry UVs are in metres (see architecture/primitives), so a texture
@@ -60,8 +60,8 @@ const stoneMaps = {
  */
 export function createFloorMaps(width: number, depth: number) {
   const span = 4.2;
-  const map = createMarbleTexture({ size: 2048, slabs: 2, seed: 3, veins: 14, veinStrength: 1.3, veinWidth: 4, tone: 2.2, slabTone: 0.1, base: "#f0f1f1" });
-  const roughnessMap = createMarbleRoughness({ size: 1024, slabs: 2 });
+  const map = bakedTexture("floorMarble");
+  const roughnessMap = bakedTexture("floorRoughness");
   for (const t of [map, roughnessMap]) t.repeat.set(width / span, depth / span);
   return { map, roughnessMap };
 }
@@ -70,7 +70,7 @@ const brushed = brushedTexture();
 
 /** Planter maps: one terrazzo tile every PLANTER_TILE metres (pot UVs are in metres). */
 export const PLANTER_TILE = 0.6;
-const terrazzo = typeof document !== "undefined" ? createTerrazzoTexture(1024, 5) : null;
+const terrazzo = typeof document !== "undefined" ? bakedTexture("terrazzo") : null;
 if (terrazzo) terrazzo.repeat.set(1 / PLANTER_TILE, 1 / PLANTER_TILE);
 const planterRelief = {
   roughnessMap: withRepeat(plasterMaps.roughnessMap, 1 / 0.9, 1 / 0.9),
@@ -104,7 +104,7 @@ const drumMaps = {
 };
 
 /** Desk top marble: veined, no joints. Arc geometry UVs are in metres → one tile per 1.8 m. */
-const deskMarble = typeof document !== "undefined" ? createMarbleTexture({ size: 1024, slabs: 0, seed: 7, veins: 9, veinStrength: 1.1 }) : null;
+const deskMarble = typeof document !== "undefined" ? bakedTexture("deskMarble") : null;
 if (deskMarble) deskMarble.repeat.set(1 / 1.8, 1 / 1.8);
 
 export const MATERIALS = {
@@ -117,6 +117,20 @@ export const MATERIALS = {
     roughness: 0.86,
     metalness: 0,
   }),
+  /**
+   * Exterior limestone render: neutral, far less beige than the lobby plaster. Albedo grain softened
+   * (almost smooth from the street), fine micro-relief and roughness variation up close.
+   */
+  facadePlaster: softenMap(
+    new THREE.MeshStandardMaterial({
+      color: "#f2f2ef",
+      ...plasterMaps,
+      normalScale: new THREE.Vector2(0.22, 0.22),
+      roughness: 0.8,
+      metalness: 0,
+    }),
+    0.3,
+  ),
   plasterWarm: new THREE.MeshStandardMaterial({
     color: "#f0ebe3",
     ...plasterMaps,
@@ -161,27 +175,49 @@ export const MATERIALS = {
     roughness: 0.42,
     metalness: 0,
   }),
-  /** Mineral planter: matte micro-terrazzo with a fine hand-finished relief. */
+  /** Black mineral planter: matte basalt-like stone, the terrazzo grain reads as faint speckle. */
   planterStone: new THREE.MeshStandardMaterial({
-    color: "#f1efea",
+    color: "#26272b",
     map: terrazzo,
     ...planterRelief,
-    normalScale: new THREE.Vector2(0.7, 0.7),
-    roughness: 0.68,
+    normalScale: new THREE.Vector2(0.6, 0.6),
+    roughness: 0.62,
   }),
-  /** Satin glazed ceramic: nearly uniform, a hint of mottling, soft sheen. */
+  /** Black glazed ceramic: deep, nearly uniform, satin sheen that draws the edges. */
   planterCeramic: softenMap(
     new THREE.MeshPhysicalMaterial({
-      color: "#efece7",
+      color: "#17181b",
       map: terrazzo,
       ...planterRelief,
-      normalScale: new THREE.Vector2(0.16, 0.16),
-      roughness: 0.52,
-      clearcoat: 0.12,
-      clearcoatRoughness: 0.42,
+      normalScale: new THREE.Vector2(0.14, 0.14),
+      roughness: 0.34,
+      clearcoat: 0.45,
+      clearcoatRoughness: 0.22,
     }),
     0.45,
   ),
+  /**
+   * Pool coping: teak-toned oiled hardwood (CC0 oak veneer re-tinted). UVs of the coping are in
+   * metres with the grain along the circumference; one texture tile = 1.83 m. Satin oil finish.
+   */
+  wood: new THREE.MeshPhysicalMaterial({
+    // Deep oiled teak: dark enough to stay out of the tone-mapped highlights in full sun.
+    color: "#b3884f",
+    map: tex("/textures/wood_diff.webp", { repeat: 1 / 1.83, srgb: true }),
+    roughnessMap: tex("/textures/wood_rough.webp", { repeat: 1 / 1.83 }),
+    normalMap: tex("/textures/wood_nor.webp", { repeat: 1 / 1.83 }),
+    normalScale: new THREE.Vector2(0.35, 0.35),
+    roughness: 1,
+    metalness: 0,
+    // Oiled, not varnished: at the low camera's grazing angle a glossy coat mirrors the bright sky and
+    // washes the teak out. A thin satin coat and a softer specular keep the colour.
+    specularIntensity: 0.35,
+    envMapIntensity: 0.5,
+    clearcoat: 0.1,
+    clearcoatRoughness: 0.6,
+    vertexColors: true,
+    side: THREE.DoubleSide,
+  }),
   /** Soft contact shadow decal under loose objects (pots, benches). */
   contactShadow: new THREE.MeshBasicMaterial({
     color: "#262a33",
@@ -214,11 +250,11 @@ export const MATERIALS = {
    * turns thin frames into glowing bars. The brushing lives in the roughness stripes.
    */
   steel: new THREE.MeshPhysicalMaterial({
-    color: "#bfc3c9",
+    color: "#d3d7dd",
     metalness: 1,
-    roughness: 0.68,
+    roughness: 0.62,
     roughnessMap: brushed,
-    envMapIntensity: 0.9,
+    envMapIntensity: 1.05,
   }),
   /**
    * Same stainless indoors: the HDRI is an outdoor garden (sky + sun), far brighter than the
@@ -245,21 +281,59 @@ export const MATERIALS = {
     depthWrite: false,
     side: THREE.DoubleSide,
   }),
-  doorGlass: new THREE.MeshPhysicalMaterial({
-    color: "#f1f6f8",
+  /**
+   * Façade curtain wall: near-neutral low-iron glass. Slightly higher reflectance than the interior
+   * glass so the sky and the garden read at oblique angles (Fresnel), clear when seen frontally.
+   */
+  facadeGlass: new THREE.MeshPhysicalMaterial({
+    color: "#f5f7f7",
     metalness: 0,
-    roughness: 0.02,
-    ior: 1.52,
+    roughness: 0.035,
+    ior: 1.6,
     thickness: 0.02,
+    // F0 ≈ 0.1: the garden and the sky read on the curtain wall, the interior still shows through.
+    specularIntensity: 1.8,
+    envMapIntensity: 1.35,
+    transparent: true,
+    opacity: 0.2,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  }),
+  /** Entrance leaves: the clearest glass of the façade (the lobby must read through it frontally). */
+  doorGlass: new THREE.MeshPhysicalMaterial({
+    color: "#f6f8f8",
+    metalness: 0,
+    roughness: 0.015,
+    ior: 1.52,
+    thickness: 0.012,
     specularIntensity: 1,
-    envMapIntensity: 1.6,
+    envMapIntensity: 1.15,
     transparent: true,
     opacity: 0.18,
     depthWrite: false,
     side: THREE.DoubleSide,
   }),
   logo: new THREE.MeshStandardMaterial({ color: COLORS.logo, roughness: 0.38, metalness: 0.15, side: THREE.DoubleSide }),
-  signFace: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.55, emissive: "#fffdf8", emissiveIntensity: 0.55 }),
+  /** Sign face: satin solid surface. Not a lamp: only a trace of internal glow keeps it lifted. */
+  signFace: new THREE.MeshPhysicalMaterial({
+    color: "#eceef1",
+    roughness: 0.34,
+    clearcoat: 0.25,
+    clearcoatRoughness: 0.3,
+    emissive: "#fbfcff",
+    emissiveIntensity: 0.05,
+  }),
+  /** Perimeter backlight: a thin LED line behind the panel edge (the glow comes from behind). */
+  signBacklight: new THREE.MeshBasicMaterial({ color: new THREE.Color("#fff7ec").multiplyScalar(2.2), toneMapped: false }),
+  /** Façade logo: deep navy, satin lacquered metal — reflects the sky softly, never chrome, never glows. */
+  logoSign: new THREE.MeshPhysicalMaterial({
+    color: "#303a5c",
+    metalness: 0.15,
+    roughness: 0.28,
+    clearcoat: 0.7,
+    clearcoatRoughness: 0.18,
+    side: THREE.DoubleSide,
+  }),
   signGlow: new THREE.MeshBasicMaterial({
     color: new THREE.Color("#fff6e8").multiplyScalar(2.6),
     transparent: true,
@@ -275,6 +349,8 @@ export const MATERIALS = {
   fabricDark: new THREE.MeshStandardMaterial({ color: "#d8d7d4", roughness: 0.95 }),
   screen: new THREE.MeshStandardMaterial({ color: "#1a2040", roughness: 0.2, metalness: 0.3, emissive: "#2a3a8a", emissiveIntensity: 0.25 }),
   shadow: new THREE.MeshBasicMaterial({ color: "#1d2233", transparent: true, opacity: 0.3, depthWrite: false }),
+  /** Recessed joint (shadow gap) at the foot of walls: reads as a crisp dark line, not a skirting. */
+  shadowGap: new THREE.MeshStandardMaterial({ color: "#3a3d44", roughness: 0.9, metalness: 0 }),
 } as const;
 
 /**
@@ -286,7 +362,15 @@ export const MATERIALS = {
  * ignoring `material.envMapIntensity`. Materials whose reflection strength must differ from the
  * scene's (metals, glass) get the scene environment bound explicitly (see Lighting).
  */
-const ENV_BOUND = () => [MATERIALS.steel, MATERIALS.steelInterior, MATERIALS.darkSatin, MATERIALS.glass];
+const ENV_BOUND = () => [
+  MATERIALS.steel,
+  MATERIALS.steelInterior,
+  MATERIALS.darkSatin,
+  MATERIALS.glass,
+  MATERIALS.facadeGlass,
+  MATERIALS.doorGlass,
+  MATERIALS.wood,
+];
 
 export function bindEnvironment(scene: THREE.Scene) {
   for (const m of ENV_BOUND()) {
@@ -297,29 +381,15 @@ export function bindEnvironment(scene: THREE.Scene) {
 }
 
 export function setGlassQuality(transmission: boolean) {
-  for (const m of [MATERIALS.glass, MATERIALS.doorGlass]) {
+  const fallbackOpacity = new Map<THREE.MeshPhysicalMaterial, number>([
+    [MATERIALS.glass, 0.16],
+    [MATERIALS.facadeGlass, 0.2],
+    [MATERIALS.doorGlass, 0.18],
+  ]);
+  for (const [m, opacity] of fallbackOpacity) {
     m.transmission = transmission ? 1 : 0;
     m.transparent = !transmission;
-    m.opacity = transmission ? 1 : m === MATERIALS.glass ? 0.16 : 0.18;
+    m.opacity = transmission ? 1 : opacity;
     m.needsUpdate = true;
   }
-}
-
-let radialTexture: THREE.CanvasTexture | null = null;
-
-/** Soft radial falloff used for contact shadows. */
-export function getRadialTexture() {
-  if (radialTexture) return radialTexture;
-  const size = 128;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.45, "rgba(255,255,255,0.55)");
-  g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, size, size);
-  radialTexture = new THREE.CanvasTexture(canvas);
-  return radialTexture;
 }

@@ -1,5 +1,11 @@
 {
-  "agents": [],
+  "agents": [
+    "automation",
+    "content",
+    "data",
+    "prospection",
+    "support"
+  ],
   "plants": [
     "ficus",
     "olive_a",

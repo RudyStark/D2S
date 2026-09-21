@@ -10,6 +10,8 @@ Fichier tenu à jour à la main. Chargé automatiquement via `CLAUDE.md`. Mettre
 - Ne pas refaire layout / caméra / scroll / positions d'agents / DOM sans demande explicite.
 - Agents = PNG 2.5D temporaires derrière `<AgentSlot type=… />` (GLB riggés plus tard) — **ne pas régénérer les PNG**.
 - Pas d'assets douteux : CC0 uniquement (Poly Haven), pas de téléchargement massif.
+- **Mobile gelé (19/09)** : le mobile aura un autre design → ne plus faire de modifs ni de QA mobile tant que
+  l'utilisateur ne le demande pas. Desktop uniquement.
 
 ## Projet
 Site immersif de D2S Studio (agence IA) : un seul monde 3D continu traversé au scroll.
@@ -19,7 +21,9 @@ Dev : `npm run dev -- --port 3217`. Références : `design/references/01…05`.
 
 ### Casting (fixe, sans doublon)
 - Façade : Création de contenu (gauche), Support client (droite).
-- Lobby : Automatisation (accueil), Prospection (gauche), Analyse de données (droite).
+- Lobby : Prospection = May (ACCUEIL, derrière le comptoir, ancre « reception »), Automatisation = Diva
+  (gauche), Analyse de données = Morgan (droite). Échange May ↔ Diva décidé le 19/09 : l'accueil d'un site
+  d'agence reçoit des prospects → May (qualifie, oriente, réserve le RDV) = démo en direct de son métier.
 
 ### Caméra (résolue depuis les références, ne pas toucher)
 - p=0 façade : (−0.72, 0.37, 10.26), yaw 5°, fov 38, shiftY .249.
@@ -28,6 +32,45 @@ Dev : `npm run dev -- --port 3217`. Références : `design/references/01…05`.
 
 ### Layout monde (`lib/experience/world.ts`)
 Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, drum R 3.6 h 7.2, plafond 7.2.
+
+## Skills du projet (.claude/skills)
+- `webgl-r3f-cinematics` (monde 3D), `find-skills` (vercel-labs, recherche de skills : `npx skills find …`),
+  `ui-ux-pro-max` (nextlevelbuilder, 362 k installs, vérifié : scripts 100 % locaux). Demande utilisateur :
+  l'UTILISER pour toute décision UI/UX → `python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<requête>"
+  --domain <ux|landing|style|typography|color|gsap…>` (ou `--design-system`, `--stack`).
+
+## Marque : D2S Studio → D2S AIgency (20/09)
+- LOGO VECTORIEL officiel fourni par le client (20/09) → `design/brand/logo-vector.svg` = SOURCE DE VÉRITÉ.
+  `node scripts/build-logo.mjs` en tire `public/images/brand/d2s-aigency.svg` (masque du loader + 3D) et
+  `lib/generated/logo.ts` (tracés + dégradés + boîte du sigle AI pour le logo inline). viewBox 60 318 1336 502,
+  3 tracés : D2S, sigle AI, GENCY, chacun avec son dégradé et un fin liseré bleu. Le décalque potrace du
+  début et le redessin à la main sont abandonnés (potrace désinstallé).
+- `components/ui/Logo.tsx` = SVG inline (mêmes tracés, à garder en phase avec le fichier) : seul « AI » est
+  animé (halo qui respire + reflet qui balaie le glyphe), coupé en mouvement réduit.
+- Tous les textes « D2S Studio » renommés « D2S AIgency » (métadonnées, loader, bulle du lobby, contact,
+  pages, consentement, pied de page).
+- À FAIRE si demandé : appliquer la typo du logo (géométrique carrée, type Michroma) aux kickers/titres ;
+  allumer « AI » en bleu dans le loader (calque masqué séparé).
+
+## ⚠️ PIÈGE R3F : useFrame avec priorité > 0 = plus aucun rendu automatique
+- Cause RÉELLE de l'écran 3D blanc (20/09) : le hook du focus pull (PostEffects) s'était abonné en
+  `useFrame(cb, 0.5)`. Une priorité > 0 dit à R3F « l'app rend elle-même » ; en qualité `high`/`medium` le
+  composer (priorité 1) rendait, mais en `low` (pas de post-process) plus RIEN n'était dessiné → canvas vide.
+  Corrigé : priorité 0 (la caméra tourne aussi à 0, donc pas de retard). Vérifier les 3 tiers après toute
+  modif du rendu : `?capture=1&quality=high|medium|low` + `__d2s.three.gl.info.render.calls` > 0.
+- Ce piège explique aussi pourquoi le bug empirait : une perte de contexte poussait la qualité en `low`
+  (sessionStorage `d2s:gpu-trouble`), donc dans le tier cassé. Incident 1 → `medium`, incident 2 → `low`.
+
+## Rendu 3D blanc au scroll (signalé le 20/09, Chrome)
+- Non reproduit en automatisé (Chromium + WebKit, 1280→1920, scroll lent/rapide, redimensionnement, onglet).
+  Symptôme décrit : le décor 3D devient blanc dès le scroll, le DOM reste → perte du contexte WebGL.
+- Protections ajoutées : `cappedDpr()` (buffer ≤ 4,2 Mpx), MSAA ≤ 2 au-delà de 2,5 Mpx, `requestRender` au
+  resize / retour d'onglet / pageshow (le frame figé pouvait être vidé), écoute `webglcontextlost/restored`
+  → `store.glLost` (JAMAIS de setState qui re-rend `<Canvas>` avec un contexte mort : R3F lève « Cannot read
+  properties of null (reading 'alpha') »), bandeau DOM « Le décor 3D s'est interrompu · Relancer »
+  (ExperienceRoot), et `sessionStorage d2s:gpu-trouble` → qualité « low » au rechargement suivant.
+- INCIDENT : un script Python d'édition a vidé `PostEffects.tsx` (write d'un tuple après un replace) ;
+  reconstruit à la main. Règle : ne jamais écrire le résultat d'un `replace` sans vérifier son type.
 
 ## Outils QA
 - `npm run shots` : captures 0/25/45/65/100 % + `qa-000` / `qa-100` (diff vs références).
@@ -49,7 +92,7 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 
 ## Historique
 - d13f797 — passe de correction visuelle (fidélité références).
-- Passe MATERIAL REALISM + LIGHTING lobby (non commitée à ce jour) : lumières recalibrées, fût `featurePlaster`, bureau multi-matériaux, sol marbre procédural 2.1 m + reflets, pots `planterStone`/`planterCeramic` + ombres de contact, acier satiné, AO de contact. Reste partiel : reflets du verre (il faudrait une sonde de réflexion).
+- faf2edb — passe MATERIAL REALISM + LIGHTING lobby : lumières recalibrées, fût `featurePlaster`, bureau multi-matériaux, sol marbre procédural 2.1 m + reflets, pots `planterStone`/`planterCeramic` + ombres de contact, acier satiné, AO de contact. Reste partiel : reflets du verre (il faudrait une sonde de réflexion).
 - claude-mem : quota hebdomadaire du fournisseur `claude` épuisé (2026-09-17/18). Correctif possible côté utilisateur : `CLAUDE_MEM_PROVIDER` = `gemini` ou `openrouter` + clé dans `~/.claude-mem/settings.json`.
 
 ## Bassin (façade, réf 01) — fait
@@ -61,6 +104,230 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - Eau étendue dans la margelle (`innerR + 0.01`) : sinon interstice visible (caméra p=0 à ~20 cm du bord).
 - Margelle : marbre `deskStone` + UV en mètres ; `receiveShadow` coupé (grille de shadow map visible de si près).
 
+## Passe façade (p=0, réf 01/02) — non commitée
+- Mesure d'abord : `node scripts/facade-qa.mjs --tag X [--debug] [--p 0]` (facade-reference/current/side-by-side/
+  overlay-50/diff + 8 crops) et `node scripts/camera-probe.mjs '<json>'` (rétro-projection page → monde).
+- Bassin résolu depuis la réf : centre (−4.28, 9.84), innerR 3.17, margelle 16 cm avec ressaut + chanfreins.
+- Panneau 3.24 × 1.2, logo 1.92 (scaleY 1), lettres décollées 1.5 cm, biseau, STUDIO épaissi (`strokeDepth`),
+  ombre de contact par copies aplaties ; face `signFace` satinée, ligne LED `signBacklight`, halo discret.
+- Montants 0.10 × 0.20 (RoundedBox), traverse 9 cm, vantaux 3.5 cm ; inox clair `steel` (#d3d7dd).
+- Travée gauche de la porte vitrée (les deux réfs) ; `facadeGlass` (F0 ≈ 0.1) ; `doorGlass` plus clair ; env liés.
+- `facadePlaster` neutre (piliers, volume haut) ; stèle + bloc d'accueil en `deskStone` (veiné, sans joints).
+- Signalétique navy `#28314f` 600, tailles rétro-projetées ; `WallType overGlass` pour le texte sur verre.
+- Végétation : ficus, pachira, bac carré, arbuste et une tropicale retirés ; oliviers en cadrage des bords.
+- Agents : ombres = contact + occlusion + petite directionnelle (plus de disque dur, plus de traînée de carte).
+- Lumière : soleil `#fff8ef` dehors → `#fff2e0` dedans, env 1.1 → 0.95, lobby plus lumineux vu de dehors ;
+  valeurs à p=1 inchangées (lobby vérifié identique).
+- Écart moyen à 01 : 49.0 → 43.0. Limites : portes fermées à p=0 (réf entrouverte, scroll interdit),
+  lecture du logo encore un peu sombre, contraste du parvis < réf (sd 11 vs 16).
+
+## Inscriptions (décision utilisateur)
+- Seules inscriptions conservées : le panneau D2S STUDIO de la façade, et dans le lobby le logo du fût +
+  le slogan « VOTRE ÉQUIPE, / AUGMENTÉE / PAR L'IA. » (choisi le 19/09, lignes courtes pour éviter la bulle). Tout le reste est supprimé (textes sur vitrine, piliers,
+  pilastres, bloc d'accueil, motto « Ideas / Agents / Real impact » du Hero) ; stèles supprimées (composant retiré).
+  Ne pas en réintroduire sans demande.
+- Exception demandée le 19/09 : « INFORMATIONS » sur la façade du comptoir d'accueil (`WallType` courbé, même
+  style que le slogan : navy #4f5878, 600, tracking 0.34, taille 0.17, centré à ~0.72 m). Le corps du comptoir a
+  un biseau de 12 mm qui avance sa face avant : le texte est à outerR + 0.016 (sinon il est caché dedans).
+- Lobby : bloc de chiffres (+250 projets livrés / 98 % / −70 %) retiré du LobbyOverlay (demande 19/09) ;
+  `StatStrip` reste utilisé par le Hero de la façade.
+
+## Contenu façade / menu (réf 01 et 03)
+- Voile blanc du Hero mesuré sur 01 : blanc neutre ~0.95 de x 0 à 470, fondu jusqu'à 620, pleine hauteur
+  jusqu'à y 640 puis atténué sur le bassin (`.haze` = gradient horizontal + mask vertical ; masque retiré sur mobile).
+- Menu : item actif 600 + 15.6u (55 px comme la réf), survol = aperçu du soulignement, focus visible,
+  sélecteur FR plus grand et gras (globe 22u), chevron qui pivote ; menu compact du lobby = fondu givré sans
+  bord dur (mask), comme 03.
+- Avatars de la carte équipe : portraits buste sur disque pâle (`node scripts/build-avatars.mjs`, à partir des
+  découpes existantes, sans les régénérer) ; anciens avatars sauvegardés dans `.cache/avatars-before/`.
+- Écart moyen p=0 vs 01 : 43.2 → 37.0.
+
+## Loader du site (SiteLoader)
+- `components/overlays/SiteLoader.tsx` : rendu serveur (couvre dès la 1re image), logo D2S Studio en masque CSS
+  qui se remplit avec la vraie progression + liseré bleu, « Chargement de l'agence » + %, étapes, puis
+  « Bienvenue chez D2S Studio » et ouverture en portes coulissantes (1.1 s) ; Hero en cascade ensuite
+  (`html[data-site-loading]`). Scroll bloqué pendant (`setScrollLocked`). Réduit : fondu. `?capture=1` : ouverture
+  immédiate (QA). noscript : loader masqué.
+- Progression réelle : drei `useProgress` → store `assets` (LoadingBridge), `ready` (Suspense du monde, agents
+  inclus), polices. Rampe lente (≥ 1 %/s, max 94 %) pour ne jamais paraître figé.
+- Perf de chargement (prod, Chromium) : prêt en ~2.0 s au lieu de 3.9 s ; plus de gel de 15 s en dev.
+  · textures procédurales PRÉCALCULÉES : `node scripts/bake-textures.mjs` → `public/textures/baked/*.webp`
+    (151 Ko ; générées à l'exécution elles bloquaient 2.8 s et différaient sous Safari, sans canvas filter).
+  · aucun rendu WebGL avant `ready` (director) ; ReadyMarker : envoi GPU des textures par tranches,
+    `compileAsync`, 2 images de chauffe ; `checkShaderErrors` coupé en prod ; drei `<Preload all/>` retiré
+    (rendu cubemap ×6 = gel 0.8 s). Reste ~0.4 s à la 1re image (post-process/ombres/reflets), sous le loader.
+
+## Eau du bassin — choix utilisateur : « Référence 01 »
+- Ambiance par défaut calée sur 01 (mesures dans la zone d'eau : rgb 189,203,218 vs réf 190,205,220 ;
+  bleu − rouge 29 vs 30) : vaguelettes serrées (`freq` 2.6, houle 0.35), reflets étirés en traînées
+  verticales (`streak` 0.22/1.9), ciel reflété azur, scintillements, voile du Hero allégé sur le bassin.
+- Niveau d'eau abaissé à 0.175 (face intérieure de la margelle visible, comme sur 01).
+- Variantes de comparaison conservées derrière `?water=1|2|3` (miroir calme, clair lagon, vivante).
+- Bug « beau reflet puis eau bleue plate » : le PerformanceMonitor passait high → medium (qui coupait les
+  reflets) après ~2,5 s sous 40 fps, échauffement compris. Corrigé : moniteur démarré 3 s après l'ouverture,
+  baisse seulement sous ~30 fps, et `medium` garde les reflets (résolution réduite : sol 512, eau 0.42) ;
+  seuls AO / dpr / ombres baissent d'abord. Le secours sans reflet (`low`) imite le rendu réfléchi.
+
+## Margelle bois + pots noirs (choix utilisateur)
+- Margelle du bassin en bois massif huilé type teck (`MATERIALS.wood`, CC0 Poly Haven `oak_veneer_01` teinté,
+  `public/textures/wood_*.webp`) : 18 lames cintrées avec joints de 2 mm, fil du bois le long de la courbe,
+  ton légèrement différent par lame, arêtes arrondies 8 mm, débord de 2,5 cm au-dessus de l'eau.
+  Finition huilée : spéculaire et reflet d'environnement réduits (sinon le ciel délave le teck en rose saumon).
+- Pots (lobby + façade) en noir : `planterStone` basalte mat, `planterCeramic` céramique noire satinée.
+  Le bloc-jardinière à gauche de l'entrée vitrée est noir aussi. Pour qu'il ne paraisse pas gris sous le
+  voile du Hero : la 3D publie son rectangle écran (`frame.rects.heroPlanter`) et le masque du voile
+  (`.haze`) est découpé sur sa silhouette, sauf derrière les chiffres (rects d'encre mesurés, bords doux)
+  pour qu'ils restent lisibles si le bloc passe dessous (autres formats d'écran, début du scroll).
+
+## Enseigne halo + netteté des textes
+- Enseigne façade : lettres « halo-lit » (`architecture/SignHalo.tsx`) — masque du logo flouté (2 falloffs) en
+  additif sur la face, juste sous les lettres décollées ; face `signFace` un peu plus grise (#eceef1) pour que
+  le halo ressorte. Les 6 copies d'ombre aplaties et l'ombre soleil sur la face sont supprimées (crénelées).
+- Piège : THREE.Cache garde LOGO_SRC en texte (SVGLoader) → charger l'image sous une autre URL (`?raster`).
+- Anticrénelage : MSAA dans le composer (`quality.msaa` : high 4, medium 2, low 0 ; ×2 max si DPR ≥ 1.75) + SMAA.
+- Liseré clair autour du texte mural du lobby : blending custom appliqué à l'alpha (tampon < 1 sur les bords)
+  → `blendSrcAlpha: One, blendDstAlpha: OneMinusSrcAlpha` dans WallType. Règle : tout CustomBlending doit
+  garder l'alpha du tampon à 1.
+
+## Logo du fût (lobby)
+- Lettres décollées de 2 cm (bendRadius R+0.07) + `SignHalo` courbé (bendRadius) intensité 1.15 sur l'enduit,
+  et reflet lumineux qui balaie le logo (`useLogoSweep` : bande oblique émissive, 1.5 s toutes les 7 s,
+  désactivé en mouvement réduit). Pas d'effet sur le slogan (demande utilisateur).
+- `WallType align="center"` centre optiquement : la ponctuation finale (, .) déborde hors du bloc.
+
+## Contenus nettoyés (19/09, demande utilisateur)
+- AUCUN chiffre inventé sur le site : StatStrip supprimé (Hero façade + lobby), chiffres et témoignage fictif
+  retirés du bloc Méthode (SERVICE_STATS / SERVICE_QUOTE supprimés, masque du voile du Hero simplifié : plus
+  de « rects d'encre »). Ne pas en réintroduire sans données réelles.
+- Engagements de la méthode : « Un interlocuteur dédié, du premier échange au suivi » · « Rien n'est mis en
+  service sans votre feu vert » · « Vos résultats mesurés et partagés chaque mois ».
+- Diagnostic, temps récupéré = fourchette : temps hebdo (1,5 / 6 / 14 h) × 4,33 × part prise en charge selon
+  la tâche (contenu 45–65 %, support 55–75 %, prospection 40–60 %, RH 40–60 %, données 50–70 %, autre 30–50 %)
+  × facteur processus (classique 1, spécificités 0,85, unique 0,7) ; arrondi (5 h au-delà de 10 h) + jours de
+  travail (7 h) ; note de bas expliquant le calcul ; aussi affiché pour « sur mesure » et joint au contact.
+
+## Panneau « Notre mission » (lobby, 19/09)
+- Décision utilisateur : la mission se lit SANS clic, reste À DROITE, en « joli bloc décoratif ». Pas de scroll
+  en plus (le manifeste plein écran a été refusé : trop de scroll), pas de carte repliable, pas de fusion dans
+  la bulle de May. Réalisé (≥1025 px) : bloc verre dense (4,5:1 malgré le lobby net derrière), aurore bleue +
+  deux orbites fines avec un nœud qui tourne en haut à droite, liseré lumineux + éclat (Glass.module), icône
+  dégradée au kicker, filet d'accent dessiné et titre révélé ligne par ligne à chaque arrivée de la caméra,
+  bénéfices en bandeau teinté (3 colonnes) au pied. Mobile : panneau simple inchangé.
+
+## Sections sous l'accueil (sans 3D) : Services puis Agents
+- Ordre : piste 3D → `ServicesSection` → `AgentsSection` (app/page.tsx). Le lobby reste derrière, flouté par le
+  voile fixe `.backdrop` de Services (opacité = `frame.services`, 0 → 1 à l'arrivée de la section).
+- Contenu dans `lib/services.ts` (textes réécrits à partir du brief client, décision du 19/09) :
+  · Services = l'offre. Intro « L'IA qui s'adapte à vous, pas l'inverse. » ; service 01 « Agents IA Plug & Play »
+    (fonctions Contenu/Vente/RH/Support, 5 bénéfices) avec `PlugDiagram` animé (interrupteur « Connecté », outils
+    génériques reliés à l'agent, tâches d'exemple qui allument les outils utilisés — pas de marques tierces).
+  · Méthode `MethodProcess` : 4 étapes en onglets accessibles (flèches clavier), lecture auto 5,2 s par étape
+    quand visible (pause survol/focus, arrêt au clic), détail « Ce que vous obtenez / Votre rôle », 3 engagements
+    (à confirmer par D2S), chiffres + témoignage (PLACEHOLDER à remplacer par un vrai avis).
+  · Agents = titre « Des agents IA pour chaque défi… », note manuscrite, 5 cartes (`lib/team.ts`).
+- ÉQUIPE (brief client du 19/09) — type 3D → agent : content = Déa (Créatrice de contenu), support = Loic
+  (Support client IA), prospection = May (Commerciale IA, accueil du lobby), automation = Diva (Coordinatrice
+  RH IA, lobby gauche), data = Morgan (Analyste de données IA — le brief donnait par erreur le texte de Loic ; rédigé en
+  analyste, à confirmer). Missions = brief ; canaux, garde-fou humain (« Vous gardez la main ») et démo
+  complétés dans la même logique. `lib/team.ts` : blurb, pitch, missions, channels, control, demo, tint.
+- 1re version (étiquette de prénom + fiche dense + faux chat) REJETÉE par l'utilisateur (« les exemples c'est
+  très mal fait »). Version actuelle :
+  · Cartes : portrait plein cadre sur dégradé teinté (tint), légende en verre (rôle + blurb), prénom en grand
+    qui se déploie au survol/focus (grid 0fr→1fr), voisines atténuées (opacité .72, saturation .75), flèche ↗ ;
+    pastille d'aide lisible ; mobile = carrousel scroll-snap, prénom toujours visible.
+  · `AgentDialog` : <dialog> natif, ouvert depuis la carte (--from-x/--from-y), hauteur FIXE
+    min(800px, 100dvh−32px) pour que parcourir l'équipe ne redimensionne pas la fenêtre. Grille : intro
+    (portrait, « En ligne », prénom, rôle, pitch, canaux) + missions numérotées + garde-fou à gauche (410 px) ;
+    démo pleine hauteur à droite ; footer sticky (‹ avatars › + « Recruter {prénom} »). Mobile ≤900 px : panneau
+    bas, ordre intro → démo → missions ; ≤560 px footer sur une ligne (‹ › + CTA), avatars masqués.
+  · `AgentDemos.tsx` : 5 mini-interfaces produit jouées en séquence (`useSequence(beats, {run, reduced, play})`),
+    démarrage seulement quand la scène est visible (IntersectionObserver dans `DemoStage`), « Rejouer »,
+    réduit = état final. Barre agent en bas (avatar + ce que fait l'agent → « Terminé »). Déa : brief → post
+    LinkedIn → accroches → programmé ; Loic : WhatsApp 21 h 47 → suivi commande → avis 5/5 ; May : lead
+    86 → message perso → objection → RDV → CRM ; Diva : 48 CV → classement → présélection → invitations ;
+    Morgan : question → KPI → courbe (révélée par clip-path, pas de dasharray avec non-scaling-stroke) →
+    synthèse. « Démonstration illustrative, données fictives. »
+- TRANSITION lobby → Services (choix utilisateur du 19/09, desktop uniquement) = « mise au point » :
+  `lib/experience/focusPull.ts` (réglages + courbes move/soften/rack sur `frame.services`).
+  · Caméra (CameraRig) : continue vers le comptoir (dolly 1,3 m, +8 cm, fov −1,6°).
+  · Profondeur de champ 3D (PostEffects, `<EffectGroup>` + `<DepthOfField>`) : d'abord la salle se floute
+    autour de Diva et du comptoir (restent nets), puis la mise au point part vers l'objectif → tout en bokeh.
+    La passe ne tourne QUE pendant la transition (`pass.enabled`), et 4 images au démarrage (chauffe sous le
+    loader) pour compiler ses shaders. bokeh max 6 (au-delà : motif d'échantillonnage visible).
+  · Voile DOM : flou CSS limité à `--veil-blur` (0 → 8 px avec le rack) quand `store.focusPull` ; sinon
+    (mobile, qualité low sans post-process) l'ancien voile flou 12 px.
+  · Blocs Services (panneau 01 + méthode) en verre dépoli : `Glass.module.css` (≥1025 px), liseré lumineux
+    (anneau `::before` masqué + filet sombre extérieur pour qu'il se lise) et un éclat bleu qui fait le tour du
+    liseré à l'arrivée (`@property --glint`). Un reflet balayé À L'INTÉRIEUR du panneau ne se voit pas
+    (blanc sur blanc) — abandonné.
+  · QA : `node scripts/transition-qa.mjs --tag X [--k 0,0.2,…] [--delay ms]` (captures à plusieurs k).
+- DIAGNOSTIC « Comment choisir votre agent IA ? » (demande du 19/09), après les agents :
+  `DiagnosticSection` + `lib/diagnostic.ts`. Panneau verre : 4 questions à gauche (tâche prioritaire, temps
+  par semaine, outils [multi], processus classique / quelques spécificités / unique) en radios/cases natives
+  (clic souris = question suivante après 420 ms ; clavier : flèches sans avancer, Entrée = Continuer) ;
+  à droite « Compatibilité en direct » : les 5 agents + « Sur mesure » se reclassent à chaque réponse
+  (lignes empilées par rang, barres + % = même échelle score/104). Résultat : `ready` (agent tel quel),
+  `adapted` (custom ≥ 30 : l'agent entraîné aux règles de l'entreprise) ou `custom` (custom ≥ meilleur agent :
+  plan de l'agent sur mesure + 3 étapes). Pourquoi (tâche, outils communs, heures récupérées ≈ 70 % du temps
+  × 4,3 — indicatif, astérisque), « Idéal en duo avec… », « Découvrir {prénom} » ouvre `AgentDialog`, CTA contact.
+  QA : `node scripts/diagnostic-qa.mjs --tag X` (3 scénarios). Rien n'est envoyé : tout reste dans la page.
+- CONTACT « Parlons de votre projet » (demande du 19/09), fin de la page d'accueil après le diagnostic :
+  `ContactSection` + `lib/contact.ts` + `app/api/contact/route.ts`. `CONTACT_HREF` = `/#contact` (`/contact`
+  redirige). Tous les CTA passent par `contactClick(intent)` / `goToContact(intent)` : ils emportent le
+  contexte (`useContactIntent` : source, besoin pré-sélectionné, résumé du diagnostic joint et retirable).
+  Depuis la façade/lobby (frame.services < 0.5) : voile blanc + saut instantané ; en dessous : scroll doux.
+  « Recruter {prénom} » (AgentDialog) : ferme la fenêtre puis va au formulaire (agent pré-sélectionné).
+  Formulaire : besoin (5 agents + sur mesure + je ne sais pas), nom, e-mail pro, entreprise, téléphone
+  facultatif, message (exemple adapté au besoin), préférence visio/appel/e-mail, consentement ; labels
+  flottants, erreurs au blur et à l'envoi (focus sur la 1re), pot de miel + délai mini ; confirmation animée
+  (timeline « ce qui se passe ensuite » cochée, carte « May, à l'accueil » → « C'est noté dans notre CRM »).
+  Bulle d'accueil du lobby (May) : la question tapée part au formulaire comme message (`intent.message`). Pied de page © minimal.
+  ENVOI : POST JSON vers `CONTACT_WEBHOOK_URL` (Make/Zapier/n8n/CRM…). Sans variable : log en dev, 503 en
+  prod (aucune demande perdue en silence). → À CONFIGURER avant la mise en ligne (+ e-mail de l'agence).
+  QA : `node scripts/contact-qa.mjs --tag X`.
+- Director : `scrollToElement` vise une position absolue (Lenis résout un élément contre sa valeur animée,
+  décalée si la page a défilé autrement) ; saut instantané = `frame.snap` (caméra sans inertie) +
+  `requestRender()` (le fond figé est re-rendu au lobby, sinon il restait sur la façade). `html` en
+  `overflow-anchor: none` (l'ancrage du navigateur décalait les scrolls doux quand un contenu grandissait).
+- En-tête commun `SectionHead.module.css`. MENU (19/09) = Accueil · Nos services · Nos agents IA ·
+  Comment choisir. Études de cas / À propos / Blog retirés du menu tant que les pages n'existent pas (URL
+  conservées). Les 3 entrées de sections suivent le scroll (la plus profonde visible gagne ; rien d'actif sur
+  Contact) et défilent sur l'accueil ; `/nos-services`, `/comment-choisir`, `/contact` redirigent vers l'ancre.
+  Le menu n'est plus positionné aux x mesurés de la référence (6 items) : rangée centrée, écart qui se resserre
+  légèrement avec `--c`.
+- `frame.services` : fondu de l'UI du lobby, et GEL du rendu 3D quand la section couvre tout.
+- QA : `node scripts/sections-qa.mjs --tag X [--mobile]` (services, méthode, agents).
+- Pièges : pas de `-webkit-backdrop-filter` à côté de `backdrop-filter` (Lightning CSS garde la version préfixée,
+  ignorée par Chrome) ; sur mobile, jamais de `min-height` avec `aspect-ratio` (impose une largeur minimale →
+  débordement → dézoom) ; défilement vers une section = `window.scrollTo` absolu (pas `scrollIntoView`).
+
+## Agents 3D (remplacement progressif des PNG)
+- Ordre : #1 Création de contenu (`content`), #2 Support client (`support`), #3 Automatisation (`automation`),
+  #4 Prospection (`prospection`), #5 Analyse de données (`data`).
+- Pipeline : `node scripts/build-agent-model.mjs <source.glb> <type> [--tris 80000] [--yaw 0] [--keep-maps]`
+  → source copiée dans `.cache/agents/`, GLB web dans `public/models/agents/<type>.glb`, manifeste régénéré ;
+  `AgentSlot` bascule automatiquement sur le GLB.
+- Sources IA (Tripo/Meshy) : milliers d'îlots UV sur fond uni + normal map d'arêtes → nettoyage par défaut
+  (remplissage du fond depuis les îlots, normal/roughness remplacées par un satiné 0.62).
+- `AgentModel` : pas de réception d'ombre (acné), ombre portée au sol + `AgentGroundShadow`, respiration
+  procédurale si pas d'animation, anisotropie 8.
+- #1 fait : Dea-Agent.glb (2,5 M tris, 81 Mo, sans rig).
+- #2 fait : Loic-Agent.glb (978 k tris, 36 Mo, sans rig).
+- #3 fait : Diva-Agent.glb (1,26 M tris, 43 Mo, sans rig). Placée sur l'estrade derrière
+  le comptoir (0, 0.45, −16.45). Hauteur de l'agent d'accueil (May depuis le 19/09) ramenée de 3.09 à 1.94 m,
+  comme les autres agents du lobby (demande utilisateur : à 3.09 m, à côté du comptoir de 1.26 m, elle paraissait
+  géante). Règle : même taille pour tous les agents d'une même zone, pas de triche d'échelle pour le cadrage.
+  Bulle d'accueil recalée sur cette taille (LobbyOverlay.module.css) : bord droit à 60 u à gauche de la tête,
+  bas à +72 u, pointe à 58 u du bas → elle vise la tête, passe sous le slogan du fût et au-dessus du comptoir.
+- #4 fait : May-Agent.glb (1,99 M tris, 65 Mo, sans rig). Position inchangée.
+- #5 fait : Morgan-Agent.glb (1,03 M tris, 37 Mo, sans rig). Position inchangée. → les 5 agents sont en 3D.
+- Perf : les 5 reconstruits à 40 k tris (défaut du script ; identique à 80 k même à p=0.25), 0,87–1,07 Mo chacun
+  (4,7 Mo au total) ; matériaux FrontSide ; seuls les agents de la façade projettent l'ombre du soleil
+  (`castShadow={zone === "facade"}` dans World). Coût mesuré : ~4 % FPS à p=1, ~7 % à p=0.
+- Sources originales gardées dans `.cache/agents/<type>.source.glb` (gitignoré) pour reconstruire.
+
 ## En cours / à faire
 - Zones suivantes (services, réf 05) : à démarrer quand demandé.
-- Rien de commité depuis d13f797 (passe matériaux lobby + bassin + memory.md/CLAUDE.md).
+- faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
+- Non commité : passe façade, loader, enseigne/logo, sections Services + Agents (refonte cartes/fiche/démos
+  du 19/09, en attente du retour utilisateur).

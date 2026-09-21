@@ -1,0 +1,335 @@
+/*
+ * Agents section — cards geometry = design/references/05-services-final.png (design units).
+ * Reached after the services; the lobby stays blurred behind (backdrop owned by the services section).
+ */
+.agents {
+  position: relative;
+  z-index: 20;
+  min-height: 100svh;
+  color: var(--ink);
+}
+
+.frame {
+  position: relative;
+  padding: calc(101 * var(--u)) 0 calc(96 * var(--u)) calc(179 * var(--u));
+  width: calc(1672 * var(--u));
+}
+
+/* Handwritten annotation, top right of the heading (1340, 166 on the reference). */
+.note {
+  position: absolute;
+  left: calc(1161 * var(--u));
+  top: calc(65 * var(--u));
+  margin: 0;
+  font-family: var(--font-script), "Caveat", cursive;
+  font-size: max(15px, calc(19.5 * var(--u)));
+  font-weight: 500;
+  line-height: calc(22 * var(--u));
+  color: var(--blue);
+  rotate: -7deg;
+  transform-origin: left top;
+}
+
+.noteArrow {
+  position: absolute;
+  left: calc(-44 * var(--u));
+  top: calc(34 * var(--u));
+  width: calc(36 * var(--u));
+  height: calc(26 * var(--u));
+  color: var(--blue);
+}
+
+/* ——— Agent cards ———
+ * Full-bleed portrait on a tinted stage; a glass caption carries role + one line. Hover / focus: the card
+ * lifts, the figure steps forward, the agent's NAME rises into the caption, the other cards step back.
+ */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(5, calc(236 * var(--u)));
+  gap: calc(17.75 * var(--u));
+  margin: calc(30 * var(--u)) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  position: relative;
+  transition:
+    opacity 0.8s var(--ease-out),
+    translate 0.8s var(--ease-out),
+    filter 0.4s var(--ease-out);
+  transition-delay: calc(var(--i) * 70ms);
+}
+
+.agents[data-in="false"] .card {
+  opacity: 0;
+  translate: 0 calc(24 * var(--u));
+}
+
+@media (hover: hover) {
+  .cards:hover .card:not(:hover) {
+    opacity: 0.72;
+    filter: saturate(0.75);
+    transition-delay: 0s;
+  }
+}
+
+.cardButton {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: calc(410 * var(--u));
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: calc(22 * var(--u));
+  background:
+    radial-gradient(80% 55% at 50% 22%, rgb(255 255 255 / 0.9), transparent 70%),
+    linear-gradient(165deg, var(--tint-a), var(--tint-b));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.85),
+    0 1px 2px rgb(11 18 56 / 0.05),
+    0 18px 40px -24px rgb(11 18 56 / 0.35);
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    translate 0.5s var(--ease-out),
+    box-shadow 0.5s var(--ease-out);
+}
+
+.cardButton:hover,
+.cardButton:focus-visible {
+  translate: 0 calc(-6 * var(--u));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.9),
+    0 2px 4px rgb(11 18 56 / 0.05),
+    0 30px 60px -26px rgb(21 60 160 / 0.45);
+}
+
+.cardButton:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+}
+
+.figure {
+  position: absolute;
+  left: 50%;
+  top: calc(14 * var(--u));
+  height: calc(540 * var(--u));
+  width: auto;
+  max-width: none;
+  translate: -50% 0;
+  filter: drop-shadow(0 16px 22px rgb(11 18 56 / 0.18));
+  pointer-events: none;
+  user-select: none;
+  transform-origin: 50% 18%;
+  transition: scale 0.6s var(--ease-out);
+}
+
+.cardButton:hover .figure,
+.cardButton:focus-visible .figure {
+  scale: 1.05;
+}
+
+/* "Open" affordance, top right, appears on hover. */
+.open {
+  position: absolute;
+  top: calc(14 * var(--u));
+  right: calc(14 * var(--u));
+  display: grid;
+  place-items: center;
+  width: calc(38 * var(--u));
+  height: calc(38 * var(--u));
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.85);
+  box-shadow: 0 8px 18px -10px rgb(11 18 56 / 0.45);
+  backdrop-filter: blur(8px);
+  color: var(--blue);
+  opacity: 0;
+  scale: 0.7;
+  transition:
+    opacity 0.3s var(--ease-out),
+    scale 0.4s var(--ease-out);
+}
+
+.open svg {
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
+}
+
+.cardButton:hover .open,
+.cardButton:focus-visible .open {
+  opacity: 1;
+  scale: 1;
+}
+
+.caption {
+  position: absolute;
+  inset: auto calc(10 * var(--u)) calc(10 * var(--u));
+  display: grid;
+  padding: calc(14 * var(--u)) calc(16 * var(--u)) calc(15 * var(--u));
+  border-radius: calc(16 * var(--u));
+  background: rgb(255 255 255 / 0.86);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.9), 0 10px 24px -16px rgb(11 18 56 / 0.4);
+  backdrop-filter: blur(14px) saturate(1.2);
+}
+
+/* Name: collapsed row that opens on hover (grid 0fr → 1fr), the word rises from below. */
+.nameRow {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ease-out);
+}
+
+.nameRow > span {
+  overflow: hidden;
+}
+
+.name {
+  display: block;
+  padding-bottom: calc(4 * var(--u));
+  font-family: var(--font-display);
+  font-size: max(24px, calc(38 * var(--u)));
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  background: linear-gradient(90deg, #0b1238 0%, #1a3fb0 60%, #1570f0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  translate: 0 60%;
+  opacity: 0;
+  transition:
+    translate 0.5s var(--ease-out),
+    opacity 0.35s var(--ease-out);
+}
+
+.cardButton:hover .nameRow,
+.cardButton:focus-visible .nameRow {
+  grid-template-rows: 1fr;
+}
+
+.cardButton:hover .name,
+.cardButton:focus-visible .name {
+  translate: 0 0;
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .nameRow {
+    grid-template-rows: 1fr;
+  }
+
+  .name {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+
+.role {
+  font-family: var(--font-display);
+  font-size: max(13px, calc(16.5 * var(--u)));
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.blurb {
+  margin-top: calc(4 * var(--u));
+  font-family: var(--font-body);
+  font-size: max(11px, calc(13 * var(--u)));
+  line-height: calc(18 * var(--u));
+  color: var(--text);
+}
+
+/* Interaction hint under the row of cards. */
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(9 * var(--u));
+  margin: calc(22 * var(--u)) 0 0;
+  padding: calc(8 * var(--u)) calc(16 * var(--u)) calc(8 * var(--u)) calc(12 * var(--u));
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.82);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.9), 0 8px 20px -14px rgb(11 18 56 / 0.35);
+  backdrop-filter: blur(10px);
+  font-family: var(--font-body);
+  font-size: max(11px, calc(13 * var(--u)));
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.hint svg {
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
+  color: var(--blue);
+}
+
+.hintTouch {
+  display: none;
+}
+
+@media (hover: none) {
+  .hintMouse {
+    display: none;
+  }
+
+  .hintTouch {
+    display: inline;
+  }
+}
+
+/* ——— Tablet & mobile: horizontal carousel ——— */
+@media (max-width: 1024px) {
+  .frame {
+    width: auto;
+    padding: calc(var(--header-h) + 28px) var(--gutter) 64px;
+  }
+
+  .note {
+    display: none;
+  }
+
+  .cards {
+    display: flex;
+    gap: 14px;
+    margin: 26px calc(-1 * var(--gutter)) 0;
+    padding: 4px var(--gutter) 18px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    scrollbar-width: none;
+  }
+
+  .cards::-webkit-scrollbar {
+    display: none;
+  }
+
+  .card {
+    flex: 0 0 min(74vw, 300px);
+    scroll-snap-align: start;
+  }
+
+  .cardButton {
+    height: 420px;
+  }
+
+  .figure {
+    height: 560px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .cardButton,
+  .figure,
+  .name,
+  .nameRow {
+    transition: none;
+  }
+
+  .agents[data-in="false"] .card {
+    opacity: 1;
+    translate: none;
+  }
+}

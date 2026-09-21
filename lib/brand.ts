@@ -1,6 +1,11 @@
-/** Single source for the logo: replacing this SVG updates the header and the 3D façade sign. */
-export const LOGO_SRC = "/images/brand/d2s-logo.svg";
-export const LOGO_VIEWBOX = { width: 344, height: 147 } as const;
+import { LOGO } from "./generated/logo";
+
+/*
+ * Single source for the logo: design/brand/logo-source.webp → `node scripts/build-logo.mjs` writes both the
+ * SVG (header fallback, loader mask, 3D signage) and lib/generated/logo.ts (inline, animated header logo).
+ */
+export const LOGO_SRC = "/images/brand/d2s-aigency.svg";
+export const LOGO_VIEWBOX = { width: LOGO.viewBox.width, height: LOGO.viewBox.height } as const;
 
 /** Colours shared with WebGL (CSS mirrors them in app/globals.css). */
 export const COLORS = {

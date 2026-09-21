@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { Suspense, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { AgentFacing } from "@/lib/experience/casting";
 import { frame } from "@/lib/experience/store";
@@ -21,6 +21,8 @@ export interface AgentSlotProps {
   /** Publishes the head's screen position under this id for DOM overlays. */
   anchor?: string;
   idle?: boolean;
+  /** Casts the sun's shadow-map shadow (3D models only). */
+  castShadow?: boolean;
 }
 
 const head = new THREE.Vector3();
@@ -40,6 +42,7 @@ export function AgentSlot({
   follow = 0.3,
   anchor,
   idle = true,
+  castShadow = true,
 }: AgentSlotProps) {
   const group = useRef<THREE.Group>(null);
   const agent = AGENTS[type];
@@ -71,10 +74,8 @@ export function AgentSlot({
   return (
     <group ref={group} position={position} rotation-y={rotationY} name={`agent-${type}`}>
       {agent.model ? (
-        // Rigged models may be heavy: they stream in on their own without blocking the world.
-        <Suspense fallback={null}>
-          <AgentModel url={agent.model} height={height} idle={idle} />
-        </Suspense>
+        // Part of the world's Suspense: the site loader opens the agency only once every agent is here (~1 MB each).
+        <AgentModel url={agent.model} height={height} idle={idle} castShadow={castShadow} />
       ) : (
         <AgentBillboard agent={agent} height={height} idle={idle} />
       )}

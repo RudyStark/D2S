@@ -70,8 +70,13 @@ export function WallType({
     const font = `${weight} ${px}px ${FAMILY}, Montserrat, sans-serif`;
     ctx.font = font;
     ctx.letterSpacing = `${tracking * px}px`;
-    const widths = lines.map((l) => ctx.measureText(l).width - tracking * px);
-    const textW = Math.max(...widths);
+    const measure = (l: string) => ctx.measureText(l).width - tracking * px;
+    const widths = lines.map(measure);
+    // Centred text is centred optically: trailing punctuation (",", ".") hangs outside the block,
+    // otherwise it pushes the words to the left. The canvas stays symmetric around that optical axis.
+    const optical = lines.map((l) => measure(l.replace(/[.,;:!?…]+$/u, "")));
+    const half = Math.max(...optical.map((o, i) => Math.max(o / 2, widths[i] - o / 2)));
+    const textW = align === "left" ? Math.max(...widths) : half * 2;
     const dashH = dash ? px * 1.2 : 0;
     const pad = Math.ceil(px * 0.25);
     canvas.width = Math.ceil(textW + pad * 2);
@@ -81,7 +86,7 @@ export function WallType({
     ctx.fillStyle = color;
     ctx.textBaseline = "alphabetic";
     lines.forEach((line, i) => {
-      const x = align === "left" ? pad : pad + (textW - widths[i]) / 2;
+      const x = align === "left" ? pad : pad + half - optical[i] / 2;
       ctx.fillText(line, x, pad + px + i * pitch);
     });
     if (dash) {
@@ -104,6 +109,10 @@ export function WallType({
         blending: THREE.CustomBlending,
         blendSrc: THREE.SrcAlphaFactor,
         blendDst: THREE.OneMinusSrcAlphaFactor,
+        // Keep the buffer's alpha at 1: with the colour factors applied to alpha too, text edges wrote
+        // alpha < 1 into the composer buffer and the post chain turned them into a light fringe.
+        blendSrcAlpha: THREE.OneFactor,
+        blendDstAlpha: THREE.OneMinusSrcAlphaFactor,
         depthWrite: false,
         alphaTest: 0.01,
         polygonOffset: true,

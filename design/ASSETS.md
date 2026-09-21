@@ -19,6 +19,7 @@
 | `marble_01` → `marble_*.webp` | Floor / stone (desaturated + lightened) | polyhaven.com/a/marble_01 |
 | `white_plaster_02` → `plaster_*.webp` | Walls | polyhaven.com/a/white_plaster_02 |
 | `borghese_gardens` 1k HDR | Environment (glass, steel, water reflections) | polyhaven.com/a/borghese_gardens |
+| `oak_veneer_01` → `wood_*.webp` (2k colour, 1k rough/normal) | Pool coping, teak-toned oiled hardwood | polyhaven.com/a/oak_veneer_01 |
 
 All Poly Haven assets are CC0. Sources are cached in `.cache/polyhaven` (not committed);
 `npm run assets:plants` re-downloads and rebuilds the optimised GLBs.

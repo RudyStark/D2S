@@ -1,0 +1,367 @@
+/*
+ * Services — heading (05-services-final geometry), the service 01 feature panel and the method.
+ * Design units, flow layout, left-aligned on the header grid (x 179). Below 1025 px: fluid.
+ */
+.services {
+  --services: 0;
+  position: relative;
+  z-index: 20;
+  min-height: 100svh;
+  color: var(--ink);
+}
+
+/* The lobby behind, blurred and lifted: same place, now a calm backdrop for every section below. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: var(--services);
+  background:
+    radial-gradient(70% 60% at 50% 45%, rgb(255 255 255 / 0.38), rgb(255 255 255 / 0.14) 70%),
+    linear-gradient(180deg, rgb(232 241 255 / 0.5), rgb(236 243 253 / 0.32));
+  backdrop-filter: blur(12px) saturate(1.06);
+  pointer-events: none;
+}
+
+/* Desktop: the 3D depth of field does the blur (focus pull); the veil lifts it and, once the focus has
+   racked, smooths the bokeh into a calm backdrop. */
+.backdrop[data-focus-pull="true"] {
+  backdrop-filter: blur(var(--veil-blur, 0px)) saturate(1.05);
+}
+
+.frame {
+  position: relative;
+  z-index: 1;
+  width: calc(1672 * var(--u));
+  padding: calc(101 * var(--u)) 0 calc(40 * var(--u)) calc(179 * var(--u));
+}
+
+/* ——— Service 01 ——— */
+.feature {
+  display: grid;
+  grid-template-columns: calc(500 * var(--u)) 1fr;
+  column-gap: calc(44 * var(--u));
+  width: calc(1253 * var(--u));
+  margin-top: calc(30 * var(--u));
+  padding: calc(30 * var(--u)) calc(30 * var(--u)) 0 calc(38 * var(--u));
+  border-radius: calc(26 * var(--u));
+  background: rgb(255 255 255 / 0.86);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.9),
+    0 24px 60px -32px rgb(11 18 56 / 0.32);
+  backdrop-filter: blur(16px);
+}
+
+.featureCopy {
+  padding-top: calc(4 * var(--u));
+  transition:
+    opacity 0.8s var(--ease-out),
+    translate 0.8s var(--ease-out);
+}
+
+.feature[data-in="false"] .featureCopy {
+  opacity: 0;
+  translate: calc(-16 * var(--u)) 0;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: calc(14 * var(--u));
+  margin: 0;
+}
+
+/* Service number, filled with the brand gradient. */
+.index {
+  font-family: var(--font-display);
+  font-size: max(30px, calc(46 * var(--u)));
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #0b52ef, #14a6e2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(7 * var(--u));
+  height: calc(30 * var(--u));
+  padding: 0 calc(13 * var(--u)) 0 calc(11 * var(--u));
+  border-radius: var(--radius-pill);
+  background: var(--blue-tint);
+  font-family: var(--font-body);
+  font-size: max(10.5px, calc(12.5 * var(--u)));
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.tag svg {
+  width: calc(14 * var(--u));
+  height: calc(14 * var(--u));
+}
+
+.featureTitle {
+  margin: calc(16 * var(--u)) 0 0;
+  font-family: var(--font-display);
+  font-size: max(22px, calc(34 * var(--u)));
+  font-weight: 800;
+  line-height: calc(38 * var(--u));
+  letter-spacing: -0.02em;
+}
+
+.featureText {
+  margin: calc(12 * var(--u)) 0 0;
+  font-family: var(--font-body);
+  font-size: max(12.5px, calc(15.25 * var(--u)));
+  line-height: calc(24 * var(--u));
+  color: var(--text);
+}
+
+.functionsLabel {
+  margin: calc(18 * var(--u)) 0 0;
+  font-family: var(--font-body);
+  font-size: max(9.5px, calc(10.75 * var(--u)));
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.functions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(8 * var(--u));
+  margin: calc(10 * var(--u)) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.functions li {
+  display: inline-flex;
+  align-items: center;
+  height: calc(32 * var(--u));
+  padding: 0 calc(14 * var(--u));
+  border-radius: var(--radius-pill);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--line), 0 4px 10px -8px rgb(11 18 56 / 0.3);
+  font-family: var(--font-body);
+  font-size: max(11px, calc(13.25 * var(--u)));
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.functions .functionsMore {
+  background: none;
+  box-shadow: none;
+  padding: 0 calc(4 * var(--u));
+  font-weight: 500;
+  color: var(--text-soft);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: calc(12 * var(--u));
+  margin-top: calc(24 * var(--u));
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(12 * var(--u));
+  height: calc(48 * var(--u));
+  padding: 0 calc(24 * var(--u));
+  border: 0;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: max(11.5px, calc(13.75 * var(--u)));
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    translate 0.3s var(--ease-out),
+    box-shadow 0.3s var(--ease-out),
+    background 0.3s var(--ease-out);
+}
+
+.primary {
+  background: linear-gradient(90deg, var(--blue-bright), var(--blue-deep));
+  box-shadow: var(--shadow-blue);
+  color: #fff;
+}
+
+.primary svg {
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
+  transition: translate 0.3s var(--ease-out);
+}
+
+.primary:hover {
+  translate: 0 -2px;
+}
+
+.primary:hover svg {
+  translate: 3px 0;
+}
+
+.secondary {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--ink);
+}
+
+.secondary:hover {
+  background: var(--blue-tint);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.featureVisual {
+  align-self: center;
+  transition:
+    opacity 0.9s var(--ease-out) 0.15s,
+    translate 0.9s var(--ease-out) 0.15s;
+}
+
+.feature[data-in="false"] .featureVisual {
+  opacity: 0;
+  translate: calc(16 * var(--u)) 0;
+}
+
+/* ——— Benefits ——— */
+.benefits {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin: calc(28 * var(--u)) 0 0 calc(-8 * var(--u));
+  padding: calc(22 * var(--u)) 0 calc(26 * var(--u));
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.benefit {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  align-content: start;
+  grid-template-areas:
+    "icon title"
+    "icon text";
+  column-gap: calc(12 * var(--u));
+  row-gap: calc(4 * var(--u));
+  padding: 0 calc(18 * var(--u)) 0 calc(8 * var(--u));
+  transition:
+    opacity 0.7s var(--ease-out),
+    translate 0.7s var(--ease-out);
+  transition-delay: calc(0.3s + var(--i) * 80ms);
+}
+
+.feature[data-in="false"] .benefit {
+  opacity: 0;
+  translate: 0 calc(12 * var(--u));
+}
+
+.benefit + .benefit {
+  border-left: 1px solid var(--line);
+  padding-left: calc(18 * var(--u));
+}
+
+.benefitIcon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  width: calc(40 * var(--u));
+  height: calc(40 * var(--u));
+  border-radius: calc(12 * var(--u));
+  background: linear-gradient(135deg, #eaf2ff, #dbe8fd);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.9);
+  color: var(--blue);
+}
+
+.benefitIcon svg {
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+}
+
+.benefitTitle {
+  grid-area: title;
+  align-self: start;
+  margin-top: calc(1 * var(--u));
+  font-family: var(--font-display);
+  font-size: max(12px, calc(15 * var(--u)));
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+}
+
+.benefitText {
+  grid-area: text;
+  font-family: var(--font-body);
+  font-size: max(10.5px, calc(12.75 * var(--u)));
+  line-height: calc(18 * var(--u));
+  color: var(--text);
+}
+
+.methodWrap {
+  margin-top: calc(56 * var(--u));
+}
+
+/* ——— Tablet & mobile ——— */
+@media (max-width: 1024px) {
+  .frame {
+    width: auto;
+    padding: calc(var(--header-h) + 28px) var(--gutter) 40px;
+  }
+
+  .feature {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 24px;
+    width: auto;
+    margin-top: 24px;
+    padding: 24px 20px 0;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .benefits {
+    grid-template-columns: 1fr;
+    row-gap: 16px;
+    margin: 4px 0 0;
+    padding: 20px 0 24px;
+  }
+
+  .benefit,
+  .benefit + .benefit {
+    border-left: 0;
+    padding: 0;
+  }
+
+  .methodWrap {
+    margin-top: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .featureCopy,
+  .featureVisual,
+  .benefit {
+    transition: none;
+  }
+
+  .feature[data-in="false"] .featureCopy,
+  .feature[data-in="false"] .featureVisual,
+  .feature[data-in="false"] .benefit {
+    opacity: 1;
+    translate: none;
+  }
+}

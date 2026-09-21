@@ -52,6 +52,13 @@ const waterFragment = /* glsl */ `
   uniform float uDistort;
   uniform float uGlint;
   uniform float uSkyVeil;
+  uniform float uFresnelMin;
+  uniform float uFresnelScale;
+  uniform float uGlintSharp;
+  uniform vec2 uTransmit;
+  uniform vec2 uStreak;
+  uniform float uFreq;
+  uniform float uSwell;
   uniform vec3 uGlintDir;
   uniform vec3 uGlintColor;
   uniform vec3 uScatter;
@@ -62,15 +69,22 @@ const waterFragment = /* glsl */ `
   varying vec2 vLocal;
   ${shared}
 
-  // Gentle swell + two octaves of drifting chop (small, dense wavelets as in the reference).
+  mat2 wRot(float a) {
+    float c = cos(a);
+    float s = sin(a);
+    return mat2(c, -s, s, c);
+  }
+
+  // Two weak, oblique, non-harmonic swells + three octaves of wind chop on rotated drifting
+  // domains: no axis-aligned or periodic pattern the eye can lock onto (no bands).
   float waterHeight(vec2 p, float t) {
-    p *= 1.7;
+    p *= uFreq;
     float h = 0.0;
-    h += sin(dot(p, vec2(0.8, 0.6)) * 2.1 + t * 0.9) * 0.5;
-    h += sin(dot(p, vec2(-0.5, 0.86)) * 3.3 - t * 1.1) * 0.3;
-    h += sin(dot(p, vec2(0.95, -0.3)) * 5.7 + t * 1.5) * 0.18;
-    h += (wNoise(p * 6.0 + vec2(t * 0.35, -t * 0.2)) - 0.5) * 0.35;
-    h += (wNoise(p * 13.0 - vec2(t * 0.5, t * 0.3)) - 0.5) * 0.16;
+    h += sin(dot(p, vec2(0.62, 0.78)) * 1.15 + t * 0.55) * 0.22 * uSwell;
+    h += sin(dot(p, vec2(-0.83, 0.55)) * 1.9 - t * 0.7) * 0.14 * uSwell;
+    h += (wNoise(wRot(0.6) * p * 3.4 + vec2(t * 0.28, -t * 0.17)) - 0.5) * 0.42;
+    h += (wNoise(wRot(-1.1) * p * 7.3 - vec2(t * 0.41, t * 0.23)) - 0.5) * 0.24;
+    h += (wNoise(wRot(2.3) * p * 15.1 + vec2(-t * 0.6, t * 0.35)) - 0.5) * 0.11;
     return h;
   }
 
@@ -85,25 +99,27 @@ const waterFragment = /* glsl */ `
     ));
     vec3 V = normalize(cameraPosition - vWorld);
     float NdV = clamp(dot(N, V), 0.0, 1.0);
-    float F = 0.02 + 0.98 * pow(1.0 - NdV, 5.0);
+    float F = mix((0.02 + 0.98 * pow(1.0 - NdV, 5.0)) * uFresnelScale, 1.0, uFresnelMin);
     vec3 R = reflect(-V, N);
 
-    vec3 sky = mix(uHorizon, uZenith, pow(clamp(R.y, 0.0, 1.0), 0.55));
-    vec3 refl = sky;
+    // The veil samples the sky a little higher than the mirror direction: the pool keeps a clear blue.
+    vec3 sky = mix(uHorizon, uZenith, pow(clamp(R.y + 0.28, 0.0, 1.0), 0.55));
+    // Without a reflector (low tier), stand in for the pale façade it would mirror: the look stays close.
+    vec3 refl = mix(vec3(0.9, 0.92, 0.94), sky, uSkyVeil);
     if (uHasReflection > 0.5) {
       vec4 uv = vReflUv;
       // Ripples stretch reflections along the view direction (vertical streaks on screen).
-      uv.xy += vec2(N.x * 0.35, N.z * 1.25) * uDistort * uv.w;
+      uv.xy += vec2(N.x * uStreak.x, N.z * uStreak.y) * uDistort * uv.w;
       // A share of sky keeps the mirror luminous: dark foliage reads as soft shapes, not mud.
       refl = mix(texture2DProj(tDiffuse, uv).rgb, sky, uSkyVeil);
     }
 
     // Sun sparkles on the steeper ripple facets, twinkling as the chop drifts.
     float twinkle = smoothstep(0.55, 0.9, wNoise(p * 9.0 + vec2(uTime * 1.3, -uTime * 0.9)));
-    float glint = pow(max(dot(R, uGlintDir), 0.0), 900.0) * uGlint * (0.35 + twinkle);
+    float glint = pow(max(dot(R, uGlintDir), 0.0), uGlintSharp) * uGlint * (0.35 + twinkle) * mix(0.45, 1.0, uHasReflection);
 
     // Clear shallow water: transmittance drops at grazing angles; the body scatters turquoise.
-    float T = mix(0.8, 0.4, 1.0 - NdV);
+    float T = mix(uTransmit.x, uTransmit.y, 1.0 - NdV);
     float body = (1.0 - F) * (1.0 - T);
     float rim = smoothstep(0.55, 1.0, length(vLocal) / uRadius);
     vec3 scatter = uScatter * mix(0.8, 1.1, rim);
@@ -118,7 +134,54 @@ const waterFragment = /* glsl */ `
 
 const color = (hex: string) => new THREE.Color(hex);
 
+/**
+ * Water moods, selectable with ?water=1|2|3 to compare (0 = the default).
+ *  0 référence — matched on 01-home-final: saturated sky blue, dense small ripples, reflections broken
+ *    into vertical white streaks (measured: blue − red ≈ +40, median L ≈ 195, highlights ≈ 250).
+ *  1 miroir — almost still, strong clean reflections of the façade and the sky (architectural).
+ *  2 lagon  — very transparent, floor and caustics visible, light turquoise.
+ *  3 vivant — livelier ripples and more sun sparkles (closest to the motion in 01-home-final).
+ */
+interface WaterPreset {
+  amp: number;
+  distort: number;
+  glint: number;
+  skyVeil: number;
+  scatter: string;
+  /** Minimum reflectance (0 = physical Fresnel). */
+  fresnelMin: number;
+  /** Fresnel scale (< 1 = stylised extra transparency at grazing angles). */
+  fresnelScale: number;
+  /** Sparkle sharpness (higher = smaller, rarer points). */
+  glintSharp: number;
+  /** Reflection distortion across / along the view (along = vertical streaks on screen). */
+  streak: [number, number];
+  /** Sky seen in the water (zenith, horizon). */
+  sky: [string, string];
+  /** Ripple frequency multiplier and weight of the long swell (0 = chop only). */
+  freq: number;
+  swell: number;
+  /** Transmittance facing / grazing. */
+  transmit: [number, number];
+  speed: number;
+  floor: string;
+  caustic: number;
+}
+
+const WATER_PRESETS: Record<string, WaterPreset> = {
+  "0": { amp: 0.05, distort: 0.075, streak: [0.22, 1.9], freq: 2.6, swell: 0.35, glint: 36, glintSharp: 520, skyVeil: 0.52, sky: ["#3386d4", "#a8cdee"], scatter: "#3f86ba", fresnelMin: 0.08, fresnelScale: 1, transmit: [0.62, 0.3], speed: 1, floor: "#c8dbe5", caustic: 0.3 },
+  "1": { amp: 0.006, distort: 0.01, streak: [0.35, 1.25], sky: ["#8fbaf0", "#eef4fb"], freq: 1, swell: 1, glint: 3, glintSharp: 1400, skyVeil: 0.12, scatter: "#9fc3cc", fresnelMin: 0.5, fresnelScale: 1, transmit: [0.6, 0.25], speed: 0.45, floor: "#dde3e2", caustic: 0.08 },
+  "2": { amp: 0.028, distort: 0.035, streak: [0.35, 1.25], sky: ["#8fbaf0", "#eef4fb"], freq: 1, swell: 1, glint: 8, glintSharp: 900, skyVeil: 0.3, scatter: "#2fb6cf", fresnelMin: 0, fresnelScale: 0.42, transmit: [0.9, 0.55], speed: 0.85, floor: "#b9e6ec", caustic: 0.95 },
+  "3": { amp: 0.12, distort: 0.12, streak: [0.35, 1.25], sky: ["#8fbaf0", "#eef4fb"], freq: 1, swell: 1, glint: 90, glintSharp: 420, skyVeil: 0.34, scatter: "#86c0d2", fresnelMin: 0.04, fresnelScale: 1, transmit: [0.78, 0.38], speed: 1.45, floor: "#dfe5e3", caustic: 0.4 },
+};
+
+function waterPreset(): WaterPreset {
+  if (typeof window === "undefined") return WATER_PRESETS["0"];
+  return WATER_PRESETS[new URLSearchParams(window.location.search).get("water") ?? "0"] ?? WATER_PRESETS["0"];
+}
+
 function waterShader(radius: number) {
+  const w = waterPreset();
   return {
     name: "D2SWater",
     uniforms: {
@@ -128,15 +191,22 @@ function waterShader(radius: number) {
       uHasReflection: { value: 0 },
       uTime: { value: 0 },
       uRadius: { value: radius },
-      uAmp: { value: 0.06 },
-      uDistort: { value: 0.06 },
-      uGlint: { value: 70 },
-      uSkyVeil: { value: 0.3 },
+      uAmp: { value: w.amp },
+      uDistort: { value: w.distort },
+      uGlint: { value: w.glint },
+      uSkyVeil: { value: w.skyVeil },
+      uFresnelMin: { value: w.fresnelMin },
+      uFresnelScale: { value: w.fresnelScale },
+      uGlintSharp: { value: w.glintSharp },
+      uTransmit: { value: new THREE.Vector2(...w.transmit) },
       uGlintDir: { value: new THREE.Vector3(-0.62, 0.16, -0.77).normalize() },
       uGlintColor: { value: color("#fff4e2") },
-      uScatter: { value: color("#62c6de") },
-      uZenith: { value: color("#8fbaf0") },
-      uHorizon: { value: color("#eef4fb") },
+      uScatter: { value: color(w.scatter) },
+      uZenith: { value: color(w.sky[0]) },
+      uHorizon: { value: color(w.sky[1]) },
+      uStreak: { value: new THREE.Vector2(...w.streak) },
+      uFreq: { value: w.freq },
+      uSwell: { value: w.swell },
     },
     vertexShader: waterVertex,
     fragmentShader: waterFragment,
@@ -158,11 +228,13 @@ interface WaterSurfaceProps {
 export function WaterSurface({ radius, y }: WaterSurfaceProps) {
   const reducedMotion = useExperience((s) => s.reducedMotion);
   const reflections = useExperience((s) => QUALITY[s.quality].reflections);
+  const reflectionScale = useExperience((s) => QUALITY[s.quality].waterReflectionScale);
+  const speed = useMemo(() => waterPreset().speed, []);
 
   const water = useMemo(() => {
     const geometry = new THREE.CircleGeometry(radius, 128);
     if (reflections && typeof window !== "undefined") {
-      const scale = Math.min(1.5, window.devicePixelRatio || 1) * 0.6;
+      const scale = Math.min(1.5, window.devicePixelRatio || 1) * reflectionScale;
       const reflector = new Reflector(geometry, {
         shader: waterShader(radius),
         textureWidth: Math.min(1400, Math.round(window.innerWidth * scale)),
@@ -178,7 +250,7 @@ export function WaterSurface({ radius, y }: WaterSurfaceProps) {
     const material = new THREE.ShaderMaterial(waterShader(radius));
     configure(material);
     return new THREE.Mesh(geometry, material);
-  }, [radius, reflections]);
+  }, [radius, reflections, reflectionScale]);
 
   useLayoutEffect(
     () => () => {
@@ -192,7 +264,7 @@ export function WaterSurface({ radius, y }: WaterSurfaceProps) {
   useFrame(({ clock }) => {
     const u = (water.material as THREE.ShaderMaterial).uniforms;
     // Reduced motion: frozen, still reads as water.
-    u.uTime.value = reducedMotion ? 4.0 : clock.elapsedTime;
+    u.uTime.value = reducedMotion ? 4.0 : clock.elapsedTime * speed;
   });
 
   return <primitive object={water} rotation-x={-Math.PI / 2} position-y={y} renderOrder={2} />;
@@ -227,12 +299,14 @@ const causticsGlsl = /* glsl */ `
   }
 `;
 
-/** Pale basin floor seen through the water, crossed by sunlit caustics. */
+/** Pale stone basin floor seen through the water, crossed by soft sunlit caustics. */
 export function PoolFloor({ radius, y }: WaterSurfaceProps) {
   const reducedMotion = useExperience((s) => s.reducedMotion);
   const material = useMemo(() => {
-    const m = new THREE.MeshStandardMaterial({ color: "#c2e3ea", roughness: 0.85, metalness: 0 });
-    const uniforms = { uTime: { value: 0 }, uCaustic: { value: 0.5 } };
+    // Pale stone; the water adds the tint.
+    const w = waterPreset();
+    const m = new THREE.MeshStandardMaterial({ color: w.floor, roughness: 0.85, metalness: 0 });
+    const uniforms = { uTime: { value: 0 }, uCaustic: { value: w.caustic } };
     m.userData.uniforms = uniforms;
     m.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, uniforms);

@@ -1,44 +1,63 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { goToContact } from "@/lib/contact";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, Bars, Bolt, People, Search } from "@/components/ui/Icons";
+import { ArrowRight, Bars, Bolt, People, Search, Sparkle } from "@/components/ui/Icons";
 import { setInteractive, useFrameUpdate } from "@/hooks/useFrameUpdate";
+import { scrollToElement } from "@/lib/experience/director";
 import { beatEased } from "@/lib/experience/timeline";
 import { clamp, smootherstep } from "@/lib/math";
+import glass from "./Glass.module.css";
 import styles from "./LobbyOverlay.module.css";
 import { ScrollCue } from "./ScrollCue";
-import { StatStrip } from "./StatStrip";
+import { SERVICES_ID } from "./ServicesSection";
 
+/**
+ * May (Commerciale IA) welcomes visitors at the desk. A question typed here is carried to the contact form
+ * as the message of the request — she "takes note and books the call".
+ */
 function WelcomeBubble() {
-  const [sent, setSent] = useState(false);
+  const [question, setQuestion] = useState("");
+  const input = useRef<HTMLInputElement>(null);
   return (
     <div className={styles.bubble}>
       <p className={styles.bubbleTitle}>
         Bonjour ! <span aria-hidden="true">👋</span>
         <br />
-        Bienvenue chez D2S Studio !
+        Bienvenue chez D2S AIgency !
       </p>
-      <p className={styles.bubbleText}>Je suis votre agente IA. Comment puis-je vous aider aujourd’hui ?</p>
+      <p className={styles.bubbleText}>Je suis May, votre agente IA. Posez-moi votre question : je vous oriente et je vous réserve un créneau avec l’équipe.</p>
       <form
         className={styles.ask}
         onSubmit={(e) => {
           e.preventDefault();
-          setSent(true);
+          const message = question.trim();
+          if (!message) {
+            input.current?.focus();
+            return;
+          }
+          goToContact({ source: "reception", need: "unsure", message });
+          setQuestion("");
         }}
       >
         <label className={styles.askField}>
           <Search size={18} />
           <span className="visually-hidden">Votre question</span>
-          <input type="text" name="question" placeholder="Poser une question…" autoComplete="off" />
+          <input
+            ref={input}
+            type="text"
+            name="question"
+            placeholder="Poser une question…"
+            autoComplete="off"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+          />
         </label>
         <button type="submit" className={styles.askSend} aria-label="Envoyer la question">
           <ArrowRight size={18} />
         </button>
       </form>
-      <p className={styles.askNote} role="status" aria-live="polite">
-        {sent ? "Bientôt disponible : je pourrai vous répondre ici." : ""}
-      </p>
     </div>
   );
 }
@@ -51,16 +70,26 @@ export function LobbyOverlay() {
   const section = useRef<HTMLElement>(null);
   const bubble = useRef<HTMLDivElement>(null);
   const mission = useRef<HTMLDivElement>(null);
-  const stats = useRef<HTMLDivElement>(null);
   const cue = useRef<HTMLDivElement>(null);
+  // The mission block plays its entrance each time the camera settles at the desk.
+  const [arrived, setArrived] = useState(false);
+  const arrivedRef = useRef(false);
 
-  useFrameUpdate(({ progress, anchors }) => {
+  useFrameUpdate(({ progress, anchors, services }) => {
     const t = beatEased(progress, "lobbyUI");
+    const settled = t > 0.6 ? true : t < 0.2 ? false : arrivedRef.current;
+    if (settled !== arrivedRef.current) {
+      arrivedRef.current = settled;
+      setArrived(settled);
+    }
+    // The reception UI steps aside as the services section scrolls in over the lobby.
+    const away = smootherstep(clamp(services / 0.45));
     if (section.current) {
       section.current.style.setProperty("--lobby", t.toFixed(3));
-      setInteractive(section.current, t > 0.6);
+      section.current.style.opacity = (1 - away).toFixed(3);
+      setInteractive(section.current, t > 0.6 && away < 0.5);
     }
-    // Staggered arrival: bubble, then mission panel, then figures.
+    // Staggered arrival: bubble, then mission panel, then the scroll cue.
     const step = (delay: number) => smootherstep(clamp((t - delay) / (1 - delay)));
     const apply = (el: HTMLElement | null, k: number, dx: number, dy: number) => {
       if (!el) return;
@@ -69,7 +98,6 @@ export function LobbyOverlay() {
       el.style.setProperty("--dy", `${((1 - k) * dy).toFixed(2)}px`);
     };
     apply(mission.current, step(0.12), 28, 0);
-    apply(stats.current, step(0.3), 0, 18);
     apply(cue.current, step(0.45), 0, 10);
 
     const el = bubble.current;
@@ -90,44 +118,75 @@ export function LobbyOverlay() {
         <WelcomeBubble />
       </div>
 
+      {/*
+        Notre mission — read at once, no click: a decorative glass block on the right (aurora + orbit, light
+        edge and glint, a drawn accent rule, the title revealed line by line when the camera settles).
+      */}
       <div ref={mission} className={styles.mission}>
-        <p className={styles.kicker}>Notre mission</p>
-        <h2 id="mission-title" className={styles.missionTitle}>
-          Mettre l’IA au service des gens et des idées <span className={styles.accent}>qui comptent.</span>
-        </h2>
-        <p className={styles.missionText}>
-          Chez D2S Studio, nous concevons et déployons des agents IA sur mesure pour automatiser vos tâches, accélérer
-          votre croissance et libérer ce qui compte vraiment : l’humain, la créativité et l’impact.
-        </p>
-        <div className={styles.missionActions}>
-          <Button href="/nos-services" icon={<ArrowRight size={20} />} className={styles.wide}>
-            Découvrir nos services
-          </Button>
-          <Button href="/nos-agents-ia" variant="secondary" className={styles.wide}>
-            <span className={styles.meet}>
-              <People size={22} />
-              Rencontrer nos agents
+        <div className={`${styles.missionCard} ${glass.glass}`} data-glass={arrived ? "in" : "out"} data-arrived={arrived}>
+          <span className={styles.aurora} aria-hidden="true" />
+          <span className={styles.orbit} aria-hidden="true" />
+          <p className={styles.kicker}>
+            <span className={styles.kickerIcon} aria-hidden="true">
+              <Sparkle size={13} />
             </span>
-          </Button>
+            Notre mission
+          </p>
+          <h2 id="mission-title" className={styles.missionTitle}>
+            <span className={styles.rule} aria-hidden="true" />
+            <span className={styles.titleLine} style={{ "--l": 0 } as React.CSSProperties}>
+              Mettre l’IA au service{" "}
+            </span>
+            <span className={styles.titleLine} style={{ "--l": 1 } as React.CSSProperties}>
+              des gens et des idées{" "}
+            </span>
+            <span className={`${styles.titleLine} ${styles.accent}`} style={{ "--l": 2 } as React.CSSProperties}>
+              qui comptent.
+            </span>
+          </h2>
+          <p className={styles.missionText}>
+            Chez D2S AIgency, nous concevons et déployons des agents IA sur mesure pour automatiser vos tâches, accélérer
+            votre croissance et libérer ce qui compte vraiment : l’humain, la créativité et l’impact.
+          </p>
+          <div className={styles.missionActions}>
+            <Button
+              icon={<ArrowRight size={20} />}
+              className={styles.wide}
+              onClick={() => {
+                const target = document.getElementById(SERVICES_ID);
+                if (target) scrollToElement(target);
+              }}
+            >
+              Découvrir nos services
+            </Button>
+            <Button href="/nos-agents-ia" variant="secondary" className={styles.wide}>
+              <span className={styles.meet}>
+                <People size={22} />
+                Rencontrer nos agents
+              </span>
+            </Button>
+          </div>
+          <ul className={styles.benefits}>
+            <li>
+              <span className={styles.benefitIcon}>
+                <Bolt size={22} />
+              </span>
+              Plus de temps
+            </li>
+            <li>
+              <span className={styles.benefitIcon}>
+                <People size={22} />
+              </span>
+              Plus d’impact
+            </li>
+            <li>
+              <span className={styles.benefitIcon}>
+                <Bars size={22} />
+              </span>
+              Croissance durable
+            </li>
+          </ul>
         </div>
-        <ul className={styles.benefits}>
-          <li>
-            <Bolt size={22} />
-            Plus de temps
-          </li>
-          <li>
-            <People size={22} />
-            Plus d’impact
-          </li>
-          <li>
-            <Bars size={22} />
-            Une croissance durable
-          </li>
-        </ul>
-      </div>
-
-      <div ref={stats} className={styles.stats}>
-        <StatStrip variant="card" />
       </div>
 
       <div ref={cue} className={styles.cue}>

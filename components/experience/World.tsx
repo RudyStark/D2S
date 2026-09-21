@@ -18,10 +18,11 @@ import { Breeze } from "./vegetation/Plants";
 function ExposeScene() {
   const scene = useThree((s) => s.scene);
   const gl = useThree((s) => s.gl);
+  const camera = useThree((s) => s.camera);
   useEffect(() => {
     const w = window as unknown as { __d2s?: Record<string, unknown> };
-    if (w.__d2s) w.__d2s.three = { scene, gl };
-  }, [scene, gl]);
+    if (w.__d2s) w.__d2s.three = { scene, gl, camera };
+  }, [scene, gl, camera]);
   return null;
 }
 
@@ -36,7 +37,10 @@ export function World() {
       <FacadeZone />
       <LobbyZone />
       {!debugMaterials &&
-        CASTING.map(({ zone, ...placement }) => <AgentSlot key={`${zone}-${placement.type}`} {...placement} />)}
+        CASTING.map(({ zone, ...placement }) => (
+          // Indoors the ceiling slab already shades the floor: a sun shadow would be invisible, only its cost remains.
+          <AgentSlot key={`${zone}-${placement.type}`} {...placement} castShadow={zone === "facade"} />
+        ))}
     </>
   );
 }

@@ -1,0 +1,218 @@
+/*
+ * Site loader — "the agency opens".
+ * Two frosted halves (the façade's sliding doors) with a hairline seam; the D2S AIgency logo fills with
+ * the real progress (--p, 0–1) behind a soft blue light edge. On open, the halves slide apart.
+ */
+.loader {
+  --p: 0;
+  --logo-w: clamp(180px, 17vw, 260px);
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+
+/* ——— Doors ——— */
+.door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  background:
+    radial-gradient(90% 70% at 50% 42%, rgb(255 255 255 / 0.95) 0%, rgb(255 255 255 / 0) 70%),
+    radial-gradient(60% 50% at 82% 8%, rgb(21 112 240 / 0.08) 0%, rgb(21 112 240 / 0) 70%),
+    linear-gradient(180deg, #f5f8fc 0%, #eef3f9 58%, #f4f3f0 100%);
+  background-attachment: fixed;
+  transition: translate 1.1s cubic-bezier(0.7, 0, 0.18, 1);
+}
+
+.door[data-side="left"] {
+  left: 0;
+  box-shadow: inset -1px 0 0 rgb(255 255 255 / 0.9);
+}
+
+.door[data-side="right"] {
+  right: 0;
+  box-shadow: inset 1px 0 0 rgb(255 255 255 / 0.9);
+}
+
+/* Door seam: a hairline of light, brighter at eye level — the only architectural hint. */
+.seam {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  translate: -50% 0;
+  background: linear-gradient(180deg, rgb(11 18 56 / 0) 0%, rgb(11 18 56 / 0.08) 30%, rgb(21 112 240 / 0.18) 50%, rgb(11 18 56 / 0.08) 70%, rgb(11 18 56 / 0) 100%);
+  transition: opacity 0.4s var(--ease-out);
+}
+
+/* ——— Centre block ——— */
+.center {
+  position: relative;
+  /* Own stacking context: its halo (::before, z −1) paints above the doors and the seam. */
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  transition:
+    opacity 0.45s var(--ease-out),
+    translate 0.6s var(--ease-out),
+    scale 0.6s var(--ease-out);
+}
+
+/* The logo sits on the seam: a soft white halo keeps it on a clean ground. */
+.center::before {
+  content: "";
+  position: absolute;
+  inset: -70px -110px;
+  z-index: -1;
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0));
+}
+
+.logo {
+  position: relative;
+  width: var(--logo-w);
+  aspect-ratio: 344 / 147;
+}
+
+.logoGhost,
+.logoFill,
+.logoEdge {
+  position: absolute;
+  inset: 0;
+  mask: url("/images/brand/d2s-aigency.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/brand/d2s-aigency.svg") center / contain no-repeat;
+}
+
+.logoGhost {
+  background: rgb(11 18 56 / 0.09);
+}
+
+.logoFill {
+  background: linear-gradient(90deg, #0d1340 0%, #121a52 60%, #0d1340 100%);
+  clip-path: inset(0 calc(100% - var(--p) * 100%) 0 0);
+}
+
+/* Light on the filling front: a narrow blue band that travels with the progress. */
+.logoEdge {
+  background: linear-gradient(
+    90deg,
+    rgb(21 112 240 / 0) calc(var(--p) * 100% - 7%),
+    rgb(26 134 245 / 0.95) calc(var(--p) * 100% - 0.6%),
+    rgb(120 190 255 / 0.9) calc(var(--p) * 100%),
+    rgb(21 112 240 / 0) calc(var(--p) * 100% + 1.4%)
+  );
+  transition: opacity 0.5s var(--ease-out);
+}
+
+.label {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 34px 0 0;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.percent {
+  min-width: 4.2ch;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--blue);
+  text-align: right;
+}
+
+.bar {
+  position: relative;
+  width: 180px;
+  height: 2px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(11 18 56 / 0.08);
+}
+
+.bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue-deep), var(--blue-bright));
+  transform-origin: left center;
+  scale: var(--p) 1;
+}
+
+.step {
+  min-height: 1.5em;
+  margin: 14px 0 0;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--text);
+}
+
+/* ——— Welcome: logo complete, edge light dims ——— */
+.loader[data-phase="welcome"] .logoEdge,
+.loader[data-phase="opening"] .logoEdge {
+  opacity: 0;
+}
+
+.loader[data-phase="welcome"] .label {
+  color: var(--ink);
+}
+
+/* ——— Opening: the logo lifts away, the doors slide apart ——— */
+.loader[data-phase="opening"] {
+  pointer-events: none;
+}
+
+.loader[data-phase="opening"] .center {
+  opacity: 0;
+  translate: 0 -10px;
+  scale: 1.04;
+}
+
+.loader[data-phase="opening"] .seam {
+  opacity: 0;
+}
+
+.loader[data-phase="opening"] .door[data-side="left"] {
+  translate: -101% 0;
+}
+
+.loader[data-phase="opening"] .door[data-side="right"] {
+  translate: 101% 0;
+}
+
+@media (max-width: 767px) {
+  .label {
+    margin-top: 26px;
+    font-size: 10px;
+  }
+}
+
+/* Reduced motion: no sliding, a short cross-fade. */
+@media (prefers-reduced-motion: reduce) {
+  .door,
+  .center {
+    transition: opacity 0.45s linear;
+  }
+
+  .loader[data-phase="opening"] .door[data-side="left"],
+  .loader[data-phase="opening"] .door[data-side="right"] {
+    translate: none;
+    opacity: 0;
+  }
+
+  .loader[data-phase="opening"] .center {
+    translate: none;
+    scale: none;
+  }
+}

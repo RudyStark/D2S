@@ -21,13 +21,18 @@
   pointer-events: none;
 }
 
+/*
+ * Compact state (inside the agency, 03-lobby-final): no glass band with a hard bottom edge — a soft
+ * frosted white that dissolves into the scene.
+ */
 .header::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.62), rgb(255 255 255 / 0.4));
-  backdrop-filter: blur(14px) saturate(1.15);
-  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  inset: 0 0 calc(-34 * var(--u));
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.72) 0%, rgb(255 255 255 / 0.5) 55%, rgb(255 255 255 / 0) 100%);
+  backdrop-filter: blur(10px) saturate(1.1);
+  mask-image: linear-gradient(180deg, #000 0%, #000 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 50%, transparent 100%);
   opacity: calc(var(--c) * 0.9);
   pointer-events: none;
 }
@@ -52,16 +57,14 @@
   inset: calc((43 - 8 * var(--c)) * var(--u)) 0 auto 0;
 }
 
+/* Centred row; the gap tightens slightly as the header compacts (--c), like on the references. */
 .nav ul {
+  display: flex;
+  justify-content: center;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.nav li {
-  position: absolute;
-  left: calc((var(--x0) + (var(--x1) - var(--x0)) * var(--c) - 1) * var(--u));
-  top: 0;
+  gap: calc((46 - 5 * var(--c)) * var(--u));
 }
 
 .link {
@@ -89,19 +92,38 @@
   background: var(--blue);
   translate: -50% 0;
   scale: 0 1;
-  transition: scale 0.35s var(--ease-out);
+  opacity: 0.45;
+  transition:
+    scale 0.35s var(--ease-out),
+    opacity 0.35s var(--ease-out);
 }
 
 .link:hover {
   color: var(--blue);
 }
 
+/* Hover previews the active marker, shorter and lighter. */
+.link:hover::after {
+  scale: 0.6 1;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 6px;
+  border-radius: 6px;
+}
+
+/* Active item, measured on 01: semibold and a touch larger than its siblings (55 vs 52 px wide). */
 .link[aria-current="page"] {
   color: var(--blue);
+  font-size: max(13.5px, calc(15.6 * var(--u)));
+  font-weight: 600;
+  letter-spacing: -0.008em;
 }
 
 .link[aria-current="page"]::after {
   scale: 1 1;
+  opacity: 1;
 }
 
 .inner .cta {
@@ -134,22 +156,39 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--ink-soft);
+  color: var(--ink);
   font-family: var(--font-body);
-  font-size: max(12px, calc(13 * var(--u)));
-  font-weight: 500;
+  font-size: max(12px, calc(13.5 * var(--u)));
+  font-weight: 600;
   cursor: pointer;
+  transition: color 0.25s var(--ease-out);
 }
 
+.langButton:hover {
+  color: var(--blue);
+}
+
+.langButton:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* Globe ≈ 18 px tall on 01 (the icon's viewBox has ~3 px of padding per side). */
 .langButton svg:first-child {
-  width: calc(18 * var(--u));
-  height: calc(18 * var(--u));
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
 }
 
 .langButton svg:last-child {
-  width: calc(12 * var(--u));
-  height: calc(12 * var(--u));
+  width: calc(15 * var(--u));
+  height: calc(15 * var(--u));
   margin-left: calc(1 * var(--u));
+  transition: rotate 0.25s var(--ease-out);
+}
+
+.langButton[aria-expanded="true"] svg:last-child {
+  rotate: 180deg;
 }
 
 .langMenu {

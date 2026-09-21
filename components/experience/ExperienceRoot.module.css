@@ -9,7 +9,8 @@
 
 .stage > div {
   opacity: 0;
-  transition: opacity 1.1s var(--ease-out);
+  /* Revealed under the site loader: short, it is finished before the doors open. */
+  transition: opacity 0.6s var(--ease-out);
 }
 
 .stage[data-ready="true"] > div {
@@ -25,66 +26,35 @@
   pointer-events: none;
 }
 
-.loader {
+/* The GPU dropped the WebGL context: the page keeps working, the 3D layer does not. */
+.glLost {
   position: fixed;
   left: 50%;
-  bottom: 28px;
-  z-index: 30;
-  display: grid;
-  justify-items: center;
-  gap: 10px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 10px 10px 18px;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.94);
+  box-shadow: 0 10px 30px -16px rgb(11 18 56 / 0.5);
+  backdrop-filter: blur(10px);
   translate: -50% 0;
-  transition:
-    opacity 0.6s var(--ease-out),
-    translate 0.6s var(--ease-out);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink);
 }
 
-.loader[data-hidden="true"] {
-  opacity: 0;
-  translate: -50% 8px;
-  pointer-events: none;
-}
-
-.loaderBar {
-  position: relative;
-  width: 120px;
-  height: 2px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: rgb(11 18 56 / 0.1);
-}
-
-.loaderBar::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  width: 40%;
-  border-radius: inherit;
+.glLost button {
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
   background: var(--blue);
-  animation: sweep 1.3s var(--ease-in-out) infinite;
-}
-
-.loaderLabel {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-@keyframes sweep {
-  from {
-    translate: -100% 0;
-  }
-  to {
-    translate: 260% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .loaderBar::after {
-    animation: none;
-    width: 100%;
-    opacity: 0.5;
-  }
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
 }

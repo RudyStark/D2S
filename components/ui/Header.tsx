@@ -4,24 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useFrameUpdate } from "@/hooks/useFrameUpdate";
-import { scrollToProgress } from "@/lib/experience/director";
+import { scrollToElement, scrollToProgress } from "@/lib/experience/director";
 import { frame } from "@/lib/experience/store";
 import { beatEased } from "@/lib/experience/timeline";
+import { CONTACT_ID, contactClick } from "@/lib/contact";
 import { CONTACT_HREF, NAV_ITEMS } from "@/lib/navigation";
 import { Button } from "./Button";
 import styles from "./Header.module.css";
 import { ArrowRight, ChevronDown, Globe } from "./Icons";
 import { Logo } from "./Logo";
 
-/** Measured left edge of each nav label: façade (01) → reception (03). */
-const NAV_X: [number, number][] = [
-  [475, 483],
-  [578, 582],
-  [719, 720],
-  [869, 867],
-  [1020, 1017],
-  [1142, 1138],
-];
+/** Nav entries that are sections of the home page (href → element id), deepest last. */
+const HOME_SECTIONS: Record<string, string> = {
+  "/nos-services": "nos-services",
+  "/nos-agents-ia": "nos-agents-ia",
+  "/comment-choisir": "comment-choisir",
+};
 
 function LanguageSwitch() {
   const [open, setOpen] = useState(false);
@@ -74,6 +72,9 @@ export function Header() {
   const header = useRef<HTMLElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const onHome = pathname === "/";
+  /** On the home page, services and agents live below the reception: the nav follows the scroll. */
+  const [section, setSection] = useState<string | null>(null);
+  const sectionRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -85,6 +86,22 @@ export function Header() {
   useFrameUpdate(() => {
     if (!header.current) return;
     header.current.style.setProperty("--compact", beatEased(frame.progress, "headerCompact").toFixed(3));
+    let next: string | null = null;
+    if (onHome && frame.services > 0.5) {
+      // The deepest section whose top has passed the middle of the screen wins.
+      next = "/nos-services";
+      for (const [href, id] of Object.entries(HOME_SECTIONS)) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top < window.innerHeight * 0.5) next = href;
+      }
+      // The form is not a nav entry: nothing is highlighted there.
+      const contact = document.getElementById(CONTACT_ID);
+      if (contact && contact.getBoundingClientRect().top < window.innerHeight * 0.5) next = "#contact";
+    }
+    if (next !== sectionRef.current) {
+      sectionRef.current = next;
+      setSection(next);
+    }
   });
 
   return (
@@ -93,11 +110,11 @@ export function Header() {
         <Logo className={styles.logo} />
         <nav aria-label="Navigation principale" className={styles.nav} data-open={menuOpen} id="main-nav">
           <ul>
-            {NAV_ITEMS.map((item, i) => {
-              const active = item.href === pathname;
-              const [x0, x1] = NAV_X[i] ?? [0, 0];
+            {NAV_ITEMS.map((item) => {
+              const sectionId = HOME_SECTIONS[item.href];
+              const active = onHome ? (sectionId ? section === item.href : item.href === "/" && !section) : item.href === pathname;
               return (
-                <li key={item.href} style={{ "--x0": x0, "--x1": x1 } as React.CSSProperties}>
+                <li key={item.href}>
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
@@ -109,6 +126,12 @@ export function Header() {
                         frame.forced = null;
                         scrollToProgress(0);
                       }
+                      const target = sectionId && onHome ? document.getElementById(sectionId) : null;
+                      if (target) {
+                        e.preventDefault();
+                        frame.forced = null;
+                        scrollToElement(target);
+                      }
                     }}
                   >
                     {item.label}
@@ -119,7 +142,7 @@ export function Header() {
           </ul>
         </nav>
         <div className={styles.actions}>
-          <Button href={CONTACT_HREF} icon={<ArrowRight className={styles.ctaIcon} />} className={styles.cta}>
+          <Button href={CONTACT_HREF} icon={<ArrowRight className={styles.ctaIcon} />} className={styles.cta} onClick={contactClick({ source: "header" })}>
             Parlons de votre projet
           </Button>
           <LanguageSwitch />

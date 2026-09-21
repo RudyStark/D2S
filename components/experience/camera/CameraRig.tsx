@@ -4,6 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { buildCameraPath, CAMERA_KEYS, createCameraSample } from "@/lib/experience/cameraPath";
+import { FOCUS_PULL, focusPullCurve } from "@/lib/experience/focusPull";
 import { beat } from "@/lib/experience/timeline";
 import { frame, useExperience } from "@/lib/experience/store";
 import { damp } from "@/lib/math";
@@ -36,9 +37,10 @@ export function CameraRig() {
     const dt = Math.min(delta, 0.1);
     const p = frame.progress;
     path.sample(p, target);
-    if (!state.primed) {
+    if (!state.primed || frame.snap) {
       Object.assign(current, target);
       state.primed = true;
+      frame.snap = false;
     }
 
     // Inertia on top of the scroll smoothing; tighter when reduced motion is requested.
@@ -67,11 +69,14 @@ export function CameraRig() {
       dyaw = Math.sin(t * 0.11 + 2.1) * 0.06 * a;
     }
 
-    camera.position.set(current.x + dx, current.y + dy, current.z);
+    // Desktop lobby → services: the camera keeps drifting towards the desk while the page rises over it.
+    const move = profile === "desktop" && !reducedMotion ? focusPullCurve(frame.services).move : 0;
+
+    camera.position.set(current.x + dx, current.y + dy + FOCUS_PULL.rise * move, current.z - FOCUS_PULL.dolly * move);
     euler.set(current.pitch * DEG, (current.yaw + dyaw) * DEG, current.roll * DEG);
     camera.quaternion.setFromEuler(euler);
 
-    camera.fov = current.fov;
+    camera.fov = current.fov - FOCUS_PULL.tighten * move;
     const w = size.width;
     const h = size.height;
     camera.aspect = w / h;
