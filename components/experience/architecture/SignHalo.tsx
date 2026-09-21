@@ -87,9 +87,10 @@ export function SignHalo({ width, scaleY = 1, intensity = 2.6, color = "#fff7ee"
       depthWrite: false,
       toneMapped: false,
     });
-    // viewBox centre relative to the point-box centre (the mesh origin), SVG y down → scene y up.
-    const offsetX = (LOGO_VIEWBOX.width / 2 - cx) * s;
-    const offsetY = -(LOGO_VIEWBOX.height / 2 - cy) * s * scaleY;
+    // viewBox centre relative to the point-box centre (the mesh origin), SVG y down → scene y up. The
+    // viewBox may not start at 0,0 (the brand file starts at 60,318): its origin is part of the centre.
+    const offsetX = (LOGO_VIEWBOX.x + LOGO_VIEWBOX.width / 2 - cx) * s;
+    const offsetY = -(LOGO_VIEWBOX.y + LOGO_VIEWBOX.height / 2 - cy) * s * scaleY;
     const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight, bendRadius ? 64 : 1, 1);
     geometry.translate(offsetX, offsetY, 0);
     if (bendRadius) {

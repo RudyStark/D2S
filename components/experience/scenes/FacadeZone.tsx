@@ -145,7 +145,7 @@ function EntranceBay() {
         </group>
         {/* Stand-off letters: 1.5 cm gap in front of the face, the halo light spills out of it */}
         <group position={[0, -0.05, s.depth + bevel + 0.015 + 0.06]}>
-          <LogoMesh width={s.logoWidth} depth={0.06} bevel={0.005} strokeDepth={0.03} scaleY={s.logoScaleY} material={MATERIALS.logoSign} />
+          <LogoMesh width={s.logoWidth} depth={0.06} bevel={0.005} strokeDepth={0.03} scaleY={s.logoScaleY} material={MATERIALS.logoSign} accent />
         </group>
       </group>
     </group>

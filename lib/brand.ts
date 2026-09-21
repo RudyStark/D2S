@@ -5,7 +5,8 @@ import { LOGO } from "./generated/logo";
  * SVG (header fallback, loader mask, 3D signage) and lib/generated/logo.ts (inline, animated header logo).
  */
 export const LOGO_SRC = "/images/brand/d2s-aigency.svg";
-export const LOGO_VIEWBOX = { width: LOGO.viewBox.width, height: LOGO.viewBox.height } as const;
+/** The designer's viewBox does not start at 0,0: keep its origin (x, y) for anything laid out in it. */
+export const LOGO_VIEWBOX = LOGO.viewBox;
 
 /** Colours shared with WebGL (CSS mirrors them in app/globals.css). */
 export const COLORS = {

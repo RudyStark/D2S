@@ -78,7 +78,7 @@ export function ServicesSection() {
         <header className={head.head}>
           <p className={head.kicker}>{SERVICES_INTRO.kicker}</p>
           <h2 id="services-title" className={head.title}>
-            <span className={head.line}>{SERVICES_INTRO.title[0]}</span>
+            <span className={head.line}>{SERVICES_INTRO.title[0]}</span>{" "}
             <span className={`${head.line} ${head.accent}`}>{SERVICES_INTRO.title[1]}</span>
           </h2>
           <p className={head.lead}>{SERVICES_INTRO.lead}</p>

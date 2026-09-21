@@ -201,7 +201,7 @@ export function DiagnosticSection() {
         <header className={head.head}>
           <p className={head.kicker}>{DIAGNOSTIC_INTRO.kicker}</p>
           <h2 id="diagnostic-title" className={head.title}>
-            <span className={head.line}>{DIAGNOSTIC_INTRO.title[0]}</span>
+            <span className={head.line}>{DIAGNOSTIC_INTRO.title[0]}</span>{" "}
             <span className={`${head.line} ${head.accent}`}>{DIAGNOSTIC_INTRO.title[1]}</span>
           </h2>
           <p className={head.lead}>{DIAGNOSTIC_INTRO.lead}</p>

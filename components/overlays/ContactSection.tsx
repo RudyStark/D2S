@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AGENTS } from "@/components/experience/agents/agents.config";
 import { ArrowRight, Check, Close, Doc, Replay, Sparkle } from "@/components/ui/Icons";
@@ -17,6 +18,7 @@ import {
   type NeedId,
 } from "@/lib/contact";
 import { scrollToElement } from "@/lib/experience/director";
+import { LEGAL_HREF, PRIVACY_HREF } from "@/lib/legal";
 import { TEAM } from "@/lib/team";
 import { AGENTS_ID } from "./AgentsSection";
 import styles from "./ContactSection.module.css";
@@ -198,7 +200,7 @@ export function ContactSection() {
         <header className={head.head}>
           <p className={head.kicker}>{CONTACT_INTRO.kicker}</p>
           <h2 id="contact-title" className={head.title}>
-            <span className={head.line}>{CONTACT_INTRO.title[0]}</span>
+            <span className={head.line}>{CONTACT_INTRO.title[0]}</span>{" "}
             <span className={`${head.line} ${head.accent}`}>{CONTACT_INTRO.title[1]}</span>
           </h2>
           <p className={head.lead}>{CONTACT_INTRO.lead}</p>
@@ -422,7 +424,7 @@ export function ContactSection() {
                       <span className={styles.box} aria-hidden="true">
                         <Check size={12} />
                       </span>
-                      J’accepte que D2S AIgency utilise ces informations pour me recontacter au sujet de ma demande.
+                      J’accepte que D2S AIgency utilise ces informations pour répondre à ma demande.
                     </label>
                     <p id={`${id("consent")}-error`} className={styles.error} aria-live="polite">
                       {shown("consent")}
@@ -435,7 +437,8 @@ export function ContactSection() {
 
                 <div className={styles.submitRow}>
                   <p className={styles.reassure}>
-                    Gratuit · Sans engagement · Vos données restent confidentielles
+                    Gratuit · Sans engagement. Vos données servent uniquement à vous répondre et sont conservées 3 ans au plus.{" "}
+                    <Link href={PRIVACY_HREF}>Vos droits et notre politique de confidentialité</Link>
                   </p>
                   {status === "error" && (
                     <p className={styles.failed} role="alert">
@@ -454,6 +457,10 @@ export function ContactSection() {
 
         <footer className={styles.footer}>
           <Logo width={88} className={styles.footerLogo} />
+          <nav className={styles.footerLinks} aria-label="Informations légales">
+            <Link href={LEGAL_HREF}>Mentions légales</Link>
+            <Link href={PRIVACY_HREF}>Confidentialité</Link>
+          </nav>
           <p>© {new Date().getFullYear()} D2S AIgency · Agence d’agents IA</p>
         </footer>
       </div>

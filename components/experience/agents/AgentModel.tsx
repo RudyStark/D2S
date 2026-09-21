@@ -22,7 +22,9 @@ interface AgentModelProps {
  * scale the shadow-map texels (2–3 cm) would crawl over the clothes as acne.
  */
 export function AgentModel({ url, height, idle, castShadow = true }: AgentModelProps) {
-  const { scene, animations } = useGLTF(url, true, true);
+  // Meshopt only (our GLBs are meshopt-compressed). `useDraco = true` would point drei's decoder at a Google
+  // CDN: no third-party request is ever made from this site (see /confidentialite).
+  const { scene, animations } = useGLTF(url, false, true);
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const reducedMotion = useExperience((s) => s.reducedMotion);

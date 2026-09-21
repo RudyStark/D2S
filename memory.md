@@ -45,6 +45,11 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   `lib/generated/logo.ts` (tracés + dégradés + boîte du sigle AI pour le logo inline). viewBox 60 318 1336 502,
   3 tracés : D2S, sigle AI, GENCY, chacun avec son dégradé et un fin liseré bleu. Le décalque potrace du
   début et le redessin à la main sont abandonnés (potrace désinstallé).
+- 3D (21/09) : le SVG généré porte `id="mark|ai|wordmark"` ; `<LogoMesh accent />` sépare le « AI » en maillage
+  à part (dégradé bleu de marque, halo qui respire 4,5 s, reflet qui balaie 5,5 s — même rythme que l'en-tête),
+  sur l'enseigne de la façade ET le logo du fût. Les liserés fins des tracés remplis ne sont plus extrudés.
+- Halo mal placé (lueur blanche au-dessus du nom) : SignHalo supposait une viewBox en 0,0 ; celle du logo
+  commence à (60, 318). `LOGO_VIEWBOX` porte maintenant x/y et le centre les inclut.
 - `components/ui/Logo.tsx` = SVG inline (mêmes tracés, à garder en phase avec le fichier) : seul « AI » est
   animé (halo qui respire + reflet qui balaie le glyphe), coupé en mouvement réduit.
 - Tous les textes « D2S Studio » renommés « D2S AIgency » (métadonnées, loader, bulle du lobby, contact,
@@ -71,6 +76,46 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   (ExperienceRoot), et `sessionStorage d2s:gpu-trouble` → qualité « low » au rechargement suivant.
 - INCIDENT : un script Python d'édition a vidé `PostEffects.tsx` (write d'un tuple après un replace) ;
   reconstruit à la main. Règle : ne jamais écrire le résultat d'un `replace` sans vérifier son type.
+
+## RGPD & sécurité (21/09)
+- Constat : AUCUN cookie, aucune mesure d'audience, aucun appel tiers (polices via next/font auto-hébergées,
+  modèles/textures locaux). Seul stockage : sessionStorage `d2s:gpu-trouble` (technique, exempté). → PAS de
+  bandeau cookies. Si un outil d'audience/pub est ajouté un jour : bandeau de consentement obligatoire.
+- Agents 3D : `useGLTF(url, false, true)` (meshopt seul) — `true` en 1er argument pointait le décodeur Draco
+  de drei vers un CDN Google.
+- Société (fournie le 21/09) : raison sociale D2S Studio (marque D2S AIgency), SIRET 539 068 098 00026,
+  25 avenue Georges Pompidou, 93320 Les Pavillons-sous-Bois → lib/legal.ts (OFFICE, SIRET) + JSON-LD
+  Organization (legalName, PostalAddress, identifier SIRET) + résumé citable. Restent : forme juridique,
+  capital, TVA, e-mail, téléphone, directeur de publication, hébergeur, outil de réception, transferts hors UE.
+- Pages : `/mentions-legales`, `/confidentialite` (`components/pages/LegalPage.tsx`) ; données société dans
+  `lib/legal.ts` (null = marqueur orange « à compléter », rien d'inventé). Liens dans le pied de page, mention
+  d'information + lien sous le formulaire, consentement « pour répondre à ma demande ». Base légale décrite :
+  mesures précontractuelles (6.1.b) ; conservation 3 ans après le dernier échange.
+- `/api/contact` : même origine (403), JSON seul (415), corps ≤ 16 Ko (413), 5 envois / 10 min / IP en mémoire
+  (429), pot de miel + délai, validation bornée, caractères de contrôle retirés, timeout 8 s du webhook, aucune
+  donnée perso dans les logs de prod. `.env.example` documente `CONTACT_WEBHOOK_URL`.
+- En-têtes (next.config.ts) : CSP en PRODUCTION seulement (le dev a besoin d'eval) — `'wasm-unsafe-eval'` pour
+  le décodeur meshopt, `blob:` pour les textures des GLB ; HSTS, nosniff, X-Frame DENY, Referrer-Policy,
+  Permissions-Policy, COOP ; `poweredByHeader: false`. Vérifié sur `next start` : 3D OK, 0 violation CSP,
+  0 requête tierce ; `npm audit --omit=dev` : 0 vulnérabilité.
+
+## SEO & référencement IA (21/09)
+- `lib/site.ts` : SITE_URL (= NEXT_PUBLIC_SITE_URL, repli localhost → À RENSEIGNER avant la mise en ligne),
+  titre, description, résumé citable (SITE_SUMMARY), FAQ (8 Q/R, reformulent le contenu existant).
+- Métadonnées complètes (layout) : metadataBase, canonical, Open Graph + Twitter (image 1200×630
+  `app/opengraph-image.jpg`, capturée depuis le build de prod, 111 Ko), robots max-image-preview, icônes
+  `app/icon.svg` (sigle AI) + `apple-icon.png`, `manifest.ts`.
+- `robots.ts` (tout autorisé, robots IA nommés : GPTBot, ClaudeBot, PerplexityBot, Google-Extended…, /api/
+  exclu), `sitemap.ts` (accueil + pages légales), pièces « en aménagement » en noindex, redirections 308
+  vers les ancres (nos-services, nos-agents-ia, comment-choisir, contact).
+- JSON-LD (`components/seo/StructuredData.tsx`) : Organization + WebSite + WebPage + 7 Services (Plug & Play,
+  sur mesure, 5 agents avec missions) + FAQPage. FAQ VISIBLE (`FaqSection`, <details> natifs, 2 colonnes
+  indépendantes) avant le contact : les données structurées doivent refléter du contenu visible.
+- `/llms.txt` et `/llms-full.txt` (standard llmstxt.org) générés depuis les mêmes contenus (lib/llms.ts).
+- Titres : vrais espaces entre les lignes visuelles (sinon « IAqui », « choisirvotre » pour les robots) ;
+  alt descriptifs sur les portraits d'agents.
+- PIÈGE : un composant serveur ne doit jamais importer lib/contact.ts (il tire le director / R3F →
+  « createContext only works in Client Components ») → contenu pur dans `lib/contact-content.ts`.
 
 ## Outils QA
 - `npm run shots` : captures 0/25/45/65/100 % + `qa-000` / `qa-100` (diff vs références).
@@ -221,7 +266,14 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   · Services = l'offre. Intro « L'IA qui s'adapte à vous, pas l'inverse. » ; service 01 « Agents IA Plug & Play »
     (fonctions Contenu/Vente/RH/Support, 5 bénéfices) avec `PlugDiagram` animé (interrupteur « Connecté », outils
     génériques reliés à l'agent, tâches d'exemple qui allument les outils utilisés — pas de marques tierces).
-  · Méthode `MethodProcess` : 4 étapes en onglets accessibles (flèches clavier), lecture auto 5,2 s par étape
+  · Méthode `MethodProcess` (21/09, desktop ≥ 1025 px) : PILOTÉE PAR LE SCROLL — bloc épinglé (sticky sous
+    l'en-tête) pendant 4 × 0,42 écran (`SCROLL_PER_STEP`), chaque étape tient 45 % de sa part (`HOLD`) puis la
+    ligne voyage vers la suivante (tête lumineuse, disque qui « arrive » + onde, carte de détail qui glisse
+    dans le sens du scroll, barre de temps sous l'étape active, indice « Continuez à scroller ») ; clic /
+    flèches = scroll jusqu'à l'étape. Pièges : un sticky ne descend pas dans le padding de son parent →
+    espaceur `.pinSpace` ; `.glass[data-glass]` imposait `position: relative` → sélecteur plus lourd.
+    QA : `node scripts/method-qa.mjs --tag X`. Sous 1025 px : ancien comportement (lecture auto).
+  · (ancien, < 1025 px) 4 étapes en onglets accessibles (flèches clavier), lecture auto 5,2 s par étape
     quand visible (pause survol/focus, arrêt au clic), détail « Ce que vous obtenez / Votre rôle », 3 engagements
     (à confirmer par D2S), chiffres + témoignage (PLACEHOLDER à remplacer par un vrai avis).
   · Agents = titre « Des agents IA pour chaque défi… », note manuscrite, 5 cartes (`lib/team.ts`).
@@ -329,5 +381,5 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 ## En cours / à faire
 - Zones suivantes (services, réf 05) : à démarrer quand demandé.
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
-- Non commité : passe façade, loader, enseigne/logo, sections Services + Agents (refonte cartes/fiche/démos
-  du 19/09, en attente du retour utilisateur).
+- 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
+  contact, mission, marque D2S AIgency, menu, correctifs du rendu. Plus rien de non commité à cette date.

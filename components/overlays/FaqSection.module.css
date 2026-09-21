@@ -1,0 +1,152 @@
+/* Questions fréquentes — same grid as the sections above (x 179, 1253 u wide), a glass accordion. */
+.faq {
+  position: relative;
+  z-index: 20;
+  color: var(--ink);
+}
+
+.frame {
+  position: relative;
+  width: calc(1672 * var(--u));
+  padding: calc(40 * var(--u)) 0 calc(20 * var(--u)) calc(179 * var(--u));
+}
+
+.panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: calc(28 * var(--u));
+  width: calc(1253 * var(--u));
+  margin-top: calc(30 * var(--u));
+  padding: calc(14 * var(--u)) calc(30 * var(--u));
+  border-radius: calc(26 * var(--u));
+  background: rgb(255 255 255 / 0.86);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.9),
+    0 24px 60px -32px rgb(11 18 56 / 0.32);
+}
+
+.panel {
+  align-items: start;
+}
+
+.column {
+  min-width: 0;
+}
+
+.item {
+  border-bottom: 1px solid var(--line);
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.question {
+  display: grid;
+  grid-template-columns: calc(30 * var(--u)) minmax(0, 1fr) calc(24 * var(--u));
+  align-items: center;
+  gap: calc(10 * var(--u));
+  padding: calc(18 * var(--u)) 0;
+  font-family: var(--font-display);
+  font-size: max(14px, calc(16.5 * var(--u)));
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--ink);
+  list-style: none;
+  cursor: pointer;
+  transition: color 0.25s var(--ease-out);
+}
+
+.question::-webkit-details-marker {
+  display: none;
+}
+
+.question:hover {
+  color: var(--blue);
+}
+
+.question:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.index {
+  font-family: var(--font-display);
+  font-size: max(11px, calc(12.5 * var(--u)));
+  font-weight: 700;
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Plus that turns into a minus. */
+.chevron {
+  position: relative;
+  justify-self: end;
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+  border-radius: 50%;
+  background: var(--blue-tint);
+}
+
+.chevron::before,
+.chevron::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(10 * var(--u));
+  height: 2px;
+  border-radius: 2px;
+  background: var(--blue);
+  translate: -50% -50%;
+  transition: rotate 0.3s var(--ease-out);
+}
+
+.chevron::after {
+  rotate: 90deg;
+}
+
+.item[open] .chevron::after {
+  rotate: 0deg;
+}
+
+.answer {
+  margin: 0;
+  padding: 0 calc(34 * var(--u)) calc(18 * var(--u)) calc(40 * var(--u));
+  font-family: var(--font-body);
+  font-size: max(13px, calc(14.5 * var(--u)));
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.item[open] .answer {
+  animation: answer-in 0.35s var(--ease-out);
+}
+
+@keyframes answer-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .frame {
+    width: auto;
+    padding: 56px var(--gutter) 20px;
+  }
+
+  .panel {
+    grid-template-columns: minmax(0, 1fr);
+    width: auto;
+    padding: 6px 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item[open] .answer {
+    animation: none;
+  }
+}

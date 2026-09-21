@@ -186,7 +186,7 @@ function Reception() {
         <SignHalo width={2.05} bendRadius={drum.radius + 0.003} intensity={1.15} color="#fff4e6" />
       </group>
       <group position={[0, LOGO_Y, drumFront + 0.07]}>
-        <LogoMesh width={2.05} depth={0.05} bendRadius={drum.radius + 0.07} material={logoSweep.material} />
+        <LogoMesh width={2.05} depth={0.05} bendRadius={drum.radius + 0.07} material={logoSweep.material} accent />
       </group>
       {/* Slogan (no effect). Curved type: position is the drum axis, the geometry wraps at curveRadius. */}
       <WallType

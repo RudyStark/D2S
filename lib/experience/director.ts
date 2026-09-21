@@ -166,6 +166,12 @@ export function scrollToElement(el: HTMLElement, { immediate = false } = {}) {
   }
 }
 
+/** Smooth scroll to an absolute page position (e.g. a step of a scroll-driven block). */
+export function scrollToY(y: number, { immediate = false } = {}) {
+  if (lenis) lenis.scrollTo(y, immediate ? { immediate: true } : { duration: 1.1, easing: (t) => 1 - Math.pow(1 - t, 3) });
+  else window.scrollTo({ top: y, behavior: immediate ? "auto" : "smooth" });
+}
+
 export function refreshDirector() {
   ScrollTrigger.refresh();
 }

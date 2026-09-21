@@ -462,3 +462,145 @@
     translate: none;
   }
 }
+
+/* ——— Desktop: the process advances with the scroll (the block is pinned while its steps play) ——— */
+/* The block stays pinned over this extra scroll, one share per step. A real element, not a padding:
+   a sticky box cannot travel into its parent's padding. */
+.pinSpace {
+  height: calc(var(--scroll-steps) * var(--scroll-per-step) * 100vh);
+}
+
+/* Selector heavier than the glass panel's `.glass[data-glass] { position: relative }`. */
+.scroller[data-mode="scroll"] > .method[data-mode="scroll"] {
+  --pin-top: calc(var(--header-h) + 20px);
+  position: sticky;
+  top: var(--pin-top);
+}
+
+/* The line follows the scroll 1:1 (Lenis already smooths it), with a glowing head. */
+.method[data-mode="scroll"] .trackFill {
+  width: calc(var(--fill, 0) * 100%);
+  transition: none;
+}
+
+.method[data-mode="scroll"] .trackFill::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: calc(-7 * var(--u));
+  width: calc(13 * var(--u));
+  height: calc(13 * var(--u));
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 calc(3 * var(--u)) var(--blue),
+    0 0 calc(18 * var(--u)) calc(4 * var(--u)) rgb(21 112 240 / 0.55);
+  translate: 0 -50%;
+}
+
+/* Time spent on the active step, read from the scroll. */
+.method[data-mode="scroll"] .tab[data-state="active"] .tabProgress::after {
+  animation: none;
+  scale: var(--local, 0) 1;
+}
+
+/* A step "arrives": its disc pops and a ring ripples out once. */
+.method[data-mode="scroll"] .tab[data-state="active"] .tabIcon {
+  animation: step-arrive 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.method[data-mode="scroll"] .tab[data-state="active"] .tabIcon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgb(21 112 240 / 0.45);
+  animation: step-ring 0.9s var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+@keyframes step-arrive {
+  0% {
+    scale: 0.86;
+  }
+  60% {
+    scale: 1.14;
+  }
+  100% {
+    scale: 1.08;
+  }
+}
+
+@keyframes step-ring {
+  to {
+    box-shadow: 0 0 0 calc(18 * var(--u)) rgb(21 112 240 / 0);
+  }
+}
+
+/* The detail card slides in from the side the visitor is heading to. */
+.panelInner[data-direction="-1"] {
+  animation-name: panel-in-back;
+}
+
+@keyframes panel-in-back {
+  from {
+    opacity: 0;
+    translate: calc(-14 * var(--u)) 0;
+  }
+}
+
+.scrollHint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10 * var(--u));
+  margin: calc(14 * var(--u)) 0 0;
+  font-family: var(--font-body);
+  font-size: max(11px, calc(12.5 * var(--u)));
+  color: var(--text-soft);
+  /* Fades out as soon as the visitor has understood (first tenth of the scroll). */
+  opacity: clamp(0, 1 - var(--scrolled, 0) * 8, 1);
+}
+
+.scrollMouse {
+  position: relative;
+  width: calc(14 * var(--u));
+  height: calc(21 * var(--u));
+  border-radius: calc(8 * var(--u));
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+.scrollMouse::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(4 * var(--u));
+  width: 2px;
+  height: calc(4 * var(--u));
+  border-radius: 2px;
+  background: var(--blue);
+  translate: -50% 0;
+  animation: wheel 1.6s ease-in-out infinite;
+}
+
+@keyframes wheel {
+  0% {
+    opacity: 0;
+    translate: -50% 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: -50% calc(7 * var(--u));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .method[data-mode="scroll"] .tab[data-state="active"] .tabIcon,
+  .method[data-mode="scroll"] .tab[data-state="active"] .tabIcon::before,
+  .scrollMouse::after {
+    animation: none;
+  }
+}

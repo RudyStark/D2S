@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { AGENTS } from "@/components/experience/agents/agents.config";
 import { ArrowUpRight, Sparkle } from "@/components/ui/Icons";
 import { useInView } from "@/hooks/useInView";
+import { lowerFirst } from "@/lib/site";
 import { TEAM, TEAM_INTRO } from "@/lib/team";
 import { AgentDialog } from "./AgentDialog";
 import styles from "./AgentsSection.module.css";
@@ -40,7 +41,7 @@ export function AgentsSection() {
         <header className={head.head}>
           <p className={head.kicker}>{TEAM_INTRO.kicker}</p>
           <h2 id="agents-title" className={head.title}>
-            <span className={head.line}>{TEAM_INTRO.title[0]}</span>
+            <span className={head.line}>{TEAM_INTRO.title[0]}</span>{" "}
             <span className={`${head.line} ${head.accent}`}>{TEAM_INTRO.title[1]}</span>
           </h2>
           <p className={head.lead}>{TEAM_INTRO.lead}</p>
@@ -79,7 +80,7 @@ export function AgentsSection() {
                   }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- transparent cut-out, sized in design units */}
-                  <img className={styles.figure} src={def.image} alt="" loading="lazy" decoding="async" />
+                  <img className={styles.figure} src={def.image} alt={`${agent.name}, ${lowerFirst(agent.role)} de D2S AIgency`} loading="lazy" decoding="async" />
                   <span className={styles.open} aria-hidden="true">
                     <ArrowUpRight size={18} />
                   </span>

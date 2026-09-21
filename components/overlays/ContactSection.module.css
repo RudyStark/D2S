@@ -629,7 +629,9 @@ textarea.control {
 }
 
 .reassure {
+  max-width: calc(560 * var(--u));
   margin: 0 auto 0 0;
+  line-height: 1.5;
   font-family: var(--font-body);
   font-size: max(11.5px, calc(12.5 * var(--u)));
   color: var(--text-soft);
@@ -837,6 +839,30 @@ textarea.control {
   --logo-w: calc(88 * var(--u));
   display: block;
   opacity: 0.85;
+}
+
+.footerLinks {
+  display: flex;
+  gap: calc(22 * var(--u));
+  margin-left: auto;
+  margin-right: calc(28 * var(--u));
+  font-family: var(--font-body);
+  font-size: max(11.5px, calc(12.5 * var(--u)));
+}
+
+.footerLinks a {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.footerLinks a:hover {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+.reassure a {
+  color: var(--blue);
+  white-space: nowrap;
 }
 
 .footer p {

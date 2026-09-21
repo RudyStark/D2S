@@ -58,8 +58,8 @@ export function HeroOverlay() {
           L’IA, plus humaine, plus utile
         </p>
         <h1 id="hero-title" className={styles.title}>
-          <span className={styles.line}>L’agence IA</span>
-          <span className={styles.line}>qui transforme votre</span>
+          <span className={styles.line}>L’agence IA</span>{" "}
+          <span className={styles.line}>qui transforme votre</span>{" "}
           <span className={styles.line}>
             temps en <span className={styles.accent}>performance.</span>
           </span>

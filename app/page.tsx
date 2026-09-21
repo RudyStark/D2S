@@ -4,8 +4,10 @@ import { LobbyOverlay } from "@/components/overlays/LobbyOverlay";
 import { AgentsSection } from "@/components/overlays/AgentsSection";
 import { ContactSection } from "@/components/overlays/ContactSection";
 import { DiagnosticSection } from "@/components/overlays/DiagnosticSection";
+import { FaqSection } from "@/components/overlays/FaqSection";
 import { ServicesSection } from "@/components/overlays/ServicesSection";
 import { SkipToLobby } from "@/components/overlays/SkipToLobby";
+import { StructuredData } from "@/components/seo/StructuredData";
 import { Header } from "@/components/ui/Header";
 import styles from "./page.module.css";
 
@@ -18,6 +20,7 @@ const TRACK_ID = "sequence-track";
 export default function Home() {
   return (
     <>
+      <StructuredData />
       <SkipToLobby />
       <Header />
       <main id="agence" className={styles.main}>
@@ -29,6 +32,7 @@ export default function Home() {
         <ServicesSection />
         <AgentsSection />
         <DiagnosticSection />
+        <FaqSection />
         <ContactSection />
       </main>
     </>
