@@ -23,7 +23,7 @@
 /* ——— Welcome bubble (pinned to the receptionist) ———
  * (--ax, --ay) = the receptionist's head on screen. The full chat is much taller than the original greeting,
  * so it is centred on that anchor instead of being lifted by its entire height. Its side tail still points at
- * May while the card stays below the navigation and visually level with the mission panel.
+ * May while the card stays below the navigation, clear of the lobby logo and level with the mission panel.
  */
 
 .bubbleWrap {
