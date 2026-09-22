@@ -21,8 +21,9 @@
 }
 
 /* ——— Welcome bubble (pinned to the receptionist) ———
- * (--ax, --ay) = the receptionist's head on screen. The bubble sits to its left, just clear of the face, and
- * its tail points at the head; low enough to clear the drum slogan, high enough to clear the desk top.
+ * (--ax, --ay) = the receptionist's head on screen. The full chat is much taller than the original greeting,
+ * so it is centred on that anchor instead of being lifted by its entire height. Its side tail still points at
+ * May while the card stays below the navigation and visually level with the mission panel.
  */
 
 .bubbleWrap {
@@ -31,7 +32,7 @@
   position: absolute;
   left: 0;
   top: 0;
-  transform: translate(calc(var(--ax) - 100% - 60 * var(--u)), calc(var(--ay) - 100% + 72 * var(--u)));
+  transform: translate(calc(var(--ax) - 100% - 60 * var(--u)), calc(var(--ay) - 50%));
 }
 
 .bubble {
@@ -48,12 +49,12 @@
   content: "";
   position: absolute;
   right: calc(-9 * var(--u));
-  bottom: calc(58 * var(--u));
+  top: 50%;
   width: calc(22 * var(--u));
   height: calc(22 * var(--u));
   background: inherit;
-  clip-path: polygon(0 0, 100% 100%, 0 100%);
-  border-radius: 0 0 4px 0;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  transform: translateY(-50%);
 }
 
 /* ——— Mission panel ——— */
