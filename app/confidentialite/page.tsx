@@ -5,14 +5,15 @@ import { LEGAL_HREF, PRIVACY_CONTACT, PROCESSORS, PUBLISHER } from "@/lib/legal"
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
-  description: "Quelles données D2S AIgency collecte, pourquoi, combien de temps, et comment exercer vos droits. Aucun cookie, aucun pisteur.",
+  description: "Comment D2S AIgency traite les messages adressés à May, les demandes de contact et les prises de rendez-vous.",
   alternates: { canonical: "/confidentialite" },
 };
 
 /*
  * Describes what the site really does (keep it true when the site changes):
- * - one form (contact) sends data, to /api/contact then CONTACT_WEBHOOK_URL;
- * - the diagnostic and May's question box compute in the browser and send nothing by themselves;
+ * - the contact form sends data to /api/contact, then Resend and the optional CRM webhook;
+ * - May sends the conversation to /api/may/chat, then to the configured AI API;
+ * - Calendly availability is fetched server-side; personal booking data is entered on Calendly;
  * - no cookie, no audience measurement, no advertising tracker, fonts served by our own server;
  * - one technical sessionStorage entry (d2s:gpu-trouble) when the 3D had to be reduced.
  */
@@ -39,8 +40,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Uniquement celles que vous nous transmettez avec le formulaire <strong>« Parlons de votre projet »</strong>, au moment où vous
-          l’envoyez :
+          Celles que vous nous transmettez dans le chat de May ou avec le formulaire <strong>« Parlons de votre projet »</strong> :
         </p>
         <ul>
           <li>prénom et nom, e-mail professionnel, entreprise ;</li>
@@ -48,10 +48,16 @@ const SECTIONS: LegalSection[] = [
           <li>votre message, le type de projet choisi et votre préférence d’échange (visio, appel, e-mail) ;</li>
           <li>le bouton qui vous a amené au formulaire (par exemple la fiche d’un agent) ;</li>
           <li>le résumé de votre diagnostic « Comment choisir votre agent IA ? », seulement s’il est joint à la demande (vous pouvez le retirer avant l’envoi).</li>
+          <li>les messages de la conversation avec May, lorsque vous les envoyez dans le chat ;</li>
         </ul>
         <p>
-          Le diagnostic et la question posée à May, notre agente d’accueil, sont calculés <strong>dans votre navigateur</strong> : rien
-          ne nous est envoyé tant que vous n’avez pas validé le formulaire.
+          Le diagnostic reste dans votre navigateur tant que vous ne le joignez pas au formulaire. Chaque message adressé à May est en
+          revanche transmis à notre serveur puis à notre fournisseur d’intelligence artificielle afin de produire sa réponse. Si vous
+          choisissez « Être recontacté par l’équipe », la conversation est recopiée dans le formulaire : vous pouvez la modifier avant l’envoi.
+        </p>
+        <p>
+          May consulte les types de rendez-vous et les disponibilités via Calendly sans lui transmettre votre conversation. Vos coordonnées
+          de réservation ne sont communiquées à Calendly que si vous ouvrez un bouton de rendez-vous et complétez sa page.
         </p>
       </>
     ),
@@ -64,12 +70,15 @@ const SECTIONS: LegalSection[] = [
         <p>Vos données servent à :</p>
         <ul>
           <li>répondre à votre demande et organiser le premier échange ;</li>
+          <li>vous orienter dans le chat vers le service ou l’agent IA adapté ;</li>
+          <li>afficher des types de rendez-vous et créneaux réellement disponibles ;</li>
           <li>vous adresser une proposition, si vous le souhaitez ;</li>
           <li>assurer un suivi raisonnable de cette demande.</li>
         </ul>
         <p>
-          Base légale : les <strong>mesures précontractuelles prises à votre demande</strong> (article 6.1.b du RGPD). La case à cocher
-          du formulaire confirme votre accord pour être recontacté. Aucune donnée n’est vendue, ni utilisée pour de la publicité.
+          Base légale : les <strong>mesures précontractuelles prises à votre demande</strong> (article 6.1.b du RGPD) pour le contact et
+          la réservation, et notre intérêt légitime à répondre aux questions sur nos services pour le chat (article 6.1.f). La case à
+          cocher du formulaire confirme votre accord pour être recontacté. Aucune donnée n’est vendue, ni utilisée pour de la publicité.
         </p>
       </>
     ),
@@ -82,6 +91,11 @@ const SECTIONS: LegalSection[] = [
         <p>
           <strong>3 ans à compter de notre dernier échange</strong>, puis elles sont supprimées. Si un contrat est signé, les données
           utiles sont conservées pendant la relation, puis pendant les durées imposées par la loi (obligations comptables et fiscales).
+        </p>
+        <p>
+          D2S ne crée pas de compte visiteur et n’enregistre pas volontairement l’historique du chat dans une base de données. Les
+          prestataires techniques peuvent toutefois conserver des journaux pendant la durée nécessaire à la sécurité et au fonctionnement
+          de leurs services, selon nos réglages et nos contrats avec eux.
         </p>
         <p>Les demandes identifiées comme du spam sont écartées sans être conservées.</p>
       </>
@@ -102,6 +116,14 @@ const SECTIONS: LegalSection[] = [
           <dd>
             <ToFill value={PROCESSORS.requests} label="Outil (CRM, Make, Zapier, messagerie…)" />
           </dd>
+          <dt>Assistant May</dt>
+          <dd>
+            <ToFill value={PROCESSORS.assistant} label="Fournisseur d’intelligence artificielle" />
+          </dd>
+          <dt>Prise de rendez-vous</dt>
+          <dd>
+            <ToFill value={PROCESSORS.calendar} label="Outil de réservation" />
+          </dd>
           <dt>Transferts hors UE</dt>
           <dd>
             <ToFill value={PROCESSORS.transfers} label="Aucun, ou pays et garanties (clauses contractuelles types)" />
@@ -121,6 +143,10 @@ const SECTIONS: LegalSection[] = [
         </p>
         <p>
           Les polices sont servies par notre propre serveur : votre navigateur ne contacte aucun service tiers pendant la visite.
+        </p>
+        <p>
+          L’ouverture d’un bouton de rendez-vous vous conduit vers Calendly, dont la page applique sa propre politique de cookies et de
+          confidentialité. Aucun contenu Calendly n’est chargé avant cette action.
         </p>
         <p>
           Une seule information technique peut être gardée <strong>dans l’onglet, le temps de la visite</strong> : si votre carte
@@ -169,7 +195,7 @@ export default function PrivacyPage() {
     <LegalPage
       kicker="Données personnelles"
       title="Politique de confidentialité"
-      intro={<p>En bref : nous ne collectons que ce que vous nous envoyez avec le formulaire de contact, pour vous répondre. Pas de cookie, pas de pisteur.</p>}
+      intro={<p>En bref : May traite les messages que vous lui envoyez pour vous répondre, et le formulaire transmet les informations nécessaires pour vous recontacter. Le site n’ajoute ni cookie publicitaire ni pisteur.</p>}
       sections={SECTIONS}
     />
   );

@@ -4,7 +4,7 @@
  * Fill them before going live, then have both pages reviewed (they describe what the site really does).
  */
 
-export const LEGAL_UPDATED = "21 septembre 2026";
+export const LEGAL_UPDATED = "22 septembre 2026";
 
 /** Registered office (given by the client, 21/09): also used for the local structured data. */
 export const OFFICE = {
@@ -28,7 +28,7 @@ export const PUBLISHER = {
   /** SIRET (+ ville du RCS si la société y est immatriculée). */
   registration: `SIRET ${SIRET}` as string | null,
   vatNumber: null as string | null,
-  email: null as string | null,
+  email: "may@d2saigency.com" as string | null,
   phone: null as string | null,
   /** Directeur ou directrice de la publication. */
   publicationDirector: null as string | null,
@@ -40,16 +40,17 @@ export const HOST = {
   phone: null as string | null,
 };
 
-/** Where contact requests end up (CONTACT_WEBHOOK_URL): the tool and its location (UE or not). */
 export const PROCESSORS = {
-  hosting: null as string | null,
-  requests: null as string | null,
+  hosting: "Cloudflare (hébergement et protection technique du site)" as string | null,
+  requests: "Resend (transmission des demandes et e-mails de confirmation)" as string | null,
+  assistant: "OpenAI via API (génération des réponses de May)" as string | null,
+  calendar: "Calendly (types de rendez-vous, disponibilités et réservation)" as string | null,
   /** Transfers outside the EU, if a processor is outside it (and the safeguard used). */
   transfers: null as string | null,
 };
 
 /** Address where people exercise their rights (often the same as PUBLISHER.email). */
-export const PRIVACY_CONTACT = null as string | null;
+export const PRIVACY_CONTACT = "may@d2saigency.com" as string | null;
 
 export const PRIVACY_HREF = "/confidentialite";
 export const LEGAL_HREF = "/mentions-legales";
