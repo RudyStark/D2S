@@ -13,5 +13,8 @@
   // and no IMAGES binding (next/image is not used).
   "observability": {
     "enabled": true
-  }
+  },
+  // Branch / pull request previews (Workers Builds runs `npx wrangler preview` outside main): the block is
+  // required, even empty; everything else is inherited from the top level.
+  "previews": {}
 }
