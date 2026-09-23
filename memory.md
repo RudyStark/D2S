@@ -433,12 +433,46 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - Test navigateur : le panneau intégré masqué met la page en `visibilityState: hidden` (rAF gelé, Lenis ne
   défile plus) → tester les scrolls en Playwright headless.
 
+## May, agente IA de l'accueil — branche `feature/may-agent` (22-23/09)
+- Demande utilisateur (22/09) : May doit répondre comme un vrai agent IA. Décisions : May aide à remplir le
+  formulaire de contact avec les bonnes questions ; elle peut AUSSI proposer la date et le type de rendez-vous
+  (visio, etc.) via Calendly. Branche `feature/may-agent` créée par Claude depuis main (a819f53).
+- Implémentation poussée sur la branche le 22/09 (commits c8a97f0 → c5b4c48, auteur git Rudy Saksik, faite
+  hors de cette session — même origine probable que le mobile) ; tirée par Claude le 23/09, TS OK, NON testée
+  par Claude. Contenu :
+  · `app/api/may/chat/route.ts` : POST, même origine, JSON ≤ 24 Ko, 12 messages max × 1 000 car., 24 req /
+    10 min / IP. Fournisseur IA = API Chat Completions **OpenAI** par défaut (`MAY_AI_API_KEY`, `MAY_AI_MODEL`
+    = gpt-5-mini, `MAY_AI_API_URL`), `store: false`, 650 tokens max. Prompt système construit depuis `llmsText()`
+    (contenus réels du site). Outils : `list_meeting_types` et `get_available_times` (Calendly, jamais de
+    créneau inventé ; sinon `CALENDLY_FALLBACK_URL` ou le formulaire). Sans clé : 503 + message d'attente.
+  · `lib/server/calendly.ts` (`CALENDLY_API_TOKEN`, `CALENDLY_USER_URI` facultatif → /users/me).
+  · `lib/server/resend.ts` + `/api/contact` : Resend devient le canal PRINCIPAL (notification à
+    `CONTACT_TO_EMAIL` avec Reply-To visiteur + confirmation signée May au visiteur) ; `CONTACT_WEBHOOK_URL`
+    reste un transfert facultatif (son échec ne bloque plus). Sans `RESEND_API_KEY` : 503 ; échec d'envoi : 502.
+  · `components/may/MayChat.tsx/.module.css` (variant desktop|mobile, suggestions `MAY_STARTERS`, liens de
+    réservation renvoyés par Calendly, « Être recontacté par l'équipe » → formulaire avec la transcription).
+    Intégré dans `LobbyOverlay` (ancienne bulle retirée) ET dans `MobileHome` (modif du mobile faite dans ce
+    même commit, pas par Claude).
+  · Légal : `PUBLISHER.email` et `PRIVACY_CONTACT` = may@d2saigency.com ; sous-traitants Cloudflare, Resend,
+    OpenAI, Calendly ; page confidentialité complétée ; `transfers` (hors UE) encore null → À COMPLÉTER
+    (OpenAI, Calendly, Resend = transferts hors UE).
+  · README : procédure de configuration. Secrets du Worker d2s : `MAY_AI_API_KEY`, `CALENDLY_API_TOKEN`,
+    `RESEND_API_KEY` ; variables : `MAY_AI_MODEL`, `CALENDLY_FALLBACK_URL`, `RESEND_FROM_EMAIL`,
+    `RESEND_REPLY_TO_EMAIL`, `CONTACT_TO_EMAIL`. Resend exige de vérifier le domaine d2saigency.com (DNS
+    chez Cloudflare) avant d'envoyer depuis may@d2saigency.com.
+- Reste avant fusion : tests réels (chat, outils Calendly, e-mails Resend), vérifier que la bulle de May reste
+  bien placée dans le lobby (3 tiers), compléter les transferts hors UE, décider OpenAI vs Claude.
+
 ## En cours / à faire
 - Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
   NS IONOS → matt / wanda.ns.cloudflare.com. Zone : 5 CNAME DNS only (autodiscover, _dmarc, _domainconnect,
   s1/s2-ionos._domainkey), 2 MX IONOS, SPF ; A/AAAA de la page d'attente IONOS supprimés. DNSSEC n'était pas
-  actif. À faire une fois la zone ACTIVE (accord global à redemander) : domaine perso du Worker d2s,
-  `www` → apex (301), Always Use HTTPS, `NEXT_PUBLIC_SITE_URL=https://d2saigency.com` (build) + redéploiement.
+  actif. EN LIGNE (22/09) : zone active ; domaines perso du Worker d2s = `d2saigency.com` + `www.d2saigency.com` ;
+  règle « Redirect from WWW to root » (https://www.* → https://${1}, 301, query conservée) ; Always Use HTTPS ;
+  variable de BUILD `NEXT_PUBLIC_SITE_URL=https://d2saigency.com` + « Retry build ». Vérifié : canonical/OG/
+  sitemap/robots en d2saigency.com, 308 des anciennes pages, site prêt en ~4,5 s (loader compris), 0 erreur.
+  Reste : les secrets de May / Resend / Calendly (voir section May). Piège : onglet Chrome masqué = chargement très
+  lent (rAF freiné) → mesurer en headless.
 - Zones suivantes (services, réf 05) : à démarrer quand demandé.
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
 - 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
