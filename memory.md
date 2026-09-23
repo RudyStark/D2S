@@ -612,5 +612,7 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
 - 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
   contact, mission, marque D2S AIgency, menu, correctifs du rendu. Plus rien de non commité à cette date.
+- bc7cb37 (poussé sur `feature/may-agent`, 23/09, PAS sur main) : May hybride + Claude, Resend, réservation
+  Calendly (desktop + mobile), contact direct du menu, indice de scroll, étiquettes des agents, RGPD.
 - 581dd1c (poussé sur main, 21/09) : halo + « AI » animé en 3D, méthode pilotée par le scroll, RGPD
   (pages légales), sécurité (en-têtes, API), SEO + IA (métadonnées, JSON-LD, FAQ, llms.txt, robots, sitemap).
