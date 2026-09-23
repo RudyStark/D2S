@@ -21,6 +21,8 @@ import {
   People,
   Sparkle,
 } from "@/components/ui/Icons";
+import { MayChat } from "@/components/may/MayChat";
+import { ContactDialog } from "@/components/ui/ContactDialog";
 import { Logo } from "@/components/ui/Logo";
 import {
   METHOD_PROMISES,
@@ -61,10 +63,11 @@ export default function MobileHome() {
   const progress = useRef<HTMLSpanElement>(null);
   const menu = useRef<HTMLDialogElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // "Contact" in the menu: the same direct-message dialog as on desktop.
+  const [contactOpen, setContactOpen] = useState(false);
   const [active, setActive] = useState("agence");
   const [agent, setAgent] = useState<AgentProfile | null>(null);
   const [intent, setIntent] = useState<MobileContactIntent | null>(null);
-  const [question, setQuestion] = useState("");
 
   const contact = useCallback((next: MobileContactIntent) => {
     setIntent({ ...next, stamp: Date.now() });
@@ -212,9 +215,23 @@ export default function MobileHome() {
               <ArrowRight size={18} />
             </a>
           ))}
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => {
+              menu.current?.close();
+              setMenuOpen(false);
+              setContactOpen(true);
+            }}
+          >
+            <span>{String(MOBILE_SECTIONS.length + 1).padStart(2, "0")}</span>
+            Contact
+            <ArrowRight size={18} />
+          </button>
         </nav>
         <p className={styles.menuNote}>L’IA, plus humaine, plus utile.</p>
       </dialog>
+      <ContactDialog open={contactOpen} onClose={() => setContactOpen(false)} />
 
       <main>
         <section
@@ -327,35 +344,19 @@ export default function MobileHome() {
                 </h3>
                 <p>Je vous aide à trouver le bon agent.</p>
               </div>
-              <form
-                className={styles.welcomeForm}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  contact({
-                    source: "mobile-reception",
-                    need: "unsure",
-                    message: question.trim() || undefined,
-                  });
-                  setQuestion("");
-                }}
-              >
-                <label htmlFor="mobile-question">Quel est votre besoin ?</label>
-                <div>
-                  <input
-                    id="mobile-question"
-                    value={question}
-                    maxLength={4000}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="Poser une question…"
-                  />
-                  <button
-                    type="submit"
-                    aria-label="Transmettre votre question à l’équipe"
-                  >
-                    <ArrowRight size={20} />
-                  </button>
-                </div>
-              </form>
+              <div className={styles.welcomeChat}>
+                <MayChat
+                  variant="mobile"
+                  showIntro={false}
+                  onContact={(message) =>
+                    contact({
+                      source: "may-chat-mobile",
+                      need: "unsure",
+                      message,
+                    })
+                  }
+                />
+              </div>
             </div>
             <ul className={styles.benefits} data-reveal>
               <li>

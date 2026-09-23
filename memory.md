@@ -433,15 +433,188 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - Test navigateur : le panneau intégré masqué met la page en `visibilityState: hidden` (rAF gelé, Lenis ne
   défile plus) → tester les scrolls en Playwright headless.
 
+## May, agente IA de l'accueil — branche `feature/may-agent` (22-23/09)
+- Décisions utilisateur : May du SITE = agente dédiée (≠ la « vraie » May vendue aux clients), vrai agent
+  (pas de réponses en dur), modèle **Claude Sonnet 5** (choix du 23/09). Elle qualifie le besoin, recommande
+  un agent, PRÉPARE le formulaire de contact (le visiteur relit et envoie lui-même) et peut proposer le type et
+  la date de rendez-vous via Calendly (jamais de réservation ni d'envoi à sa place).
+- Historique : base OpenAI + Calendly + Resend poussée le 22/09 hors session (c8a97f0 → c5b4c48) ; le 23/09
+  Claude a remplacé OpenAI par Claude et restructuré l'agent (non commité à la fin de la passe).
+- Architecture :
+  · `lib/server/may-agent.ts` : SDK `@anthropic-ai/sdk` 0.128.0 (exact), `claude-sonnet-5` (`MAY_MODEL`),
+    `output_config.effort` = low (`MAY_EFFORT` medium|high), max_tokens 4000, boucle manuelle en streaming
+    (`messages.stream` + `finalMessage`, 5 tours max), outils `strict: true` exécutés côté serveur :
+    `recommend_agent` (= `buildResult` + `hoursSentence` du diagnostic du site, jamais d'estimation inventée),
+    `prepare_contact_request` (need, message, name|null, company|null, channel|null → événement `draft`),
+    `list_meeting_types` / `get_available_times` (Calendly, 3 créneaux max, liens *.calendly.com uniquement,
+    repli `CALENDLY_FALLBACK_URL` ou formulaire). Consignes = rôle + règles + `llmsText({full:true})` + bloc
+    contact/société, EN CACHE (`cache_control`, ~14 000 car.) ; la date du jour est dans un 2e bloc non caché.
+  · `app/api/may/chat/route.ts` : POST → flux NDJSON (`MayEvent` : text, status, actions, draft, done, error).
+    Même origine, JSON ≤ 24 Ko, historique texte ≤ 16 messages × 1 000 car. (fusion des rôles consécutifs,
+    doit commencer et finir par le visiteur), 30 req / 10 min / IP, rien n'est stocké. Sans clé : 503.
+  · `lib/may.ts` : types partagés (MayMessage, MayAction, MayDraft, MayEvent, MAY_STARTERS, MAY_LIMITS).
+  · `components/may/MayChat.tsx` : lit le flux, texte au fil de l'eau, ligne d'état pendant les outils
+    (« May consulte l'agenda… »), boutons de créneaux, carte « Votre demande est prête » → `onDraft(draft)`
+    (repli `onContact(message)` : le mobile n'a PAS été modifié et garde `onContact`). « Être recontacté »
+    reprend la demande préparée s'il y en a une, sinon la transcription.
+  · `ContactIntent` (lib/contact.ts) + `ContactSection` : name, company, channel en plus (sans écraser une
+    saisie). `LobbyOverlay` passe `onDraft` → `goToContact({ source: "may-chat-desktop", ...draft })`.
+  · Légal : sous-traitant IA = Anthropic ; texte confidentialité mis à jour (demande préparée recopiée, rien
+    conservé). `PROCESSORS.transfers` ENCORE null (Anthropic, Calendly, Resend = États-Unis) → à compléter.
+  · `.env.example` / README : `ANTHROPIC_API_KEY` (secret du Worker), `MAY_MODEL`, `MAY_EFFORT` ; plus de MAY_AI_*.
+- Tests (23/09) SANS vraie clé : faux serveur Anthropic local (SSE scripté, scratchpad `mock-anthropic.mjs`,
+  via `ANTHROPIC_BASE_URL` dans un `.env.local` temporaire, supprimé ensuite). Vérifié : requêtes (modèle,
+  effort, 4 outils, cache), boucle outil → texte, recommandation réelle (Loic 92 %), carte de demande, formulaire
+  pré-rempli (besoin, nom, entreprise, message, visio), 0 erreur console ; build Cloudflare OK (1,48 Mo gzip).
+  Tests RÉELS (23/09, vraie clé dans `.env.local`, Sonnet 5, effort low) : script scratchpad `may-eval.mjs`
+  (6 scénarios : besoin flou multi-tours → Loic 92 % + demande Sophie Lemaire ; prix → pas de tarif ;
+  hors sujet → recadre ; injection → refuse ; RDV → Calendly non configuré, propose la demande ; pressé →
+  demande préparée d'emblée) + chat réel dans le lobby (Playwright), 0 erreur. Réponses 3 à 11 s.
+  Corrections issues des tests : (1) l'API REFUSE `type: ["string","null"]` + `enum` avec null en strict →
+  `channel` = enum string avec "unknown" ; (2) rappel demandé → prepare_contact_request immédiat ; (3) synthèse
+  sans détail inventé. Clé d'ORGANISATION refusée (« not scoped to a workspace ») → utiliser une clé créée
+  DANS un workspace, ou `ANTHROPIC_WORKSPACE_ID` (header `anthropic-workspace-id`, supporté).
+  ⚠️ L'utilisateur a collé une clé dans le chat le 23/09 : je ne l'ai pas utilisée, il l'a remplacée dans
+  `.env.local` (nouvelle clé). Règle : ne jamais écrire/saisir de clé soi-même ; l'utilisateur la colle.
+  Reste : Calendly et Resend réels, secret `ANTHROPIC_API_KEY` sur Cloudflare (par l'utilisateur), limite de
+  dépense du workspace, transferts hors UE dans la politique de confidentialité.
+
+### May hybride (23/09, demande utilisateur : trop de crédit consommé)
+- Constat utilisateur : 0,16 € partis (surtout mes ~22 appels de test). Décision : niveau « brut » gratuit +
+  Claude en relais, SANS mur de boutons (chat en texte libre ; seuls boutons : 3 suggestions au départ, carte
+  « Relire et envoyer ma demande », créneaux Calendly).
+- `lib/may-local.ts` (navigateur, 0 €) : lit le texte libre (normalisation sans accents, négations « pas de X »
+  ignorées) → tâche, temps (h/jours/mois), outils, processus, canal ; intentions prix / méthode / agents /
+  contrôle / sur mesure / gratuit / c'est quoi ; rappel → demande préparée ; rendez-vous → `/api/may/meetings`
+  (Calendly sans IA, sinon « je prépare votre demande ? »). Recommandation = `buildResult` du diagnostic.
+  Demande = les phrases du visiteur (hors salutations et suggestions) + la ligne de recommandation.
+  Règle : dans le doute (message long, plusieurs questions, réponse attendue illisible) → Claude, qui garde
+  ensuite la conversation (`claude` ref dans MayChat) et reçoit `known` = `memorySummary()`.
+- Côté Claude : consignes condensées (KNOWLEDGE au lieu de llmsText ; ~4 600 tokens en cache avec les outils),
+  `thinking: {type: "disabled"}`, max_tokens 1200, historique 12 messages, pas de 2e appel après
+  prepare_contact_request (texte fixe), journal `[may] usage … cost=$…` par appel et par tour (aucun contenu).
+  Mesure : conversation 100 % Claude en 4 tours = 0,032 $ (1er appel 0,013 $ = écriture du cache, puis
+  0,003–0,009 $). Parcours compris localement = 0 appel (vérifié en Playwright sur 3 tailles).
+- Plafond : 14 messages visiteur par conversation, puis la demande préparée (MAY_LIMITS.visitorMessages).
+- Placement du chat (lobby, desktop) : aligné en haut sur le panneau mission (`--chat-top: 176u`), bord droit
+  à 150u à gauche de la tête de May (dégage le logo du fût), hauteur = jusqu'au-dessus du comptoir
+  (`--ay + 92u − top`, min 360 px) quand la conversation est active, log qui défile ; au repos hauteur
+  naturelle. Pointe calée sur la tête. Indice de scroll du lobby déplacé en bas (`bottom: 26u`) : il
+  chevauchait « INFORMATIONS ». Vérifié 1280×720, 1280×800, 1440×900, 1920×1080.
+- Reste : Resend (compte + domaine vérifié dans Cloudflare DNS + `RESEND_API_KEY` par l'utilisateur ; le
+  code envoie déjà à may@d2saigency.com par défaut ; la boîte may@ doit exister chez IONOS), Calendly (token
+  par l'utilisateur), règle de limitation de débit Cloudflare sur /api/may/*, plafond de dépense Anthropic.
+  Claude in Chrome déconnecté pendant cette passe.
+
+### Resend + réservation Calendly dans le formulaire (23/09)
+- Resend : domaine d2saigency.com ajouté par API (région eu-west-1, id 11e802b2-…), 4 enregistrements DNS
+  créés dans Cloudflare (TXT resend._domainkey, MX send → feedback-smtp.eu-west-1.amazonses.com prio 10,
+  TXT send SPF amazonses, CNAME rsend → send.forge.rmta.net, tous DNS only) → VÉRIFIÉ. Test réel : notification
+  + confirmation délivrées à may@d2saigency.com. `sendEmail` journalise le motif de refus Resend (ex. domaine
+  non vérifié). ⚠️ Les clés Resend et Calendly du `.env.local` ont été collées dans le chat par l'utilisateur
+  → à remplacer ; secrets Cloudflare `RESEND_API_KEY`, `CALENDLY_API_TOKEN`, `ANTHROPIC_API_KEY` à ajouter
+  par l'utilisateur.
+- Calendly : compte Rudy Saksik, offre GRATUITE, 1 type « 30 Minute Meeting » (Google Meet, semaine 9 h–17 h,
+  fuseau du profil Europe/Berlin). Jeton `d2s-site` créé dans Chrome (droits : availability:read,
+  event_types:read, scheduled_events:read/write, users:read) ; code de vérification et copie du jeton faits
+  par l'utilisateur.
+- Choix utilisateur « propre et pro » → réservation DANS le formulaire, sans script ni cookie Calendly :
+  `SlotPicker` (components/overlays, desktop ContactSection, visible quand « Visio » est choisi) : 10 jours
+  ouvrés en cartes + horaires en pastilles depuis `/api/booking/slots` (1er type actif ou
+  `CALENDLY_EVENT_TYPE_ID`, 14 jours en fenêtres de 7 j, cache 60 s). À l'envoi, `/api/contact` valide le
+  créneau (futur, lien *.calendly.com), appelle `bookSlot` (POST /invitees avec le `location.kind` du type,
+  ici google_conference — sans lui : 400) ; si refus → `confirmUrl` = page Calendly du créneau avec
+  name/email pré-remplis (bouton « Confirmer mon créneau »). L'e-mail à D2S indique le créneau et son état.
+  ⚠️ La doc Calendly annonce un 403 sur l'offre gratuite, mais la réservation a RÉUSSI en test (rdv du
+  7/10 16:30 créé puis ANNULÉ par API). Confidentialité mise à jour (nom, e-mail, créneau transmis à Calendly).
+  Mobile (MobileContact) non modifié : pas de sélecteur.
+
+- Destinataires (décision 23/09) : demandes + réservations → **rudy.saksik@d2saigency.com** (défaut de
+  `recipients()`, `CONTACT_TO_EMAIL` pour changer) ; tout e-mail au client part de **may@d2saigency.com**
+  (signé May). Confirmation client (`visitorConfirmation`) : rdv réservé → « Votre visio … est confirmée ·
+  date » + bouton lien de visio + déplacer / annuler (cancel_url / reschedule_url de l'invité Calendly) ;
+  créneau à confirmer → bouton « Confirmer ma visio » ; sinon « demande reçue ». Le `join_url` Calendly
+  n'existe que quelques secondes APRÈS la réservation (lien calendly.com/events/…, redirige vers Meet) →
+  `bookSlot` relit l'événement jusqu'à 4 fois (1,2 s). Testé réel 23/09 : 2 e-mails délivrés (rudy@ existe
+  chez IONOS), lien présent ; rendez-vous de test annulés par API.
+- Reste côté Calendly (réglages du compte, par l'utilisateur) : ses propres notifications à l'hôte vont à l'e-mail
+  du compte Calendly, et Calendly envoie aussi SA confirmation à l'invité (doublon avec celle de May) — voir les
+  réglages de notification du type de rendez-vous.
+
+- MOBILE (23/09, sur demande explicite de l'utilisateur « tu ne l'as pas fait pour le mobile ? ») :
+  `MobileContact` reçoit le même `SlotPicker` (`variant="mobile"` : tailles en px, horaires de 44 px, jours
+  défilables au doigt ; vérifié 390/320 px sans débordement) et les mêmes écrans réservé / à confirmer.
+  Test `reception preserves…` de `tests/mobile/home.spec.ts` PÉRIMÉ depuis c8a97f0 (l'ancien champ d'accueil
+  a été remplacé par le chat de May) → réécrit sur le chat. Il a révélé un vrai défaut, corrigé : « Être
+  recontacté » oubliait le message tapé mais pas envoyé. Suite mobile : 11/11. PIÈGE : la suite teste
+  127.0.0.1:3217 et réutilise un serveur déjà lancé ; si c'est le serveur `localhost` du panneau, Next bloque
+  le JS de dev (autre origine) → la page ne s'hydrate pas et 10 tests échouent. Arrêter le serveur avant.
+
+## Contact direct du menu (23/09, branche `feature/may-agent`)
+- Entrée « Contact » dans le menu desktop (bouton après les 4 sections, `Header.tsx`) et « 07 Contact » dans le
+  menu mobile (`MobileHome.tsx`, ajout demandé). Ouvre `components/ui/ContactDialog.tsx` : <dialog> natif, panneau
+  verre blanc du site, « Contact direct / Écrivez-nous. », 5 sujets en pastilles (`DIRECT_TOPICS` dans
+  `lib/contact-content.ts` : projet, devis, partenariat, presse, autre — « déjà client » et « candidature » retirés
+  à la demande de l'utilisateur), nom, e-mail,
+  entreprise et téléphone facultatifs, message ≥ 10, consentement + lien Confidentialité, pot de miel.
+  Sous 640 px : panneau depuis le bas. Desktop : `onLock={setScrollLocked}` (Lenis) ; mobile : overflow du html.
+- Envoi : `POST /api/message` (même origine, JSON ≤ 12 Ko, 5 / 10 min / IP, pot de miel + délai ≥ 2,5 s) →
+  `sendDirectMessage` (resend.ts) : e-mail à l'équipe (rudy.saksik@d2saigency.com, reply_to = visiteur, objet
+  « Contact · {sujet} · {nom} ») + accusé de réception de May (may@) au visiteur. Vérifié : 200, deux e-mails
+  délivrés, focus sur la 1re erreur, menu à 5 entrées OK à 1280 px, mobile 390 px OK.
+- Calendly : un 403 (réservation directe refusée) est maintenant journalisé `[booking] Calendly 403` (il était
+  silencieux → impossible de savoir pourquoi un test finissait en « Confirmez votre visio »).
+
+## Indice « Scrollez pour entrer dans notre univers » (façade, 23/09)
+- Il était au centre de l'écran à 728u et chevauchait les jambes de Déa et le bas des portes. Placé maintenant
+  dans l'axe de l'entrée (les portes sont à ~63,5 % de la largeur quel que soit le format desktop) et en bas de
+  l'écran (`bottom: max(16px, 24u)`), sur le sol. Vérifié 1280×720, 1280×1024, 1440×900, 1536×864, 1920×1080.
+
+## Audit RGPD (23/09)
+- Vérifié : aucun cookie (y compris sur le site en ligne, Cloudflare n'en pose pas), seul stockage =
+  sessionStorage `d2s:gpu-trouble` ; mention « Assistante IA » dans le chat (transparence, AI Act art. 50) ;
+  liens Confidentialité sous chaque formulaire ; logs serveur sans contenu ni donnée perso.
+- Complété : hébergeur des mentions légales = Cloudflare, Inc. (adresse et téléphone relevés sur
+  cloudflare.com/website-terms) ; transferts hors UE (Cloudflare, Anthropic, Calendly, Resend → clauses
+  contractuelles types + Data Privacy Framework pour les sociétés certifiées — À CONFIRMER par l'utilisateur :
+  accepter le DPA de chacun) ; messagerie IONOS ; fenêtre Contact et usage de l'IP anti-abus décrits.
+  Les limiteurs de débit (4 routes API) purgent maintenant les IP expirées à chaque appel (avant : seulement
+  au-delà de 5 000 entrées) → l'IP n'est gardée que pendant sa fenêtre, comme l'annonce la politique.
+- Mentions légales complétées (23/09, infos de l'utilisateur) : EI — entrepreneur individuel (pas de capital, ligne
+  masquée), TVA non applicable art. 293 B du CGI, contact rudy.saksik@d2saigency.com (aussi JSON-LD et May),
+  téléphone NON publié (ligne masquée), directeur de la publication Rudy Saksik. Plus aucun « à compléter ».
+  Contact RGPD (`PRIVACY_CONTACT`) = rudy.saksik@d2saigency.com aussi (demande du 23/09).
+- Reste (côté utilisateur) : accepter les DPA ; tenir le registre des traitements (art. 30) ; faire relire les pages.
+
+## Étiquette au survol des agents 3D (desktop, 23/09)
+- Au survol d'un agent du monde 3D (Déa, Loic sur la façade ; May, Diva, Morgan dans le lobby) : pastille verre
+  blanc au-dessus de la tête, point vert + prénom + rôle (`lib/team.ts`), petite pointe vers la tête.
+  `components/overlays/AgentHoverLabel.tsx` (+ CSS), monté dans `DesktopHome` ; mobile non touché.
+- Sans raycasting WebGL : `AgentSlot` publie chaque image la silhouette à l'écran (`frame.agents[type]` : x,
+  haut, pieds, largeur ≈ 0,42 × hauteur). Étiquette seulement si la souris est sur le fond 3D
+  (`elementFromPoint` = canvas / main / body / piste / `[data-experience-stage]` — donc jamais sur un panneau,
+  le chat, un bouton ou les sections), souris uniquement (hover: hover), agent ≥ 17 % de la hauteur d'écran
+  (les agents du lobby vus à travers les portes n'en ont pas), `frame.services` < 0.05. Maintenue dans
+  l'écran (pointe décalée vers la tête) et sous l'en-tête. Décorative (aria-hidden) : l'info est dans
+  « Nos agents IA ». Vérifié 1280×720, 1440×900, 1920×1080, façade et lobby, 0 erreur.
+
 ## En cours / à faire
 - Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
   NS IONOS → matt / wanda.ns.cloudflare.com. Zone : 5 CNAME DNS only (autodiscover, _dmarc, _domainconnect,
   s1/s2-ionos._domainkey), 2 MX IONOS, SPF ; A/AAAA de la page d'attente IONOS supprimés. DNSSEC n'était pas
-  actif. À faire une fois la zone ACTIVE (accord global à redemander) : domaine perso du Worker d2s,
-  `www` → apex (301), Always Use HTTPS, `NEXT_PUBLIC_SITE_URL=https://d2saigency.com` (build) + redéploiement.
+  actif. EN LIGNE (22/09) : zone active ; domaines perso du Worker d2s = `d2saigency.com` + `www.d2saigency.com` ;
+  règle « Redirect from WWW to root » (https://www.* → https://${1}, 301, query conservée) ; Always Use HTTPS ;
+  variable de BUILD `NEXT_PUBLIC_SITE_URL=https://d2saigency.com` + « Retry build ». Vérifié : canonical/OG/
+  sitemap/robots en d2saigency.com, 308 des anciennes pages, site prêt en ~4,5 s (loader compris), 0 erreur.
+  Reste : les secrets de May / Resend / Calendly (voir section May). Piège : onglet Chrome masqué = chargement très
+  lent (rAF freiné) → mesurer en headless.
 - Zones suivantes (services, réf 05) : à démarrer quand demandé.
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
 - 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
   contact, mission, marque D2S AIgency, menu, correctifs du rendu. Plus rien de non commité à cette date.
+- PR https://github.com/RudyStark/D2S/pull/2 (feature/may-agent → main) ouverte le 23/09, NON fusionnée : fusion =
+  mise en ligne ; d'abord les secrets Cloudflare (ANTHROPIC_API_KEY, RESEND_API_KEY, CALENDLY_API_TOKEN, par l'utilisateur).
+- bc7cb37 (poussé sur `feature/may-agent`, 23/09, PAS sur main) : May hybride + Claude, Resend, réservation
+  Calendly (desktop + mobile), contact direct du menu, indice de scroll, étiquettes des agents, RGPD.
 - 581dd1c (poussé sur main, 21/09) : halo + « AI » animé en 3D, méthode pilotée par le scroll, RGPD
   (pages légales), sécurité (en-têtes, API), SEO + IA (métadonnées, JSON-LD, FAQ, llms.txt, robots, sitemap).

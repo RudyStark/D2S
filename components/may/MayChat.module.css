@@ -1,0 +1,460 @@
+.root {
+  --may-blue: #1570f0;
+  --may-deep: #0b38a0;
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.root[data-variant="desktop"] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: calc(20 * var(--u));
+}
+
+/* Desktop: the lobby sizes the chat (above the desk); the log takes what is left and scrolls. */
+.root[data-variant="desktop"] .log {
+  flex: 1 1 auto;
+  align-content: start;
+  min-height: 0;
+  max-height: none;
+}
+
+.root[data-variant="mobile"] {
+  padding: 14px;
+  border: 1px solid rgb(21 112 240 / 0.11);
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.96);
+  box-shadow: 0 16px 40px -28px rgb(11 25 54 / 0.4);
+}
+
+.root[data-variant="mobile"] .log {
+  max-height: 320px;
+  overscroll-behavior: auto;
+}
+
+.root[data-variant="mobile"] .form textarea {
+  font-size: 16px;
+}
+
+.root[data-variant="mobile"] .starters button {
+  min-height: 40px;
+  padding-inline: 11px;
+}
+
+.root[data-variant="mobile"] .meeting {
+  min-height: 44px;
+}
+
+.root[data-variant="mobile"] .handoff {
+  min-height: 36px;
+}
+
+.root[data-variant="mobile"] .footer p {
+  font-size: 10.5px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: clamp(17px, calc(19 * var(--u)), 20px);
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+
+.status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin: 0 0 6px 1px;
+  border: 2px solid #d9f9e5;
+  border-radius: 50%;
+  background: #19a858;
+  box-sizing: content-box;
+}
+
+.badge {
+  flex: none;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #edf5ff;
+  color: var(--may-deep);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.log {
+  display: grid;
+  gap: 9px;
+  max-height: min(280px, 36vh);
+  padding-right: 3px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(21 112 240 / 0.25) transparent;
+}
+
+.root[data-active="false"] .log {
+  max-height: none;
+}
+
+.messageRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.messageRow[data-role="user"] {
+  justify-content: flex-end;
+}
+
+.avatar {
+  display: grid;
+  flex: 0 0 24px;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--may-blue), var(--may-deep));
+  box-shadow: 0 5px 14px -7px rgb(21 112 240 / 0.75);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.messageBody {
+  display: grid;
+  gap: 7px;
+  max-width: calc(100% - 31px);
+}
+
+.message {
+  padding: 10px 12px;
+  border: 1px solid #e5eaf1;
+  border-radius: 15px 15px 15px 5px;
+  background: #f6f8fb;
+  color: #35405d;
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.messageRow[data-role="user"] .message {
+  border-color: transparent;
+  border-radius: 15px 15px 5px 15px;
+  background: linear-gradient(135deg, var(--may-blue), var(--may-deep));
+  color: #fff;
+}
+
+.actions {
+  display: grid;
+  gap: 6px;
+}
+
+.meeting {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid rgb(21 112 240 / 0.2);
+  border-radius: 12px;
+  background: #f7fbff;
+  color: var(--may-deep);
+  text-decoration: none;
+  transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
+}
+
+.meeting:hover {
+  border-color: rgb(21 112 240 / 0.55);
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.meeting svg {
+  flex: none;
+}
+
+.meeting span {
+  display: grid;
+  min-width: 0;
+}
+
+.meeting strong {
+  font-size: 11.5px;
+  line-height: 1.25;
+}
+
+.meeting small {
+  margin-top: 2px;
+  overflow: hidden;
+  color: #68728c;
+  font-size: 10.5px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The request May prepared: reviewed and sent by the visitor in the contact form. */
+.draft {
+  display: grid;
+  gap: 5px;
+  padding: 10px 11px 11px;
+  border: 1px solid rgb(21 112 240 / 0.28);
+  border-radius: 13px;
+  background: linear-gradient(180deg, #f5f9ff, #fff);
+}
+
+.draftTitle {
+  margin: 0;
+  color: var(--may-deep);
+  font-size: 11.5px;
+  font-weight: 750;
+}
+
+.draftMeta {
+  margin: 0;
+  color: #68728c;
+  font-size: 10.5px;
+}
+
+.draftText {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #35405d;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: pre-line;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.draftButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-top: 3px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--may-blue), var(--may-deep));
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.draftButton:hover {
+  box-shadow: 0 8px 18px -10px rgb(21 112 240 / 0.7);
+  transform: translateY(-1px);
+}
+
+.draftButton:focus-visible {
+  outline: 2px solid var(--may-blue);
+  outline-offset: 2px;
+}
+
+/* "May consulte l'agenda…" while she uses a tool. */
+.statusLine {
+  align-self: center;
+  color: #68728c;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.starters button {
+  min-height: 30px;
+  padding: 6px 9px;
+  border: 1px solid rgb(21 112 240 / 0.2);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--may-deep);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.starters button:hover {
+  border-color: var(--may-blue);
+  background: #f5f9ff;
+}
+
+.form {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 6px 6px 6px 13px;
+  border: 1px solid #dce3ec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 18px -14px rgb(11 25 54 / 0.45);
+  color: var(--may-blue);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.form:focus-within {
+  border-color: var(--may-blue);
+  box-shadow: 0 0 0 3px rgb(21 112 240 / 0.1);
+}
+
+.form > svg {
+  flex: none;
+}
+
+.form textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 76px;
+  padding: 7px 0;
+  resize: none;
+  overflow: auto;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.form textarea::placeholder {
+  color: #7a849a;
+}
+
+.send {
+  display: grid;
+  flex: 0 0 36px;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--may-blue), var(--may-deep));
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.send:not(:disabled):hover {
+  transform: translateX(1px);
+}
+
+.send:disabled,
+.starters button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.footer {
+  display: grid;
+  gap: 7px;
+  text-align: center;
+}
+
+.handoff {
+  width: fit-content;
+  margin: 0 auto;
+  padding: 2px;
+  border: 0;
+  border-bottom: 1px solid rgb(21 112 240 / 0.3);
+  background: transparent;
+  color: var(--may-deep);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.footer p {
+  color: #7a849a;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.footer a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+
+.typing {
+  display: flex;
+  gap: 3px;
+  padding: 12px 13px;
+  border-radius: 15px 15px 15px 5px;
+  background: #f1f4f8;
+}
+
+.typing i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #8b95aa;
+  animation: may-typing 900ms ease-in-out infinite;
+}
+
+.typing i:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.typing i:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+@keyframes may-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 359px) {
+  .root[data-variant="mobile"] {
+    padding: 12px;
+  }
+
+  .starters button {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meeting,
+  .draftButton,
+  .send,
+  .typing i {
+    animation: none;
+    transition: none;
+  }
+}

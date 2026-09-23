@@ -21,9 +21,10 @@ const SECTIONS: LegalSection[] = [
         <dd>
           <ToFill value={PUBLISHER.legalName} label="Raison sociale" />
         </dd>
-        <dt>Forme et capital</dt>
+        <dt>{PUBLISHER.shareCapital ? "Forme et capital" : "Forme juridique"}</dt>
         <dd>
-          <ToFill value={PUBLISHER.legalForm} label="Forme juridique" /> · <ToFill value={PUBLISHER.shareCapital} label="Capital social" />
+          <ToFill value={PUBLISHER.legalForm} label="Forme juridique" />
+          {PUBLISHER.shareCapital && <> · {PUBLISHER.shareCapital}</>}
         </dd>
         <dt>Siège</dt>
         <dd>
@@ -39,7 +40,8 @@ const SECTIONS: LegalSection[] = [
         </dd>
         <dt>Contact</dt>
         <dd>
-          <ToFill value={PUBLISHER.email} label="E-mail" /> · <ToFill value={PUBLISHER.phone} label="Téléphone" />
+          <ToFill value={PUBLISHER.email} label="E-mail" />
+          {PUBLISHER.phone && <> · {PUBLISHER.phone}</>}
         </dd>
         <dt>Directeur de la publication</dt>
         <dd>

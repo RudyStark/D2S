@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { MayChat } from "@/components/may/MayChat";
 import { goToContact } from "@/lib/contact";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, Bars, Bolt, People, Search, Sparkle } from "@/components/ui/Icons";
+import { ArrowRight, Bars, Bolt, People, Sparkle } from "@/components/ui/Icons";
 import { setInteractive, useFrameUpdate } from "@/hooks/useFrameUpdate";
 import { scrollToElement } from "@/lib/experience/director";
 import { beatEased } from "@/lib/experience/timeline";
@@ -14,51 +15,14 @@ import { ScrollCue } from "./ScrollCue";
 import { AGENTS_ID } from "./AgentsSection";
 import { SERVICES_ID } from "./ServicesSection";
 
-/**
- * May (Commerciale IA) welcomes visitors at the desk. A question typed here is carried to the contact form
- * as the message of the request — she "takes note and books the call".
- */
 function WelcomeBubble() {
-  const [question, setQuestion] = useState("");
-  const input = useRef<HTMLInputElement>(null);
   return (
     <div className={styles.bubble}>
-      <p className={styles.bubbleTitle}>
-        Bonjour ! <span aria-hidden="true">👋</span>
-        <br />
-        Bienvenue chez D2S AIgency !
-      </p>
-      <p className={styles.bubbleText}>Je suis May, votre agente IA. Posez-moi votre question : je vous oriente et je vous réserve un créneau avec l’équipe.</p>
-      <form
-        className={styles.ask}
-        onSubmit={(e) => {
-          e.preventDefault();
-          const message = question.trim();
-          if (!message) {
-            input.current?.focus();
-            return;
-          }
-          goToContact({ source: "reception", need: "unsure", message });
-          setQuestion("");
-        }}
-      >
-        <label className={styles.askField}>
-          <Search size={18} />
-          <span className="visually-hidden">Votre question</span>
-          <input
-            ref={input}
-            type="text"
-            name="question"
-            placeholder="Poser une question…"
-            autoComplete="off"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-          />
-        </label>
-        <button type="submit" className={styles.askSend} aria-label="Envoyer la question">
-          <ArrowRight size={18} />
-        </button>
-      </form>
+      <MayChat
+        variant="desktop"
+        onContact={(message) => goToContact({ source: "may-chat-desktop", need: "unsure", message })}
+        onDraft={(draft) => goToContact({ source: "may-chat-desktop", ...draft })}
+      />
     </div>
   );
 }

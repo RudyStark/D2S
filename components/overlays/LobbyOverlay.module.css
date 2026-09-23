@@ -20,127 +20,51 @@
   pointer-events: auto;
 }
 
-/* ——— Welcome bubble (pinned to the receptionist) ———
- * (--ax, --ay) = the receptionist's head on screen. The bubble sits to its left, just clear of the face, and
- * its tail points at the head; low enough to clear the drum slogan, high enough to clear the desk top.
+/* ——— May's chat (pinned to the receptionist) ———
+ * (--ax, --ay) = the receptionist's head on screen. The chat sits left of her, top-aligned with the mission
+ * panel (a symmetric frame around May), clear of the drum's slogan, and stops above the desk: when the
+ * conversation grows, its log scrolls inside instead of covering the desk and "INFORMATIONS".
  */
 
 .bubbleWrap {
   --ax: 38vw;
   --ay: 46vh;
+  --chat-top: calc(176 * var(--u));
   position: absolute;
   left: 0;
   top: 0;
-  transform: translate(calc(var(--ax) - 100% - 60 * var(--u)), calc(var(--ay) - 100% + 72 * var(--u)));
+  transform: translate(calc(var(--ax) - 100% - 150 * var(--u)), var(--chat-top));
 }
 
 .bubble {
   position: relative;
-  width: calc(321 * var(--u));
-  padding: calc(24 * var(--u)) calc(22 * var(--u)) calc(20 * var(--u));
+  display: flex;
+  flex-direction: column;
+  width: clamp(300px, calc(372 * var(--u)), 392px);
+  padding: 0;
   border-radius: calc(22 * var(--u));
   background: rgb(255 255 255 / 0.95);
   box-shadow: 0 1px 2px rgb(11 18 56 / 0.04), 0 18px 44px -20px rgb(11 18 56 / 0.35);
   backdrop-filter: blur(14px);
 }
 
+/* Once the visitor writes, the chat takes the height down to the desk and only its log scrolls
+   (before that, it keeps its natural height so May's greeting always shows). */
+.bubble:has([data-active="true"]) {
+  height: max(360px, calc(var(--ay) + 92 * var(--u) - var(--chat-top)));
+}
+
+/* The tail points at May's head, wherever the chat's height ends. */
 .bubble::after {
   content: "";
   position: absolute;
   right: calc(-9 * var(--u));
-  bottom: calc(58 * var(--u));
+  top: clamp(40px, calc(var(--ay) - var(--chat-top)), calc(100% - 40px));
   width: calc(22 * var(--u));
   height: calc(22 * var(--u));
   background: inherit;
-  clip-path: polygon(0 0, 100% 100%, 0 100%);
-  border-radius: 0 0 4px 0;
-}
-
-.bubbleTitle {
-  font-family: var(--font-display);
-  font-size: max(15px, calc(19 * var(--u)));
-  font-weight: 700;
-  line-height: calc(26 * var(--u));
-  letter-spacing: -0.022em;
-  color: var(--ink);
-}
-
-.bubbleText {
-  margin-top: calc(10 * var(--u));
-  font-family: var(--font-body);
-  font-size: max(12px, calc(14.5 * var(--u)));
-  line-height: calc(21 * var(--u));
-  color: var(--text);
-}
-
-.ask {
-  display: flex;
-  gap: calc(9 * var(--u));
-  margin-top: calc(16 * var(--u));
-}
-
-.askField {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: calc(10 * var(--u));
-  min-width: 0;
-  height: calc(46 * var(--u));
-  padding: 0 calc(15 * var(--u));
-  border-radius: var(--radius-pill);
-  background: #fff;
-  box-shadow: inset 0 0 0 1px var(--line), 0 2px 6px -2px rgb(11 18 56 / 0.08);
-  color: var(--blue);
-  transition: box-shadow 0.25s var(--ease-out);
-}
-
-.askField:focus-within {
-  box-shadow: inset 0 0 0 1.5px var(--blue), 0 2px 10px -2px rgb(21 112 240 / 0.25);
-}
-
-.askField svg {
-  width: calc(19 * var(--u));
-  height: calc(19 * var(--u));
-  flex: none;
-}
-
-.askField input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  outline: 0;
-  background: none;
-  color: var(--ink);
-  font-family: var(--font-body);
-  font-size: max(12px, calc(14 * var(--u)));
-}
-
-.askField input::placeholder {
-  color: var(--text);
-}
-
-.askSend {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: calc(46 * var(--u));
-  height: calc(46 * var(--u));
-  border: 0;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--blue-bright), var(--blue-deep));
-  box-shadow: var(--shadow-blue);
-  color: #fff;
-  cursor: pointer;
-  transition: translate 0.3s var(--ease-out);
-}
-
-.askSend svg {
-  width: calc(20 * var(--u));
-  height: calc(20 * var(--u));
-}
-
-.askSend:hover {
-  translate: 2px 0;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  transform: translateY(-50%);
 }
 
 /* ——— Mission panel ——— */
@@ -459,7 +383,8 @@
 .cue {
   position: absolute;
   left: 50%;
-  top: calc(716 * var(--u));
+  /* Below the desk, not over its "INFORMATIONS" (the desk's height on screen varies with the window). */
+  bottom: calc(26 * var(--u));
   translate: -50% 0;
 }
 
@@ -472,27 +397,12 @@
 
   .bubble {
     width: min(340px, calc(100vw - 32px));
-    padding: 18px 16px 16px;
+    padding: 0;
     border-radius: 18px;
   }
 
   .bubble::after {
     display: none;
-  }
-
-  .bubbleTitle {
-    font-size: 17px;
-    line-height: 1.3;
-  }
-
-  .bubbleText {
-    font-size: 14px;
-    line-height: 1.45;
-  }
-
-  .askField,
-  .askSend {
-    height: 42px;
   }
 
   .mission {

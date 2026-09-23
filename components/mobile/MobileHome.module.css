@@ -284,43 +284,9 @@
   font-size: 14px;
   margin-top: 13px;
 }
-.welcomeForm {
+.welcomeChat {
   position: relative;
-  margin: 92px 16px 18px;
-  padding: 12px;
-  border-radius: var(--radius-md);
-  background: rgb(255 255 255 / 0.95);
-  box-shadow: var(--shadow-soft);
-}
-.welcomeForm label {
-  font-size: 12px;
-  font-weight: 600;
-}
-.welcomeForm > div {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-}
-.welcomeForm input {
-  width: 0;
-  flex: 1;
-  border: none;
-  background: transparent;
-  padding: 8px 0;
-  min-height: 44px;
-  font-size: 16px;
-}
-.welcomeForm button {
-  display: grid;
-  place-items: center;
-  height: 44px;
-  width: 44px;
-  flex-shrink: 0;
-  color: #fff;
-  background: var(--blue-deep);
-  border: none;
-  border-radius: 50%;
+  margin: 92px 12px 16px;
 }
 .benefits {
   list-style: none;
@@ -878,8 +844,7 @@
 .field textarea {
   resize: vertical;
 }
-.field textarea::placeholder,
-.welcomeForm input::placeholder {
+.field textarea::placeholder {
   color: var(--text-soft);
   opacity: 1;
 }
@@ -1113,7 +1078,8 @@
 .menu nav {
   display: grid;
 }
-.menu nav a {
+.menu nav a,
+.menu nav button {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -1122,11 +1088,26 @@
   font-size: 16px;
   font-weight: 500;
 }
-.menu nav a > span {
+.menu nav button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.menu nav a > span,
+.menu nav button > span {
   color: var(--text-soft);
   font-size: 11px;
 }
-.menu nav a > svg {
+.menu nav a > svg,
+.menu nav button > svg {
   margin-left: auto;
 }
 .menu nav a[aria-current] {
@@ -1299,7 +1280,7 @@
   .welcomeCopy {
     margin-top: 65px;
   }
-  .welcomeForm {
+  .welcomeChat {
     margin-top: 150px;
   }
 }

@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useFrameUpdate } from "@/hooks/useFrameUpdate";
-import { scrollToElement, scrollToProgress } from "@/lib/experience/director";
+import { scrollToElement, scrollToProgress, setScrollLocked } from "@/lib/experience/director";
 import { frame } from "@/lib/experience/store";
 import { beatEased } from "@/lib/experience/timeline";
 import { CONTACT_ID, contactClick } from "@/lib/contact";
 import { CONTACT_HREF, NAV_ITEMS } from "@/lib/navigation";
 import { Button } from "./Button";
+import { ContactDialog } from "./ContactDialog";
 import styles from "./Header.module.css";
 import { ArrowRight, ChevronDown, Globe } from "./Icons";
 import { Logo } from "./Logo";
@@ -71,6 +72,8 @@ export function Header() {
   const pathname = usePathname();
   const header = useRef<HTMLElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // "Contact": a direct message to the team, in a dialog (the form below stays for projects and visios).
+  const [contactOpen, setContactOpen] = useState(false);
   const onHome = pathname === "/";
   /** On the home page, services and agents live below the reception: the nav follows the scroll. */
   const [section, setSection] = useState<string | null>(null);
@@ -139,8 +142,22 @@ export function Header() {
                 </li>
               );
             })}
+            <li>
+              <button
+                type="button"
+                className={styles.link}
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setContactOpen(true);
+                }}
+              >
+                Contact
+              </button>
+            </li>
           </ul>
         </nav>
+        <ContactDialog open={contactOpen} onClose={() => setContactOpen(false)} onLock={setScrollLocked} />
         <div className={styles.actions}>
           <Button href={CONTACT_HREF} icon={<ArrowRight className={styles.ctaIcon} />} className={styles.cta} onClick={contactClick({ source: "header" })}>
             Parlons de votre projet

@@ -392,3 +392,11 @@
     display: none;
   }
 }
+
+/* "Contact" opens a dialog: a button that looks exactly like the nav links. */
+button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}

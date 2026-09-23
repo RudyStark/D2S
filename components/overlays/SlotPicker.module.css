@@ -1,0 +1,260 @@
+/* Visio slot picker (contact form): same chips as the "Votre projet" row, days then times. */
+.picker {
+  display: grid;
+  gap: calc(10 * var(--u));
+  min-width: 0;
+  margin: calc(18 * var(--u)) 0 0;
+  padding: 0;
+  border: 0;
+  animation: picker-in 0.4s var(--ease-out);
+}
+
+@keyframes picker-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+.label {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: max(10px, calc(11.5 * var(--u)));
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+
+.optional {
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.meta {
+  margin: 0;
+  font-size: max(11.5px, calc(12.5 * var(--u)));
+  color: var(--text);
+}
+
+.hidden {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Days: one scrollable row of small date cards. */
+.days {
+  display: flex;
+  gap: calc(8 * var(--u));
+  overflow-x: auto;
+  padding: 2px 2px calc(4 * var(--u));
+  scrollbar-width: thin;
+}
+
+.day {
+  position: relative;
+  display: grid;
+  flex: none;
+  justify-items: center;
+  gap: 1px;
+  width: calc(58 * var(--u));
+  min-width: 50px;
+  padding: calc(8 * var(--u)) 0 calc(7 * var(--u));
+  border-radius: calc(14 * var(--u));
+  background: rgb(255 255 255 / 0.85);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 0.3s var(--ease-out),
+    box-shadow 0.3s var(--ease-out),
+    color 0.3s var(--ease-out);
+}
+
+.day:hover {
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.day strong {
+  font-family: var(--font-display);
+  font-size: max(15px, calc(18 * var(--u)));
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.weekday,
+.month {
+  font-size: max(10px, calc(11 * var(--u)));
+  text-transform: capitalize;
+}
+
+/* Times of the chosen day. */
+.times {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(76 * var(--u)), 1fr));
+  gap: calc(7 * var(--u));
+}
+
+.time {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: calc(34 * var(--u));
+  min-height: 30px;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.85);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: max(12px, calc(13 * var(--u)));
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 0.3s var(--ease-out),
+    box-shadow 0.3s var(--ease-out),
+    color 0.3s var(--ease-out);
+}
+
+.time:hover {
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.day[data-checked="true"],
+.time[data-checked="true"] {
+  background: linear-gradient(160deg, #f3f7ff, #e6efff);
+  box-shadow:
+    inset 0 0 0 1.5px var(--blue),
+    0 8px 18px -12px rgb(21 112 240 / 0.6);
+  color: var(--blue);
+}
+
+.day[data-checked="true"] strong {
+  color: var(--blue);
+}
+
+.day:has(.hidden:focus-visible),
+.time:has(.hidden:focus-visible) {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: calc(9 * var(--u)) calc(14 * var(--u));
+  border-radius: calc(12 * var(--u));
+  background: var(--blue-tint);
+  font-size: max(12px, calc(13 * var(--u)));
+  color: var(--ink);
+}
+
+.summary strong {
+  color: var(--blue);
+}
+
+.clear {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: max(11.5px, calc(12 * var(--u)));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.skeleton {
+  display: flex;
+  gap: calc(8 * var(--u));
+}
+
+.skeleton span {
+  width: calc(58 * var(--u));
+  height: calc(62 * var(--u));
+  border-radius: calc(14 * var(--u));
+  background: linear-gradient(90deg, #eef2f8, #f7f9fc, #eef2f8);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Mobile form: fixed pixel sizes (the desktop --u scale is tiny on a phone) and 44 px touch targets. */
+.picker[data-variant="mobile"] {
+  gap: 10px;
+  margin: 4px 0 0;
+}
+
+.picker[data-variant="mobile"] .label {
+  font-size: 12px;
+}
+
+.picker[data-variant="mobile"] .meta {
+  font-size: 13px;
+}
+
+.picker[data-variant="mobile"] .days {
+  gap: 8px;
+  margin: 0 -2px;
+  scroll-snap-type: x proximity;
+}
+
+.picker[data-variant="mobile"] .day {
+  width: 60px;
+  padding: 9px 0 8px;
+  border-radius: 14px;
+  scroll-snap-align: start;
+}
+
+.picker[data-variant="mobile"] .day strong {
+  font-size: 19px;
+}
+
+.picker[data-variant="mobile"] .weekday,
+.picker[data-variant="mobile"] .month {
+  font-size: 11px;
+}
+
+.picker[data-variant="mobile"] .times {
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
+}
+
+.picker[data-variant="mobile"] .time {
+  height: 44px;
+  font-size: 14px;
+}
+
+.picker[data-variant="mobile"] .summary {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.picker[data-variant="mobile"] .skeleton span {
+  width: 60px;
+  height: 66px;
+  border-radius: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker,
+  .skeleton span {
+    animation: none;
+  }
+}

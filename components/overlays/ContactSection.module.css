@@ -775,6 +775,35 @@ textarea.control {
   color: var(--ink);
 }
 
+/* Free Calendly plan: the visitor confirms the chosen slot on its Calendly page (pre-filled). */
+.confirmSlot {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: center;
+  margin-top: calc(14 * var(--u));
+  padding: calc(13 * var(--u)) calc(24 * var(--u));
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--blue), #0b38a0);
+  box-shadow: 0 12px 26px -14px rgb(21 112 240 / 0.8);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: max(13px, calc(14.5 * var(--u)));
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+}
+
+.confirmSlot:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px -14px rgb(21 112 240 / 0.9);
+}
+
+.confirmSlot:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
 .successActions {
   display: flex;
   flex-wrap: wrap;
