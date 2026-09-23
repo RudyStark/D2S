@@ -41,7 +41,7 @@ export function ExperienceRoot({ trackId }: { trackId: string }) {
 
   return (
     <>
-      <div className={styles.stage} data-ready={ready || webgl === "unavailable"}>
+      <div className={styles.stage} data-ready={ready || webgl === "unavailable"} data-experience-stage>
         {webgl === "ok" && <ExperienceCanvas />}
       </div>
       <div ref={veil} className={styles.veil} aria-hidden="true" />

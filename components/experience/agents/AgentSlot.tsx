@@ -27,6 +27,10 @@ export interface AgentSlotProps {
 
 const head = new THREE.Vector3();
 const ndc = new THREE.Vector3();
+const feet = new THREE.Vector3();
+const crown = new THREE.Vector3();
+/** Silhouette width / height of the agents (arms included), for the hover hit area. */
+const WIDTH_RATIO = 0.42;
 
 /**
  * Stable entry point for an agent in the world.
@@ -58,6 +62,19 @@ export function AgentSlot({
       delta = Math.atan2(Math.sin(delta), Math.cos(delta));
       g.rotation.y = rotationY + delta * follow;
     }
+
+    // Silhouette on screen, for the DOM hover label (name + role).
+    feet.set(0, 0, 0).applyMatrix4(g.matrixWorld).project(camera);
+    crown.set(0, height, 0).applyMatrix4(g.matrixWorld).project(camera);
+    const top = (-crown.y * 0.5 + 0.5) * size.height;
+    const bottom = (-feet.y * 0.5 + 0.5) * size.height;
+    frame.agents[type] = {
+      x: ((feet.x + crown.x) * 0.25 + 0.5) * size.width,
+      top,
+      bottom,
+      width: (bottom - top) * WIDTH_RATIO,
+      visible: feet.z > -1 && feet.z < 1 && crown.z > -1 && crown.z < 1 && Math.abs(crown.x) < 1.2 && crown.y < 1.2 && feet.y > -1.6,
+    };
 
     if (anchor) {
       head.set(0, height * 0.9, 0).applyMatrix4(g.matrixWorld);

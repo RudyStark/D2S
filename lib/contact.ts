@@ -10,7 +10,7 @@ import { frame } from "./experience/store";
  */
 
 export * from "./contact-content";
-import type { NeedId } from "./contact-content";
+import type { ChannelId, NeedId } from "./contact-content";
 import { CONTACT_ID } from "./contact-content";
 
 export interface ContactIntent {
@@ -19,8 +19,12 @@ export interface ContactIntent {
   need?: NeedId;
   /** Diagnostic answers and recommendation, attached to the request. */
   diagnostic?: string[];
-  /** A question typed at the reception: becomes the message of the request. */
+  /** A question typed at the reception, or the request May prepared: becomes the message of the request. */
   message?: string;
+  /** Given to May during the conversation (the visitor still reviews them in the form). */
+  name?: string;
+  company?: string;
+  channel?: ChannelId;
 }
 
 export const useContactIntent = create<{ intent: ContactIntent | null; stamp: number; set: (intent: ContactIntent) => void; clearDiagnostic: () => void }>((set) => ({

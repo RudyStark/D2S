@@ -76,6 +76,16 @@ export interface ScreenRect {
   visible: boolean;
 }
 
+/** An agent's silhouette on screen (CSS px): head top, feet, centre and approximate width. */
+export interface AgentScreen {
+  x: number;
+  top: number;
+  bottom: number;
+  width: number;
+  /** In front of the camera and at least partly inside the frame. */
+  visible: boolean;
+}
+
 /** Mutable per-frame state shared by the director loop, the WebGL scene and the DOM overlays. */
 export const frame = {
   /** Raw scroll progress (0–1). */
@@ -97,6 +107,8 @@ export const frame = {
   services: 0,
   /** Screen rect (CSS px) of 3D objects the DOM must avoid covering (e.g. the hero veil). */
   rects: {} as Record<string, ScreenRect>,
+  /** Every agent's silhouette on screen, by agent type (hover labels). */
+  agents: {} as Record<string, AgentScreen>,
 };
 
 export type FrameState = typeof frame;

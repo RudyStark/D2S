@@ -22,6 +22,7 @@ import {
   Sparkle,
 } from "@/components/ui/Icons";
 import { MayChat } from "@/components/may/MayChat";
+import { ContactDialog } from "@/components/ui/ContactDialog";
 import { Logo } from "@/components/ui/Logo";
 import {
   METHOD_PROMISES,
@@ -62,6 +63,8 @@ export default function MobileHome() {
   const progress = useRef<HTMLSpanElement>(null);
   const menu = useRef<HTMLDialogElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // "Contact" in the menu: the same direct-message dialog as on desktop.
+  const [contactOpen, setContactOpen] = useState(false);
   const [active, setActive] = useState("agence");
   const [agent, setAgent] = useState<AgentProfile | null>(null);
   const [intent, setIntent] = useState<MobileContactIntent | null>(null);
@@ -212,9 +215,23 @@ export default function MobileHome() {
               <ArrowRight size={18} />
             </a>
           ))}
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => {
+              menu.current?.close();
+              setMenuOpen(false);
+              setContactOpen(true);
+            }}
+          >
+            <span>{String(MOBILE_SECTIONS.length + 1).padStart(2, "0")}</span>
+            Contact
+            <ArrowRight size={18} />
+          </button>
         </nav>
         <p className={styles.menuNote}>L’IA, plus humaine, plus utile.</p>
       </dialog>
+      <ContactDialog open={contactOpen} onClose={() => setContactOpen(false)} />
 
       <main>
         <section

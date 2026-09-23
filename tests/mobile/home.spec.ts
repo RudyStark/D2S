@@ -228,15 +228,16 @@ test("diagnostic back navigation preserves choices", async ({ page }) => {
 test("reception preserves the visitor's question in the contact form", async ({
   page,
 }) => {
+  // The reception is May's chat (since 22/09): what the visitor wrote to her reaches the contact form.
   await page.goto("/#mission");
   await page
-    .getByLabel("Quel est votre besoin ?", { exact: true })
+    .getByLabel("Votre message à May", { exact: true })
     .fill("Comment automatiser mes relances commerciales ?");
   await page
-    .getByRole("button", { name: "Transmettre votre question à l’équipe" })
+    .getByRole("button", { name: "Être recontacté par l’équipe" })
     .click();
   await expect(page.locator("#mobile-contact-message")).toHaveValue(
-    "Comment automatiser mes relances commerciales ?",
+    /Comment automatiser mes relances commerciales \?/,
   );
 });
 

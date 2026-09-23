@@ -127,3 +127,95 @@ export function calendlyFallbackUrl() {
   }
 }
 
+
+/* ---------- Booking from the contact form ---------- */
+
+const DAY = 24 * 60 * 60_000;
+
+/** Every free start time of an appointment type over the next `days` days (Calendly caps a query at 7 days). */
+export async function listSlotsAhead(eventTypeId: string, days = 14): Promise<MeetingSlot[]> {
+  if (!/^[a-zA-Z0-9_-]+$/.test(eventTypeId)) return [];
+  const first = Date.now() + 30 * 60_000;
+  const windows = Array.from({ length: Math.ceil(days / 7) }, (_, i) => first + i * 7 * DAY);
+  const pages = await Promise.all(
+    windows.map((start) => {
+      const query = new URLSearchParams({
+        event_type: `${CALENDLY_API}/event_types/${eventTypeId}`,
+        start_time: new Date(start).toISOString(),
+        end_time: new Date(Math.min(start + 7 * DAY, first + days * DAY) - 60_000).toISOString(),
+      });
+      return calendlyFetch<CalendlyAvailableTimesResponse>(`/event_type_available_times?${query}`);
+    }),
+  );
+  return pages
+    .flatMap((page) => page.collection ?? [])
+    .filter((slot) => slot.status !== "unavailable" && slot.start_time && slot.scheduling_url)
+    .map((slot) => ({ startTime: slot.start_time!, schedulingUrl: slot.scheduling_url! }));
+}
+
+export type BookingResult =
+  | { booked: true; joinUrl?: string; cancelUrl?: string; rescheduleUrl?: string }
+  | { booked: false; reason: "plan" | "taken" | "error" };
+
+const httpsOnly = (value: unknown) => {
+  try {
+    const url = new URL(String(value ?? ""));
+    return url.protocol === "https:" ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * Books the slot directly (Calendly Scheduling API). Only paid Calendly plans (Standard and above) allow it:
+ * the Free plan answers 403, and the visitor then confirms on the slot's own Calendly page instead.
+ * Calendly sends the invitation, the video link and the reminders exactly as for a booking on its own page.
+ */
+export async function bookSlot(input: { eventTypeId: string; startTime: string; name: string; email: string; timezone: string }): Promise<BookingResult> {
+  if (!/^[a-zA-Z0-9_-]+$/.test(input.eventTypeId)) return { booked: false, reason: "error" };
+  try {
+    // The location must match the event type's (a video tool needs only its kind: Calendly creates the link).
+    const eventType = await calendlyFetch<{ resource?: { locations?: { kind?: string }[] | null } }>(`/event_types/${input.eventTypeId}`);
+    const kind = eventType.resource?.locations?.[0]?.kind;
+    const location = kind && /_conference$/.test(kind) ? { kind } : undefined;
+    const response = await fetch(`${CALENDLY_API}/invitees`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token()}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        event_type: `${CALENDLY_API}/event_types/${input.eventTypeId}`,
+        start_time: input.startTime,
+        invitee: { name: input.name, email: input.email, timezone: input.timezone },
+        ...(location ? { location } : {}),
+      }),
+      signal: AbortSignal.timeout(10_000),
+      cache: "no-store",
+    });
+    if (response.ok) {
+      // The invitee gives the cancel / reschedule pages; the event gives the video link Calendly created.
+      const invitee = ((await response.json().catch(() => null)) as { resource?: { event?: string; cancel_url?: string; reschedule_url?: string } } | null)?.resource;
+      let joinUrl: string | undefined;
+      const eventId = invitee?.event ? resourceId(invitee.event) : "";
+      // Calendly creates the video link a few seconds after the booking: wait for it, briefly.
+      for (let attempt = 0; eventId && !joinUrl && attempt < 4; attempt++) {
+        if (attempt) await new Promise((resolve) => setTimeout(resolve, 1_200));
+        const event = await calendlyFetch<{ resource?: { location?: { join_url?: string } } }>(`/scheduled_events/${eventId}`).catch(() => null);
+        joinUrl = httpsOnly(event?.resource?.location?.join_url);
+      }
+      return { booked: true, joinUrl, cancelUrl: httpsOnly(invitee?.cancel_url), rescheduleUrl: httpsOnly(invitee?.reschedule_url) };
+    }
+    if (response.status === 403) {
+      console.error("[booking] Calendly 403 : réservation directe refusée (plan ou droits du jeton)");
+      return { booked: false, reason: "plan" };
+    }
+    // 400 on a slot taken in the meantime, or anything else: the visitor still has the Calendly page.
+    // Which parameters Calendly refused (names only, never the visitor's data).
+    const detail = ((await response.json().catch(() => null)) as { details?: { parameter?: string; message?: string }[] } | null)?.details
+      ?.map((d) => `${d.parameter} ${d.message}`)
+      .join(", ");
+    console.error(`[booking] Calendly ${response.status}${detail ? ` : ${detail}` : ""}`);
+    return { booked: false, reason: response.status === 400 || response.status === 409 ? "taken" : "error" };
+  } catch (error) {
+    console.error("[booking] Calendly request failed:", error instanceof Error ? error.message : "unknown");
+    return { booked: false, reason: "error" };
+  }
+}

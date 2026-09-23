@@ -21,6 +21,7 @@ function WelcomeBubble() {
       <MayChat
         variant="desktop"
         onContact={(message) => goToContact({ source: "may-chat-desktop", need: "unsure", message })}
+        onDraft={(draft) => goToContact({ source: "may-chat-desktop", ...draft })}
       />
     </div>
   );

@@ -12,8 +12,10 @@ export const metadata: Metadata = {
 /*
  * Describes what the site really does (keep it true when the site changes):
  * - the contact form sends data to /api/contact, then Resend and the optional CRM webhook;
- * - May sends the conversation to /api/may/chat, then to the configured AI API;
- * - Calendly availability is fetched server-side; personal booking data is entered on Calendly;
+ * - the menu's "Contact" dialog sends a topic and a message to /api/message, then Resend;
+ * - the IP address is kept in memory for a few minutes only, to limit abuse (rate limits);
+ * - May sends the conversation to /api/may/chat, then to Anthropic (Claude API); nothing is stored by the site;
+ * - Calendly availability is fetched server-side; a slot picked in the form is booked by our server (name, e-mail, time);
  * - no cookie, no audience measurement, no advertising tracker, fonts served by our own server;
  * - one technical sessionStorage entry (d2s:gpu-trouble) when the 3D had to be reduced.
  */
@@ -40,24 +42,32 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Celles que vous nous transmettez dans le chat de May ou avec le formulaire <strong>« Parlons de votre projet »</strong> :
+          Celles que vous nous transmettez dans le chat de May, avec le formulaire <strong>« Parlons de votre projet »</strong> ou
+          avec la fenêtre <strong>« Contact »</strong> du menu :
         </p>
         <ul>
           <li>prénom et nom, e-mail professionnel, entreprise ;</li>
           <li>téléphone, si vous choisissez de le donner (facultatif) ;</li>
-          <li>votre message, le type de projet choisi et votre préférence d’échange (visio, appel, e-mail) ;</li>
+          <li>votre message, le type de projet ou le sujet choisi et votre préférence d’échange (visio, appel, e-mail) ;</li>
           <li>le bouton qui vous a amené au formulaire (par exemple la fiche d’un agent) ;</li>
           <li>le résumé de votre diagnostic « Comment choisir votre agent IA ? », seulement s’il est joint à la demande (vous pouvez le retirer avant l’envoi).</li>
-          <li>les messages de la conversation avec May, lorsque vous les envoyez dans le chat ;</li>
+          <li>les messages de la conversation avec May, lorsque vous les envoyez dans le chat.</li>
         </ul>
+        <p>
+          Pour limiter les abus (envois répétés, robots), votre adresse IP est aussi utilisée par notre serveur, en mémoire et pendant
+          quelques minutes seulement : elle n’est ni enregistrée ni associée à votre demande.
+        </p>
         <p>
           Le diagnostic reste dans votre navigateur tant que vous ne le joignez pas au formulaire. Chaque message adressé à May est en
           revanche transmis à notre serveur puis à notre fournisseur d’intelligence artificielle afin de produire sa réponse. Si vous
-          choisissez « Être recontacté par l’équipe », la conversation est recopiée dans le formulaire : vous pouvez la modifier avant l’envoi.
+          acceptez que May prépare votre demande, ou choisissez « Être recontacté par l’équipe », cette demande (ou la conversation) est
+          recopiée dans le formulaire : vous la relisez et pouvez la modifier avant de l’envoyer vous-même. Le site ne conserve pas la
+          conversation : elle disparaît quand vous quittez la page.
         </p>
         <p>
-          May consulte les types de rendez-vous et les disponibilités via Calendly sans lui transmettre votre conversation. Vos coordonnées
-          de réservation ne sont communiquées à Calendly que si vous ouvrez un bouton de rendez-vous et complétez sa page.
+          Si vous choisissez un créneau de visio dans le formulaire, votre nom, votre adresse e-mail et le créneau choisi sont
+          transmis à Calendly pour réserver le rendez-vous : Calendly vous envoie l’invitation, le lien de connexion et les rappels.
+          Les disponibilités affichées sont lues par notre serveur ; aucun script ni cookie Calendly n’est chargé sur le site.
         </p>
       </>
     ),
@@ -69,7 +79,8 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>Vos données servent à :</p>
         <ul>
-          <li>répondre à votre demande et organiser le premier échange ;</li>
+          <li>répondre à votre demande ou à votre message et organiser le premier échange ;</li>
+          <li>vous confirmer la bonne réception de votre demande et, le cas échéant, votre rendez-vous, par e-mail ;</li>
           <li>vous orienter dans le chat vers le service ou l’agent IA adapté ;</li>
           <li>afficher des types de rendez-vous et créneaux réellement disponibles ;</li>
           <li>vous adresser une proposition, si vous le souhaitez ;</li>
@@ -77,8 +88,8 @@ const SECTIONS: LegalSection[] = [
         </ul>
         <p>
           Base légale : les <strong>mesures précontractuelles prises à votre demande</strong> (article 6.1.b du RGPD) pour le contact et
-          la réservation, et notre intérêt légitime à répondre aux questions sur nos services pour le chat (article 6.1.f). La case à
-          cocher du formulaire confirme votre accord pour être recontacté. Aucune donnée n’est vendue, ni utilisée pour de la publicité.
+          la réservation, et notre intérêt légitime à répondre aux questions sur nos services pour le chat (article 6.1.f). Les cases à
+          cocher des formulaires confirment votre accord pour être recontacté. Aucune donnée n’est vendue, ni utilisée pour de la publicité.
         </p>
       </>
     ),
@@ -115,6 +126,10 @@ const SECTIONS: LegalSection[] = [
           <dt>Réception des demandes</dt>
           <dd>
             <ToFill value={PROCESSORS.requests} label="Outil (CRM, Make, Zapier, messagerie…)" />
+          </dd>
+          <dt>Messagerie de l’équipe</dt>
+          <dd>
+            <ToFill value={PROCESSORS.mailbox} label="Messagerie" />
           </dd>
           <dt>Assistant May</dt>
           <dd>

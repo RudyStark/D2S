@@ -21,6 +21,7 @@ import { scrollToElement } from "@/lib/experience/director";
 import { LEGAL_HREF, PRIVACY_HREF } from "@/lib/legal";
 import { TEAM } from "@/lib/team";
 import { AGENTS_ID } from "./AgentsSection";
+import { SlotPicker, type PickedSlot } from "./SlotPicker";
 import styles from "./ContactSection.module.css";
 import glass from "./Glass.module.css";
 import head from "./SectionHead.module.css";
@@ -102,6 +103,9 @@ export function ContactSection() {
   const [submitted, setSubmitted] = useState(false);
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [flash, setFlash] = useState(false);
+  // Visio slot picked in the form, and what happened to it (booked, or to confirm on Calendly).
+  const [slot, setSlot] = useState<PickedSlot | null>(null);
+  const [booking, setBooking] = useState<{ booked: boolean; confirmUrl?: string; label?: string } | null>(null);
   const shownAt = useRef(0);
   const honeypot = useRef<HTMLInputElement>(null);
   const successTitle = useRef<HTMLHeadingElement>(null);
@@ -115,6 +119,10 @@ export function ContactSection() {
     if (!intent) return;
     if (intent.need) setValues((v) => ({ ...v, need: intent.need! }));
     if (intent.message) setValues((v) => ({ ...v, message: intent.message! }));
+    // Details the visitor gave May: filled in, never over what they already typed.
+    if (intent.name) setValues((v) => (v.name ? v : { ...v, name: intent.name! }));
+    if (intent.company) setValues((v) => (v.company ? v : { ...v, company: intent.company! }));
+    if (intent.channel) setValues((v) => ({ ...v, channel: intent.channel! }));
     setStatus((s) => (s === "sent" ? s : "idle"));
     setSubmitted(false);
     setTouched({});
@@ -170,12 +178,16 @@ export function ContactSection() {
           ...values,
           source: intent?.source ?? "direct",
           diagnostic: intent?.diagnostic ?? [],
+          slot: values.channel === "visio" && slot ? { start: slot.start, url: slot.url, meetingId: slot.meetingId } : undefined,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           website: honeypot.current?.value ?? "",
           elapsed: Date.now() - shownAt.current,
         }),
       });
       // Let the sending state read as an action, not a flicker.
       await new Promise((r) => setTimeout(r, Math.max(0, 700 - (performance.now() - started))));
+      const payload = (await res.json().catch(() => null)) as { booking?: { booked: boolean; confirmUrl?: string; label?: string } } | null;
+      setBooking(res.ok ? (payload?.booking ?? null) : null);
       setStatus(res.ok ? "sent" : "error");
     } catch {
       setStatus("error");
@@ -184,6 +196,8 @@ export function ContactSection() {
 
   const reset = () => {
     setValues((v) => ({ ...INITIAL, need: v.need }));
+    setSlot(null);
+    setBooking(null);
     setTouched({});
     setSubmitted(false);
     setStatus("idle");
@@ -248,10 +262,28 @@ export function ContactSection() {
                 <h3 ref={successTitle} tabIndex={-1} className={styles.successTitle}>
                   Merci{firstName ? ` ${firstName}` : ""} !
                 </h3>
-                <p className={styles.successText}>
-                  Votre demande est bien arrivée. Nous vous répondons sous 24 h ouvrées à <strong>{values.email.trim()}</strong>
-                  {values.channel === "visio" ? " pour caler notre visio." : values.channel === "phone" ? " pour convenir d’un appel." : "."}
-                </p>
+                {booking?.booked ? (
+                  <p className={styles.successText}>
+                    Votre visio est réservée le <strong>{booking.label}</strong>. Calendly vous envoie l’invitation et le lien de connexion à{" "}
+                    <strong>{values.email.trim()}</strong>.
+                  </p>
+                ) : booking?.confirmUrl ? (
+                  <>
+                    <p className={styles.successText}>
+                      Votre demande est bien arrivée. Dernière étape : confirmez votre visio du <strong>{booking.label}</strong> sur Calendly, vos
+                      informations sont déjà remplies.
+                    </p>
+                    <a className={styles.confirmSlot} href={booking.confirmUrl} target="_blank" rel="noopener noreferrer">
+                      Confirmer mon créneau
+                      <ArrowRight size={17} />
+                    </a>
+                  </>
+                ) : (
+                  <p className={styles.successText}>
+                    Votre demande est bien arrivée. Nous vous répondons sous 24 h ouvrées à <strong>{values.email.trim()}</strong>
+                    {values.channel === "visio" ? " pour caler notre visio." : values.channel === "phone" ? " pour convenir d’un appel." : "."}
+                  </p>
+                )}
                 <div className={styles.successActions}>
                   <button
                     type="button"
@@ -431,6 +463,8 @@ export function ContactSection() {
                     </p>
                   </div>
                 </div>
+
+                <SlotPicker active={values.channel === "visio" && inView} value={slot} onChange={setSlot} />
 
                 {/* Honeypot: invisible to people, filled by bots. */}
                 <input ref={honeypot} className={styles.honeypot} type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />

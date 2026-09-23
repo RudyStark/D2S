@@ -203,10 +203,12 @@
   height: calc(18 * var(--u));
 }
 
+/* On the entrance axis (the doors sit at ~63.5 % of the width at every desktop aspect), on the floor at the
+   bottom of the screen: clear of the agents' legs and of the door frames. */
 .cue {
   position: absolute;
-  left: 50%;
-  top: calc(728 * var(--u));
+  left: 63.5%;
+  bottom: max(16px, calc(24 * var(--u)));
   translate: -50% 0;
 }
 

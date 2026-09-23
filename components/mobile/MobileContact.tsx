@@ -13,6 +13,7 @@ import {
 } from "@/lib/contact-content";
 import { PRIVACY_HREF } from "@/lib/legal";
 import { TEAM } from "@/lib/team";
+import { SlotPicker, type PickedSlot } from "@/components/overlays/SlotPicker";
 import type { MobileContactIntent } from "./mobile-navigation";
 import styles from "./MobileHome.module.css";
 
@@ -67,6 +68,9 @@ export function MobileContact({
     "idle",
   );
   const [failure, setFailure] = useState("");
+  // Visio slot picked in the form (same Calendly booking as on desktop), and what happened to it.
+  const [slot, setSlot] = useState<PickedSlot | null>(null);
+  const [booking, setBooking] = useState<{ booked: boolean; confirmUrl?: string; label?: string } | null>(null);
   const started = useRef(0);
   const honeypot = useRef<HTMLInputElement>(null);
   const success = useRef<HTMLHeadingElement>(null);
@@ -127,6 +131,8 @@ export function MobileContact({
           ...values,
           source: intent?.source ?? "mobile-direct",
           diagnostic: intent?.diagnostic ?? [],
+          slot: values.channel === "visio" && slot ? { start: slot.start, url: slot.url, meetingId: slot.meetingId } : undefined,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           website: honeypot.current?.value ?? "",
           elapsed: Date.now() - started.current,
         }),
@@ -137,6 +143,8 @@ export function MobileContact({
             ? "Trop de demandes rapprochées. Réessayez dans quelques minutes."
             : "Votre demande n’a pas pu être transmise. Vos informations sont conservées ici : réessayez dans un instant.",
         );
+      const payload = (await response.json().catch(() => null)) as { booking?: { booked: boolean; confirmUrl?: string; label?: string } } | null;
+      setBooking(payload?.booking ?? null);
       setStatus("sent");
     } catch (caught) {
       setStatus("error");
@@ -178,7 +186,23 @@ export function MobileContact({
               Merci {values.name.trim().split(/\s+/)[0]}, votre demande est
               envoyée.
             </h3>
-            <p>Notre équipe revient vers vous sous 24 h ouvrées.</p>
+            {booking?.booked ? (
+              <p>
+                Votre visio est réservée le <strong>{booking.label}</strong>. Vous recevez l’invitation et le lien de connexion par e-mail.
+              </p>
+            ) : booking?.confirmUrl ? (
+              <>
+                <p>
+                  Dernière étape : confirmez votre visio du <strong>{booking.label}</strong>, vos informations sont déjà remplies.
+                </p>
+                <a className={styles.primary} href={booking.confirmUrl} target="_blank" rel="noopener noreferrer">
+                  Confirmer mon créneau
+                  <ArrowRight size={18} />
+                </a>
+              </>
+            ) : (
+              <p>Notre équipe revient vers vous sous 24 h ouvrées.</p>
+            )}
             <ol>
               {NEXT_STEPS.map((step) => (
                 <li key={step.title}>
@@ -192,6 +216,8 @@ export function MobileContact({
               className={styles.secondary}
               onClick={() => {
                 setValues(INITIAL);
+                setSlot(null);
+                setBooking(null);
                 setStatus("idle");
                 setSubmitted(false);
                 setTouched({});
@@ -341,6 +367,7 @@ export function MobileContact({
                 ))}
               </div>
             </fieldset>
+            <SlotPicker variant="mobile" active={values.channel === "visio"} value={slot} onChange={setSlot} />
             <div className={styles.field}>
               <label htmlFor="mobile-contact-phone">
                 Téléphone <span>· facultatif</span>

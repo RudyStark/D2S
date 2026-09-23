@@ -48,3 +48,15 @@ export const NEXT_STEPS = [
   { title: "Un appel découverte", text: "30 minutes sur vos tâches, vos outils et vos priorités." },
   { title: "Votre proposition", text: "Agent recommandé, planning et budget, noir sur blanc." },
 ];
+
+/* ---------- Direct contact (menu "Contact" → dialog → rudy.saksik@d2saigency.com) ---------- */
+
+export const DIRECT_TOPICS = [
+  { id: "project", label: "Un projet d’agent IA" },
+  { id: "quote", label: "Une demande de devis" },
+  { id: "partnership", label: "Un partenariat" },
+  { id: "press", label: "Presse et médias" },
+  { id: "other", label: "Autre sujet" },
+] as const;
+
+export type DirectTopicId = (typeof DIRECT_TOPICS)[number]["id"];

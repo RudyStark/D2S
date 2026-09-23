@@ -20,6 +20,7 @@
     "assets:plants": "node scripts/fetch-polyhaven.mjs && node scripts/build-plants.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.128.0",
     "@react-three/drei": "10.7.8",
     "@react-three/fiber": "9.7.0",
     "@react-three/postprocessing": "3.1.1",

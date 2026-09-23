@@ -9,7 +9,19 @@
 }
 
 .root[data-variant="desktop"] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: calc(20 * var(--u));
+}
+
+/* Desktop: the lobby sizes the chat (above the desk); the log takes what is left and scrolls. */
+.root[data-variant="desktop"] .log {
+  flex: 1 1 auto;
+  align-content: start;
+  min-height: 0;
+  max-height: none;
 }
 
 .root[data-variant="mobile"] {
@@ -196,6 +208,78 @@
   white-space: nowrap;
 }
 
+/* The request May prepared: reviewed and sent by the visitor in the contact form. */
+.draft {
+  display: grid;
+  gap: 5px;
+  padding: 10px 11px 11px;
+  border: 1px solid rgb(21 112 240 / 0.28);
+  border-radius: 13px;
+  background: linear-gradient(180deg, #f5f9ff, #fff);
+}
+
+.draftTitle {
+  margin: 0;
+  color: var(--may-deep);
+  font-size: 11.5px;
+  font-weight: 750;
+}
+
+.draftMeta {
+  margin: 0;
+  color: #68728c;
+  font-size: 10.5px;
+}
+
+.draftText {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #35405d;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: pre-line;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.draftButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-top: 3px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--may-blue), var(--may-deep));
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.draftButton:hover {
+  box-shadow: 0 8px 18px -10px rgb(21 112 240 / 0.7);
+  transform: translateY(-1px);
+}
+
+.draftButton:focus-visible {
+  outline: 2px solid var(--may-blue);
+  outline-offset: 2px;
+}
+
+/* "May consulte l'agenda…" while she uses a tool. */
+.statusLine {
+  align-self: center;
+  color: #68728c;
+  font-size: 11px;
+  font-style: italic;
+}
+
 .starters {
   display: flex;
   flex-wrap: wrap;
@@ -367,6 +451,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .meeting,
+  .draftButton,
   .send,
   .typing i {
     animation: none;

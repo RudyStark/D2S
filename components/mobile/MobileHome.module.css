@@ -1078,7 +1078,8 @@
 .menu nav {
   display: grid;
 }
-.menu nav a {
+.menu nav a,
+.menu nav button {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -1087,11 +1088,26 @@
   font-size: 16px;
   font-weight: 500;
 }
-.menu nav a > span {
+.menu nav button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.menu nav a > span,
+.menu nav button > span {
   color: var(--text-soft);
   font-size: 11px;
 }
-.menu nav a > svg {
+.menu nav a > svg,
+.menu nav button > svg {
   margin-left: auto;
 }
 .menu nav a[aria-current] {
