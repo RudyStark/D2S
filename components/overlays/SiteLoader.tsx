@@ -53,12 +53,13 @@ export function SiteLoader() {
     let timers: number[] = [];
 
     const target = () => {
-      const { webgl, assets, ready } = useExperience.getState();
+      const { webgl, assets, ready, calibrated } = useExperience.getState();
       if (webgl === "unavailable") return 1;
       // Boot (scripts, WebGL context) → assets → warm-up.
       let t = 0.06;
       if (assets.started && assets.total > 0) t = 0.06 + 0.84 * (assets.loaded / assets.total);
-      if (ready && !assets.active) t = fontsReady ? 1 : 0.96;
+      // Ready, then the quality tier measured under the loader (AdaptiveQuality): the agency opens settled.
+      if (ready && !assets.active) t = fontsReady && calibrated ? 1 : 0.96;
       else t = Math.min(t, 0.94);
       return t;
     };

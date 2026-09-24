@@ -53,6 +53,8 @@ export function useEnvironment() {
       (window as unknown as { __d2s: unknown }).__d2s = d2s;
       // Texture bake tool (scripts/bake-textures.mjs): loaded only in capture mode.
       if (capture) void import("@/components/experience/textures").then((m) => (d2s.bakeTextures = m.bakeTextures));
+      // Quality-swap QA (scripts/flash-qa): a runtime tier change, as the performance monitor makes it.
+      void import("@/lib/experience/qualitySwap").then((m) => (d2s.swapQuality = m.swapQuality));
     }
 
     motionQuery.addEventListener("change", apply);

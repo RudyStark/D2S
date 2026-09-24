@@ -598,6 +598,43 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   l'écran (pointe décalée vers la tête) et sous l'en-tête. Décorative (aria-hidden) : l'info est dans
   « Nos agents IA ». Vérifié 1280×720, 1440×900, 1920×1080, façade et lobby, 0 erreur.
 
+## ⚠️ 2 flashs blancs après l'ouverture du loader (24/09, branche `fix/flash-blanc`)
+- Diagnostic sur la vidéo de l'utilisateur (MacBook, 120 Hz) : zone 3D blanche à ~6 s puis ~10 s après
+  l'ouverture (140 ms puis 550 ms), le DOM reste. Cause : le PerformanceMonitor baissait la qualité
+  high → medium → low APRÈS l'ouverture ; chaque changement redimensionne le canvas (dpr → buffer effacé) et
+  recompile les shaders (ombres, post-process) → fond blanc de la scène visible pendant la compilation.
+- Correctif :
+  · CALIBRATION sous le loader (`AdaptiveQuality`, ExperienceCanvas) : fréquence d'écran mesurée (médiane rAF),
+    puis une fois `ready`, fps réel du palier mesuré (300 ms d'attente + 700 ms), baisse tant que < plancher
+    + 5 (plancher = 45 si écran > 100 Hz, sinon 30, comme le moniteur), 4 tours max, onglet masqué ignoré.
+    `store.calibrated` ; le SiteLoader reste à 96 % tant qu'il n'est pas posé (ajoute ~1 s au chargement).
+  · Après l'ouverture, le moniteur passe par `swapQuality()` (`lib/experience/qualitySwap.ts`) : copie de la
+    dernière image dans un canvas 2D posé sur la scène (juste après un rendu : `onAfterRender` du director,
+    le buffer est encore lisible), changement de palier dessous, fondu 450 ms après 3 images du nouveau palier.
+  · QA : `?capture=1` expose `__d2s.swapQuality("low")`. Mesuré en local : tous les changements avant
+    l'ouverture (4,2 s / 5,6 s), 0 après, 61 fps ; fondu = saut max 1,4 niveau de gris/image (22,5 sans).
+- Écran d'attente (logo couleur « Chargement de l'agence ») puis SiteLoader (logo gris, 0 %) : changement
+  d'écran visible à ~1 s, non traité (AdaptiveHome = zone mobile), à harmoniser si demandé.
+
+## Cran d'arrêt au lobby (24/09, branche `fix/flash-blanc`)
+- Demande : un scroll trop rapide « passait » le lobby. `detent()` dans le director (avant `lenis.raf`) : en
+  descendant depuis la façade, au moment où la cible Lenis franchit la fin de la piste 3D (`trigger.end`), elle
+  est ramenée au lobby et y reste tant que la caméra n'est pas posée (`frame.progress` > 0.995) + 450 ms mini
+  + 260 ms sans molette/clavier/tactile (l'inertie du trackpad finit d'abord), 2,6 s maxi.
+  RÉGLAGE 24/09 (« divise par 2 le temps ») : minHold 225 ms, maxHold 1300 ms, posée à 0.985 ; `quiet` GARDÉ à
+  260 ms (à 130 ms, les intervalles d'un même tour de molette comptent comme une fin de geste → le flick
+  repasse). Molette continue : retenue 2,3 s → 1,25 s. Un défilement continu de plus de 1,3 s passe le lobby. Une fois par
+  descente (ré-armé 0,3 écran au-dessus du lobby). Les défilements programmés (menu, CTA, sauts) le coupent
+  (`muteDetent`, qui désarme aussi). Sans Lenis (mouvement réduit) : pas de cran.
+- Vérifié (Playwright) : 40 crans de molette → arrêt pile au lobby ; geste suivant → sections ; menu « Nos
+  services » depuis la façade → section atteinte (bug corrigé : le cran ramenait au lobby après le menu).
+- Franchissement détecté sur la position réelle de la page (`lastScroll`), pas seulement la cible Lenis : la
+  molette au-dessus d'une zone `data-lenis-prevent` (fil du chat de May) fait défiler en natif → la page est
+  remise au lobby (`scrollTo immediate, force`). Vérifié depuis 5 positions de souris.
+- Bouton de secours (demande 24/09) : l'indice « Continuez l'exploration de notre univers » du lobby est un
+  <button> (`ScrollCue onClick label`) → `scrollToElement(nos-services)` ; anneau qui s'allume au survol, focus
+  visible. L'indice de la façade reste un simple repère.
+
 ## En cours / à faire
 - Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
   NS IONOS → matt / wanda.ns.cloudflare.com. Zone : 5 CNAME DNS only (autodiscover, _dmarc, _domainconnect,

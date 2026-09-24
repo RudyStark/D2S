@@ -1,10 +1,14 @@
 import { ChevronDown } from "@/components/ui/Icons";
 import styles from "./ScrollCue.module.css";
 
-/** Ring with mouse + two spaced lines + chevron (01-home-final.png, bottom centre). */
-export function ScrollCue({ lines }: { lines: [string, string] }) {
+/**
+ * Ring with mouse + two spaced lines + chevron (01-home-final.png, bottom centre).
+ * With `onClick` it is also a button: an alternative to scrolling (it goes to the next part of the page).
+ */
+export function ScrollCue({ lines, onClick, label }: { lines: [string, string]; onClick?: () => void; label?: string }) {
+  const Tag = onClick ? "button" : "div";
   return (
-    <div className={styles.cue}>
+    <Tag className={styles.cue} {...(onClick ? { type: "button" as const, onClick, "aria-label": label } : {})}>
       <span className={styles.ring} aria-hidden="true">
         <span className={styles.mouse}>
           <span className={styles.wheel} />
@@ -19,6 +23,6 @@ export function ScrollCue({ lines }: { lines: [string, string] }) {
         {lines[1]}
       </p>
       <ChevronDown className={styles.chevron} />
-    </div>
+    </Tag>
   );
 }

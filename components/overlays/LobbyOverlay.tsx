@@ -166,7 +166,15 @@ export function LobbyOverlay() {
       </div>
 
       <div ref={cue} className={styles.cue}>
-        <ScrollCue lines={["Continuez l’exploration", "de notre univers"]} />
+        {/* Also a button: a way on for visitors who do not scroll (or who are stopped by the lobby detent). */}
+        <ScrollCue
+          lines={["Continuez l’exploration", "de notre univers"]}
+          label="Continuer l’exploration : découvrir nos services"
+          onClick={() => {
+            const target = document.getElementById(SERVICES_ID);
+            if (target) scrollToElement(target);
+          }}
+        />
       </div>
     </section>
   );

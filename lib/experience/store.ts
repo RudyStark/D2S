@@ -23,6 +23,8 @@ interface ExperienceState {
   focusPull: boolean;
   /** The GPU dropped the WebGL context: the 3D layer is blank until it comes back or the page reloads. */
   glLost: boolean;
+  /** The quality tier was measured under the site loader (the loader opens only after it). */
+  calibrated: boolean;
   setReady: (ready: boolean) => void;
   setAssets: (assets: ExperienceState["assets"]) => void;
   setWebgl: (webgl: ExperienceState["webgl"]) => void;
@@ -34,6 +36,7 @@ interface ExperienceState {
   setDebugMaterials: (debugMaterials: boolean) => void;
   setFocusPull: (focusPull: boolean) => void;
   setGlLost: (glLost: boolean) => void;
+  setCalibrated: (calibrated: boolean) => void;
 }
 
 export const useExperience = create<ExperienceState>((set) => ({
@@ -48,6 +51,7 @@ export const useExperience = create<ExperienceState>((set) => ({
   debugMaterials: false,
   focusPull: false,
   glLost: false,
+  calibrated: false,
   setReady: (ready) => set({ ready }),
   setAssets: (assets) => set({ assets }),
   setWebgl: (webgl) => set({ webgl }),
@@ -59,6 +63,7 @@ export const useExperience = create<ExperienceState>((set) => ({
   setDebugMaterials: (debugMaterials) => set({ debugMaterials }),
   setFocusPull: (focusPull) => set({ focusPull }),
   setGlLost: (glLost) => set({ glLost }),
+  setCalibrated: (calibrated) => set({ calibrated }),
 }));
 
 export interface ScreenAnchor {
