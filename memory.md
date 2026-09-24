@@ -676,6 +676,28 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   `grid-template-columns: minmax(0, 1fr)` + textarea `width: 0`. 0 débordement à 360/390/412 px.
 - Vérifié : 3 parcours desktop + 1 mobile (Playwright, vrai agenda), suite mobile 11/11.
 
+## Chat de May plus grand pendant la conversation (24/09, branche `feat/may-chat-grand`)
+- Demande : le bloc de May s'agrandit dès que la conversation commence (lecture plus agréable).
+- Desktop (LobbyOverlay.module.css) : `.bubbleWrap:has([data-active])` → `--chat-top` 176u → 112u (monte vers
+  l'en-tête) ; `.bubble` actif : largeur `min(clamp(340px, 520u, 560px), --ax − 150u − 24px)` (s'élargit vers
+  la gauche, bord droit toujours près de la tête de May), hauteur jusqu'au comptoir comme avant ; transitions
+  0,5 s (`interpolate-size: allow-keywords` pour partir de la hauteur auto). 1440 : 320 → 448 px de large.
+  Salutation sur une ligne une fois actif.
+- Mobile : fil de conversation 320 px → min(60svh, 560px) une fois actif.
+- Messages actifs : 14–17 px (selon l'écran) au lieu de 12,5 ; mobile 15 px. Mouvement réduit : sans transition.
+- Vérifié 1280×720, 1440×900, 1920×1080 (ne touche ni le panneau mission ni le logo du fût), mobile 412 px
+  sans débordement.
+
+## Sol sans texture « parfois » (24/09, branche `feat/may-chat-grand`)
+- Cause : en qualité `low`, le sol était `MATERIALS.floor` (blanc uni, sans marbre ni reflet). Le MacBook 120 Hz
+  de l'utilisateur tombait souvent en `low` (calibration : 45 + 5 = 50 fps exigés à 120 Hz).
+- Correctifs : (1) `low` garde le marbre : `meshStandardMaterial` avec les mêmes `createFloorMaps`, teinte
+  #d0cfcd, roughness 0.32, patch plaza (`patchFloorZones(m, "floor-zones-plain")`, clé de cache distincte du
+  reflector). (2) Calibration : marge 0 sur écran > 100 Hz (45 fps suffisent), 5 à 60 Hz ; medium → low
+  seulement si fps < plancher − 8 (`LOW_SLACK`), idem pour le moniteur en cours de visite.
+- Limite : en `low`, le lobby reste plus clair/moins contrasté que `high` (pas de reflets, tone mapping neutre
+  qui sature les blancs) ; les joints et veines sont visibles.
+
 ## En cours / à faire
 - Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
   NS IONOS → matt / wanda.ns.cloudflare.com. Zone : 5 CNAME DNS only (autodiscover, _dmarc, _domainconnect,
@@ -690,6 +712,8 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
 - 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
   contact, mission, marque D2S AIgency, menu, correctifs du rendu. Plus rien de non commité à cette date.
+- PR https://github.com/RudyStark/D2S/pull/4 (fix/may-creneaux) fusionnée le 24/09 et EN LIGNE (build OK, routes
+  days/times vérifiées sur d2saigency.com) : rendez-vous pas à pas avec May, périodes comprises, chat mobile aligné.
 - PR https://github.com/RudyStark/D2S/pull/3 (fix/flash-blanc → main) fusionnée le 24/09 et EN LIGNE (build Cloudflare OK,
   code vérifié sur d2saigency.com) : flashs blancs, cran d'arrêt du lobby, bouton « Continuez l'exploration ».
 - PR https://github.com/RudyStark/D2S/pull/2 (feature/may-agent → main) fusionnée le 23/09 (secrets Cloudflare ajoutés par l'utilisateur, en type Secret).

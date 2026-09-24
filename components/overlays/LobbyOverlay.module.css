@@ -34,6 +34,13 @@
   left: 0;
   top: 0;
   transform: translate(calc(var(--ax) - 100% - 150 * var(--u)), var(--chat-top));
+  transition: transform 0.5s var(--ease-out);
+}
+
+/* Once the conversation starts, the chat grows for reading comfort: up towards the header and wider to the
+   left (its right edge stays by May's head, clear of the drum's logo; never closer than 24 px to the screen edge). */
+.bubbleWrap:has([data-active="true"]) {
+  --chat-top: calc(112 * var(--u));
 }
 
 .bubble {
@@ -41,6 +48,11 @@
   display: flex;
   flex-direction: column;
   width: clamp(300px, calc(372 * var(--u)), 392px);
+  /* Lets the height grow from its natural size (auto) with a transition too. */
+  interpolate-size: allow-keywords;
+  transition:
+    width 0.5s var(--ease-out),
+    height 0.5s var(--ease-out);
   padding: 0;
   border-radius: calc(22 * var(--u));
   background: rgb(255 255 255 / 0.95);
@@ -51,6 +63,7 @@
 /* Once the visitor writes, the chat takes the height down to the desk and only its log scrolls
    (before that, it keeps its natural height so May's greeting always shows). */
 .bubble:has([data-active="true"]) {
+  width: min(clamp(340px, calc(520 * var(--u)), 560px), calc(var(--ax) - 150 * var(--u) - 24px));
   height: max(360px, calc(var(--ay) + 92 * var(--u) - var(--chat-top)));
 }
 
@@ -429,5 +442,12 @@
   .benefits,
   .cue {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubbleWrap,
+  .bubble {
+    transition: none;
   }
 }
