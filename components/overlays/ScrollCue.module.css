@@ -4,6 +4,39 @@
   color: #26336a;
 }
 
+/* Clickable variant (lobby): a plain button, the ring lights up on hover. */
+button.cue {
+  margin: 0;
+  padding: calc(6 * var(--u)) calc(10 * var(--u));
+  border: 0;
+  border-radius: calc(18 * var(--u));
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.cue .ring {
+  transition:
+    background 0.3s var(--ease-out),
+    border-color 0.3s var(--ease-out),
+    box-shadow 0.3s var(--ease-out);
+}
+
+button.cue:hover .ring {
+  border-color: rgb(21 112 240 / 0.45);
+  background: rgb(255 255 255 / 0.7);
+  box-shadow: 0 10px 24px -14px rgb(21 112 240 / 0.7);
+}
+
+button.cue:hover .text {
+  color: var(--ink);
+}
+
+button.cue:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
 .ring {
   position: relative;
   display: block;

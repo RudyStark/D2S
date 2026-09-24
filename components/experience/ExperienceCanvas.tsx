@@ -7,6 +7,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 import { requestRender, setCanvasActive } from "@/lib/experience/director";
 import { cappedDpr, QUALITY, type QualityTier } from "@/lib/experience/quality";
+import { registerGlCanvas, swapQuality } from "@/lib/experience/qualitySwap";
 import { useExperience } from "@/lib/experience/store";
 import { CameraRig } from "./camera/CameraRig";
 import { setGlassQuality } from "./materials";
@@ -113,29 +114,100 @@ function ReadyMarker() {
   return null;
 }
 
-/** Seconds after the reveal before the frame rate is judged (last shader links, first uploads, loader exit). */
+/** Seconds after the reveal before the frame rate is judged again (loader exit, first scroll). */
 const MONITOR_DELAY = 3000;
+/** Lowest acceptable frame rate, as the runtime monitor judges it (high-refresh screens ask for more). */
+const floorFps = (refresh: number) => (refresh > 100 ? 45 : 30);
+/** Calibration keeps this margin above the floor, so the runtime monitor has no reason to step in later. */
+const MARGIN = 5;
+
+const frameTime = () => new Promise<number>((resolve) => requestAnimationFrame(resolve));
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+/** Display refresh rate, from the median frame interval (measured while nothing heavy renders). */
+async function measureRefresh() {
+  const intervals: number[] = [];
+  let last = await frameTime();
+  for (let i = 0; i < 24; i++) {
+    const now = await frameTime();
+    intervals.push(now - last);
+    last = now;
+  }
+  intervals.sort((a, b) => a - b);
+  return 1000 / Math.max(1, intervals[intervals.length >> 1]);
+}
+
+/** Frames per second over `duration`, or null when the tab was hidden meanwhile (rAF is paused there). */
+async function sampleFps(duration: number) {
+  if (document.visibilityState !== "visible") return null;
+  const start = await frameTime();
+  let frames = 0;
+  let now = start;
+  while (now - start < duration) {
+    now = await frameTime();
+    frames++;
+  }
+  if (document.visibilityState !== "visible" || now - start > duration * 3) return null;
+  return (frames * 1000) / (now - start);
+}
 
 /**
- * Runtime quality adaptation. Starts only once the agency is open and settled (the warm-up used to be
- * counted and triggered needless downgrades), and only declines under ~30 fps sustained.
+ * Quality adaptation, in two stages.
+ * 1. Calibration, under the site loader: once the world is ready, the real frame rate of the chosen tier is
+ *    measured and the tier is lowered until it holds. A tier change clears the canvas and recompiles shaders
+ *    (it used to happen seconds after the reveal: two white flashes); here the loader hides it, and it opens
+ *    only once `calibrated` is set.
+ * 2. Runtime monitor, once open: a later sustained drop still lowers the tier, through swapQuality() (the last
+ *    frame is kept on screen and cross-fades, no flash).
  */
 function AdaptiveQuality() {
   const ready = useExperience((s) => s.ready);
   const lockQuality = useExperience((s) => s.lockQuality);
-  const setQuality = useExperience((s) => s.setQuality);
+  const calibrated = useExperience((s) => s.calibrated);
   const [active, setActive] = useState(false);
+  const [refresh] = useState(() => measureRefresh());
+
   useEffect(() => {
-    if (!ready || lockQuality) return;
+    if (!ready || calibrated) return;
+    const { setCalibrated } = useExperience.getState();
+    if (lockQuality) {
+      setCalibrated(true);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const floor = floorFps(await refresh) + MARGIN;
+      // The first frames of a tier compile shaders and upload buffers: they are left out of the measure.
+      let settle = 300;
+      for (let round = 0; round < 4 && !cancelled; round++) {
+        await sleep(settle);
+        const fps = await sampleFps(700);
+        if (cancelled) return;
+        if (fps === null) continue; // tab hidden: measure again once visible
+        const { quality, setQuality } = useExperience.getState();
+        if (fps >= floor || quality === "low") break;
+        setQuality(DOWNGRADE[quality]);
+        settle = 600;
+      }
+      if (!cancelled) setCalibrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, calibrated, lockQuality, refresh]);
+
+  useEffect(() => {
+    if (!calibrated || lockQuality) return;
     const id = window.setTimeout(() => setActive(true), MONITOR_DELAY);
     return () => window.clearTimeout(id);
-  }, [ready, lockQuality]);
+  }, [calibrated, lockQuality]);
+
   if (!active) return null;
   return (
     <PerformanceMonitor
       flipflops={2}
-      bounds={(refreshrate) => (refreshrate > 100 ? [45, 100] : [30, 55])}
-      onDecline={() => setQuality(DOWNGRADE[useExperience.getState().quality])}
+      bounds={(refreshrate) => [floorFps(refreshrate), refreshrate > 100 ? 100 : 55]}
+      onDecline={() => swapQuality(DOWNGRADE[useExperience.getState().quality])}
     />
   );
 }
@@ -206,6 +278,7 @@ export default function ExperienceCanvas() {
            * tier lower. The browser restores the context by itself when it can — we then draw again.
            */
           const canvas = gl.domElement;
+          registerGlCanvas(canvas);
           canvas.addEventListener("webglcontextlost", (e) => {
             e.preventDefault();
             console.warn("[d2s] contexte WebGL perdu");
