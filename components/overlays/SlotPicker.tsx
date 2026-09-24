@@ -42,7 +42,10 @@ export function SlotPicker({
   const [data, setData] = useState<SlotsPayload | null>(null);
   const [failed, setFailed] = useState(false);
   const [day, setDay] = useState<string | null>(null);
-  const tz = useMemo(zone, []);
+  // Paris first, on the server and at hydration (the build runs in UTC: rendering the visitor's zone there made
+  // "heure de UTC" vs "heure de Paris" — React error #418), then the visitor's real zone once mounted.
+  const [tz, setTz] = useState("Europe/Paris");
+  useEffect(() => setTz(zone()), []);
 
   // Fetched once, when the visio option is on screen.
   useEffect(() => {

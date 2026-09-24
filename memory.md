@@ -709,6 +709,17 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - Diagnostic : la console affiche `[d2s] qualité high · écran 120 Hz, seuil 45 fps · mesures : …` (et
   `[d2s] qualité remontée : medium → high`). Headless trop lent pour juger (9 fps en high) : tester sur le Mac.
 
+## Erreur React #418 en prod (24/09, branche `fix/hydratation`)
+- Cause : `SlotPicker` calculait le fuseau (`Intl…timeZone`) au rendu : le HTML est prérendu au build chez
+  Cloudflare en UTC (« heure de UTC ») et le navigateur hydrate en Europe/Paris → texte différent → #418 (sur
+  ordinateur et mobile, le HTML prérendu étant la version mobile). Corrigé : `useState("Europe/Paris")` puis le
+  vrai fuseau dans un `useEffect`.
+- Méthode : diff du texte de la page JS désactivé vs JS activé (Playwright), puis `TZ=UTC next build` + `next
+  start -p 3300` en local (le dev tourne dans `.next/dev`, un build de prod ne le gêne pas) → 0 erreur.
+- Règle : aucun rendu dépendant du fuseau, de la date ou du navigateur dans ce qui est prérendu.
+- `sessionStorage d2s:gpu-trouble` : après une perte de contexte WebGL, l'onglet reste plafonné en medium (1
+  incident) ou low (2) jusqu'à sa fermeture → peut aussi expliquer « jamais high » (l'utilisateur l'a effacé).
+
 ## En cours / à faire
 - Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
   NS IONOS → matt / wanda.ns.cloudflare.com. Zone : 5 CNAME DNS only (autodiscover, _dmarc, _domainconnect,
