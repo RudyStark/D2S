@@ -118,8 +118,16 @@ function ReadyMarker() {
 const MONITOR_DELAY = 3000;
 /** Lowest acceptable frame rate, as the runtime monitor judges it (high-refresh screens ask for more). */
 const floorFps = (refresh: number) => (refresh > 100 ? 45 : 30);
-/** Calibration keeps this margin above the floor, so the runtime monitor has no reason to step in later. */
-const MARGIN = 5;
+/**
+ * Calibration keeps this margin above the floor on 60 Hz screens. None on high-refresh screens (120 Hz MacBooks):
+ * 45 fps there is already smooth, and asking 50 used to send them to "low" (plain floor, no reflections).
+ */
+const margin = (refresh: number) => (refresh > 100 ? 0 : 5);
+/**
+ * "low" drops the reflections, the signature of the scene: from "medium" it is taken only when the frame rate is
+ * clearly short (this many fps under the floor), not for a borderline measure.
+ */
+const LOW_SLACK = 8;
 
 const frameTime = () => new Promise<number>((resolve) => requestAnimationFrame(resolve));
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -176,7 +184,8 @@ function AdaptiveQuality() {
     }
     let cancelled = false;
     void (async () => {
-      const floor = floorFps(await refresh) + MARGIN;
+      const rate = await refresh;
+      const floor = floorFps(rate) + margin(rate);
       // The first frames of a tier compile shaders and upload buffers: they are left out of the measure.
       let settle = 300;
       for (let round = 0; round < 4 && !cancelled; round++) {
@@ -186,6 +195,7 @@ function AdaptiveQuality() {
         if (fps === null) continue; // tab hidden: measure again once visible
         const { quality, setQuality } = useExperience.getState();
         if (fps >= floor || quality === "low") break;
+        if (quality === "medium" && fps >= floor - LOW_SLACK) break;
         setQuality(DOWNGRADE[quality]);
         settle = 600;
       }
@@ -206,7 +216,10 @@ function AdaptiveQuality() {
   return (
     <PerformanceMonitor
       flipflops={2}
-      bounds={(refreshrate) => [floorFps(refreshrate), refreshrate > 100 ? 100 : 55]}
+      bounds={(refreshrate) => [
+        floorFps(refreshrate) - (useExperience.getState().quality === "medium" ? LOW_SLACK : 0),
+        refreshrate > 100 ? 100 : 55,
+      ]}
       onDecline={() => swapQuality(DOWNGRADE[useExperience.getState().quality])}
     />
   );

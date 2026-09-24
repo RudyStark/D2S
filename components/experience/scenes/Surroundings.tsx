@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { QUALITY } from "@/lib/experience/quality";
 import { useExperience } from "@/lib/experience/store";
 import { WORLD } from "@/lib/experience/world";
-import { createFloorMaps, MATERIALS } from "../materials";
+import { createFloorMaps } from "../materials";
 
 const skyVertex = /* glsl */ `
   varying vec3 vDir;
@@ -68,7 +68,7 @@ const PLAZA_ALBEDO_GAIN = 1.12;
 const PLAZA_REFLECTION_GAIN = 1.65;
 const PLAZA_BLUR_SCALE = 0.7;
 
-function patchFloorZones(material: THREE.MeshStandardMaterial | null) {
+function patchFloorZones(material: THREE.MeshStandardMaterial | null, key = "floor-zones") {
   if (!material || material.userData.zonePatched) return;
   material.userData.zonePatched = true;
   const base = material.onBeforeCompile.bind(material);
@@ -96,7 +96,7 @@ function patchFloorZones(material: THREE.MeshStandardMaterial | null) {
         `blurFactor = min(1.0, mixBlur * reflectorRoughnessFactor * mix(1.0, ${PLAZA_BLUR_SCALE.toFixed(2)}, plazaK));`,
       );
   };
-  material.customProgramCacheKey = () => "floor-zones";
+  material.customProgramCacheKey = () => key;
   material.needsUpdate = true;
 }
 
@@ -107,6 +107,7 @@ export function Surroundings() {
   const { halfWidth, depth } = WORLD.plaza;
   const maps = useMemo(() => createFloorMaps(halfWidth * 2, depth + 40), [halfWidth, depth]);
   const floorRef = useCallback((m: THREE.MeshStandardMaterial | null) => patchFloorZones(m), []);
+  const plainFloorRef = useCallback((m: THREE.MeshStandardMaterial | null) => patchFloorZones(m, "floor-zones-plain"), []);
   return (
     <>
       <SkyDome />
@@ -132,7 +133,8 @@ export function Surroundings() {
             mirror={0.42}
           />
         ) : (
-          <primitive object={MATERIALS.floor} attach="material" />
+          // Without reflections ("low"): the same marble slabs, lighter albedo (no reflection adds light here).
+          <meshStandardMaterial ref={plainFloorRef} {...maps} color="#d0cfcd" roughness={0.32} metalness={0} />
         )}
       </mesh>
     </>

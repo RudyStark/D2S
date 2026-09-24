@@ -38,6 +38,36 @@
 .root[data-variant="mobile"] .log {
   max-height: 320px;
   overscroll-behavior: auto;
+  transition: max-height 0.45s ease-out;
+}
+
+/* Conversation started: the log grows (about 60 % of the screen) for comfortable reading. */
+.root[data-variant="mobile"][data-active="true"] .log {
+  max-height: min(60svh, 560px);
+}
+
+/* Conversation started (desktop): the greeting fits on one line, the messages get the room. */
+.root[data-variant="desktop"][data-active="true"] .title {
+  font-size: clamp(14px, calc(15 * var(--u)), 16px);
+}
+
+.root[data-variant="desktop"][data-active="true"] .title br {
+  display: none;
+}
+
+.root[data-variant="desktop"][data-active="true"] .title span {
+  margin-right: 0.3em;
+}
+
+/* Conversation started: larger text everywhere. */
+.root[data-active="true"] .message {
+  padding: 11px 14px;
+  font-size: clamp(14px, calc(15 * var(--u)), 17px);
+  line-height: 1.5;
+}
+
+.root[data-variant="mobile"][data-active="true"] .message {
+  font-size: 15px;
 }
 
 .root[data-variant="mobile"] .form textarea {
@@ -509,6 +539,7 @@
   .meeting,
   .draftButton,
   .send,
+  .log,
   .typing i {
     animation: none;
     transition: none;
