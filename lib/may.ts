@@ -20,6 +20,12 @@ export interface MayAction {
   detail?: string;
 }
 
+/** A quick answer May offers during the booking steps ("Le matin", "Mardi 29 septembre"): sent as the visitor's message. */
+export interface MayChoice {
+  label: string;
+  value: string;
+}
+
 /** The contact request May prepared with the visitor: pre-fills the form, the visitor reviews and sends it. */
 export interface MayDraft {
   need: NeedId;

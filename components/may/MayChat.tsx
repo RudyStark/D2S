@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { ArrowRight, Calendar, ChatDots } from "@/components/ui/Icons";
 import { NEEDS } from "@/lib/contact-content";
 import { PRIVACY_HREF } from "@/lib/legal";
-import { MAY_LIMITS, MAY_STARTERS, type MayAction, type MayDraft, type MayEvent, type MayRole } from "@/lib/may";
-import { draftOf, emptyMemory, mayLocal, memorySummary, type MayMemory } from "@/lib/may-local";
+import { MAY_LIMITS, MAY_STARTERS, type MayAction, type MayChoice, type MayDraft, type MayEvent, type MayRole } from "@/lib/may";
+import { draftOf, emptyMemory, mayLocal, memorySummary, type BookingStep, type MayMemory, type SlotQuery } from "@/lib/may-local";
 import styles from "./MayChat.module.css";
 
 interface UiMessage {
@@ -13,7 +13,84 @@ interface UiMessage {
   role: MayRole;
   content: string;
   actions?: MayAction[];
+  /** The times of one day: shown as a compact grid of hours. */
+  compact?: boolean;
+  /** Quick answers of a booking step (only on the latest message). */
+  choices?: MayChoice[];
   draft?: MayDraft;
+}
+
+/* ---------- Booking, step by step (free level): part of the day → day → times ---------- */
+
+const PART_CHOICES: MayChoice[] = [
+  { label: "Le matin", value: "Le matin" },
+  { label: "L’après-midi", value: "L’après-midi" },
+  { label: "Peu importe", value: "Peu importe" },
+];
+const partWords = (part?: SlotQuery["part"]) => (part === "morning" ? ", le matin" : part === "afternoon" ? ", l’après-midi" : "");
+const localDay = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+/** "mardi 29 septembre" / "Mar. 29 sept." */
+const dayName = (iso: string) => new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(localDay(iso)).replace(/ 1 (?=\p{L})/u, " 1er ");
+const dayChip = (iso: string) =>
+  new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short" })
+    .format(localDay(iso))
+    .replace(/ 1 (?=\p{L})/u, " 1er ")
+    .replace(/^\p{L}/u, (c) => c.toUpperCase());
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+interface StepData {
+  configured?: boolean;
+  inWindow?: boolean;
+  days?: { date: string; count: number }[];
+  day?: string;
+  actions?: MayAction[];
+}
+
+/**
+ * The next booking step for what the visitor gave so far: no part of the day → "le matin ou l'après-midi ?";
+ * no single day → the days that still have free times (in the asked period); one day → its free times.
+ */
+async function bookingStep(q: SlotQuery): Promise<{ text: string; extra: Partial<UiMessage>; asked: BookingStep | "confirm" }> {
+  if (!q.part) {
+    return {
+      text: q.period ? `Très bien, ${q.period}. Vous préférez le matin ou l’après-midi ?` : "Avec plaisir ! Vous préférez le matin ou l’après-midi ?",
+      extra: { choices: PART_CHOICES },
+      asked: "slot-part",
+    };
+  }
+  const single = !!q.from && q.from === q.to;
+  const query = new URLSearchParams({ tz: Intl.DateTimeFormat().resolvedOptions().timeZone, mode: single ? "times" : "days" });
+  if (q.from && q.to) {
+    query.set("from", q.from);
+    query.set("to", q.to);
+  }
+  if (q.part !== "any") query.set("part", q.part);
+  const data = (await fetch(`/api/may/meetings?${query}`)
+    .then((r) => r.json())
+    .catch(() => null)) as StepData | null;
+  if (!data?.configured) return { text: BOOKING_CLOSED, extra: data?.actions?.length ? { actions: data.actions } : {}, asked: "confirm" };
+  const when = partWords(q.part);
+
+  if (!single) {
+    const days = data.days ?? [];
+    if (!days.length) return { text: `L’agenda est complet sur les deux prochaines semaines${when}. Je prépare votre demande pour que l’équipe vous propose une date ?`, extra: {}, asked: "confirm" };
+    const intro =
+      data.inWindow === false
+        ? `Plus de disponibilité ${q.period ?? ""}${when}. Voici les jours suivants où l’équipe est libre :`
+        : `Voici les jours où l’équipe est disponible${q.period ? ` ${q.period}` : ""}${when.replace(",", "")}. Lequel vous arrange ?`;
+    return { text: intro.replace(/\s+/g, " "), extra: { choices: days.map((d) => ({ label: dayChip(d.date), value: capital(dayName(d.date)) })) }, asked: "slot-day" };
+  }
+
+  const actions = data.actions ?? [];
+  if (!actions.length || !data.day) return { text: `L’agenda est complet ${dayName(q.from!)}${when}. Dites-moi un autre jour, ou je prépare votre demande ?`, extra: {}, asked: "slot" };
+  const intro =
+    data.inWindow === false || data.day !== q.from
+      ? `Plus rien de libre ${dayName(q.from!)}${when}. Le plus proche : ${dayName(data.day)}.`
+      : `Voici les horaires libres pour ${dayName(data.day)}${when}.`;
+  return { text: `${intro} Choisissez celui qui vous convient, vous confirmerez sur Calendly.`, extra: { actions, compact: true }, asked: "slot" };
 }
 
 interface MayChatProps {
@@ -96,16 +173,10 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
           return;
         }
         setStatus("May consulte l’agenda…");
-        const meetings = (await fetch(`/api/may/meetings?tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`)
-          .then((r) => r.json())
-          .catch(() => null)) as { actions?: MayAction[] } | null;
-        const actions = meetings?.actions ?? [];
+        const step = await bookingStep(local.booking);
         setStatus("");
-        if (actions.length) reply(`${local.text}\n\nVoici les prochains créneaux : choisissez celui qui vous convient, vous confirmerez sur Calendly.`, { actions });
-        else {
-          memory.current = { ...memory.current, asked: "confirm" };
-          reply(BOOKING_CLOSED);
-        }
+        memory.current = { ...memory.current, asked: step.asked };
+        reply([local.text, step.text].filter(Boolean).join("\n\n"), step.extra);
         setSending(false);
         return;
       }
@@ -240,7 +311,7 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
       {/* data-lenis-prevent: the site's smooth scroll (Lenis) captures the wheel page-wide; the log scrolls itself. */}
       <div ref={log} className={styles.log} role="log" aria-live="polite" aria-busy={sending} aria-label="Conversation avec May" data-lenis-prevent>
         {messages.map((message) =>
-          message.content || message.actions?.length || message.draft ? (
+          message.content || message.actions?.length || message.draft || message.choices?.length ? (
             <div key={message.id} className={styles.messageRow} data-role={message.role}>
               {message.role === "assistant" ? (
                 <span className={styles.avatar} aria-hidden="true">
@@ -250,15 +321,25 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
               <div className={styles.messageBody}>
                 {message.content ? <p className={styles.message}>{message.content}</p> : null}
                 {message.actions?.length ? (
-                  <div className={styles.actions} aria-label="Rendez-vous proposés">
+                  <div className={styles.actions} data-compact={message.compact ? "true" : undefined} aria-label={message.compact ? "Horaires libres" : "Rendez-vous proposés"}>
                     {message.actions.map((action) => (
                       <a key={`${message.id}-${action.href}`} href={action.href} target="_blank" rel="noopener noreferrer" className={styles.meeting}>
-                        <Calendar size={16} />
+                        {message.compact ? null : <Calendar size={16} />}
                         <span>
                           <strong>{action.label}</strong>
-                          {action.detail ? <small>{action.detail}</small> : null}
+                          {action.detail && !message.compact ? <small>{action.detail}</small> : null}
                         </span>
                       </a>
+                    ))}
+                  </div>
+                ) : null}
+                {/* Quick answers of a booking step: only while it is the latest message. */}
+                {message.choices?.length && message.id === messages.at(-1)?.id ? (
+                  <div className={styles.choices} role="group" aria-label="Réponses rapides">
+                    {message.choices.map((choice) => (
+                      <button key={choice.value} type="button" onClick={() => void send(choice.value)} disabled={sending}>
+                        {choice.label}
+                      </button>
                     ))}
                   </div>
                 ) : null}
