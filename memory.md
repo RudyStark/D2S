@@ -698,6 +698,17 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - Limite : en `low`, le lobby reste plus clair/moins contrasté que `high` (pas de reflets, tone mapping neutre
   qui sature les blancs) ; les joints et veines sont visibles.
 
+## « Jamais en high » (24/09, branche `fix/qualite-high`)
+- Causes : (1) la calibration mesurait 0,3 s après `ready` : sur Mac, Chrome/ANGLE compile les pipelines GPU
+  à la première utilisation → à-coups → 1re mesure basse → medium ; (2) aucune remontée possible ensuite
+  (avant la calibration, le moniteur ne jugeait qu'après 3 s de visite, d'où le high d'avant).
+- Correctifs (AdaptiveQuality) : attente 0,7 s puis 2 mesures de 0,6 s par palier, baisse seulement si LES DEUX
+  sont sous le seuil (on garde dès qu'une suffit), 3 paliers max ; `onIncline` du PerformanceMonitor : au-dessus
+  de 75 fps (écran > 100 Hz) / 57 fps (60 Hz) pendant un moment → `swapQuality` vers le palier supérieur, jamais
+  au-dessus du palier détecté au départ (`ceiling`), `flipflops` 3.
+- Diagnostic : la console affiche `[d2s] qualité high · écran 120 Hz, seuil 45 fps · mesures : …` (et
+  `[d2s] qualité remontée : medium → high`). Headless trop lent pour juger (9 fps en high) : tester sur le Mac.
+
 ## En cours / à faire
 - Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
   NS IONOS → matt / wanda.ns.cloudflare.com. Zone : 5 CNAME DNS only (autodiscover, _dmarc, _domainconnect,
@@ -712,6 +723,8 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
 - 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
   contact, mission, marque D2S AIgency, menu, correctifs du rendu. Plus rien de non commité à cette date.
+- PR https://github.com/RudyStark/D2S/pull/5 (feat/may-chat-grand) fusionnée le 24/09 et EN LIGNE : chat de May qui
+  s'agrandit, sol en marbre en qualité basse, calibration moins sévère (120 Hz).
 - PR https://github.com/RudyStark/D2S/pull/4 (fix/may-creneaux) fusionnée le 24/09 et EN LIGNE (build OK, routes
   days/times vérifiées sur d2saigency.com) : rendez-vous pas à pas avec May, périodes comprises, chat mobile aligné.
 - PR https://github.com/RudyStark/D2S/pull/3 (fix/flash-blanc → main) fusionnée le 24/09 et EN LIGNE (build Cloudflare OK,
