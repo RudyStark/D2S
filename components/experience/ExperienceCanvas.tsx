@@ -25,6 +25,12 @@ const DOWNGRADE: Record<QualityTier, QualityTier> = {
   medium: "low",
   low: "low",
 };
+const UPGRADE: Record<QualityTier, QualityTier> = {
+  low: "medium",
+  medium: "high",
+  high: "high",
+};
+const RANK: Record<QualityTier, number> = { low: 0, medium: 1, high: 2 };
 
 /** Every texture referenced by the scene's materials (maps and shader uniforms). */
 function collectTextures(scene: THREE.Scene) {
@@ -174,6 +180,8 @@ function AdaptiveQuality() {
   const calibrated = useExperience((s) => s.calibrated);
   const [active, setActive] = useState(false);
   const [refresh] = useState(() => measureRefresh());
+  // The tier the device was detected for: a tier lowered on the way may climb back up to it, never above.
+  const [ceiling] = useState(() => useExperience.getState().quality);
 
   useEffect(() => {
     if (!ready || calibrated) return;
@@ -186,20 +194,37 @@ function AdaptiveQuality() {
     void (async () => {
       const rate = await refresh;
       const floor = floorFps(rate) + margin(rate);
-      // The first frames of a tier compile shaders and upload buffers: they are left out of the measure.
-      let settle = 300;
-      for (let round = 0; round < 4 && !cancelled; round++) {
+      const trace: string[] = [];
+      // The first frames of a tier are not representative: the browser still finishes preparing the GPU
+      // pipelines (on Macs, Chrome/ANGLE compiles them at first use: stutters for a second or so). Each tier
+      // gets two measures after a settle; it is lowered only when BOTH are short (a single stutter no longer
+      // costs "high"), and kept as soon as one is enough.
+      let settle = 700;
+      for (let round = 0; round < 3 && !cancelled; round++) {
         await sleep(settle);
-        const fps = await sampleFps(700);
+        let best = -1;
+        for (let sample = 0; sample < 2 && !cancelled; sample++) {
+          const fps = await sampleFps(600);
+          if (fps === null) {
+            sample--; // tab hidden: measure again once visible
+            await sleep(400);
+            continue;
+          }
+          best = Math.max(best, fps);
+          if (best >= floor) break;
+        }
         if (cancelled) return;
-        if (fps === null) continue; // tab hidden: measure again once visible
         const { quality, setQuality } = useExperience.getState();
-        if (fps >= floor || quality === "low") break;
-        if (quality === "medium" && fps >= floor - LOW_SLACK) break;
+        trace.push(`${quality} ${Math.round(best)} fps`);
+        if (best >= floor || quality === "low") break;
+        if (quality === "medium" && best >= floor - LOW_SLACK) break;
         setQuality(DOWNGRADE[quality]);
-        settle = 600;
+        settle = 700;
       }
-      if (!cancelled) setCalibrated(true);
+      if (cancelled) return;
+      // One line in the console: why this tier (support, and checking a machine that "never gets high").
+      console.info(`[d2s] qualité ${useExperience.getState().quality} · écran ${Math.round(rate)} Hz, seuil ${floor} fps · mesures : ${trace.join(", ") || "aucune"}`);
+      setCalibrated(true);
     })();
     return () => {
       cancelled = true;
@@ -215,12 +240,21 @@ function AdaptiveQuality() {
   if (!active) return null;
   return (
     <PerformanceMonitor
-      flipflops={2}
+      flipflops={3}
       bounds={(refreshrate) => [
         floorFps(refreshrate) - (useExperience.getState().quality === "medium" ? LOW_SLACK : 0),
-        refreshrate > 100 ? 100 : 55,
+        // Comfortably above the floor for a while: the tier goes back up (a pessimistic first measure
+        // must not keep a capable machine out of "high" for the whole visit).
+        refreshrate > 100 ? 75 : 57,
       ]}
       onDecline={() => swapQuality(DOWNGRADE[useExperience.getState().quality])}
+      onIncline={() => {
+        const current = useExperience.getState().quality;
+        if (RANK[current] < RANK[ceiling]) {
+          console.info(`[d2s] qualité remontée : ${current} → ${UPGRADE[current]}`);
+          swapQuality(UPGRADE[current]);
+        }
+      }}
     />
   );
 }
