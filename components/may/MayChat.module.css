@@ -2,8 +2,11 @@
   --may-blue: #1570f0;
   --may-deep: #0b38a0;
   display: grid;
+  /* One column that may shrink: the rows (log, form…) never widen the card past the screen. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   width: 100%;
+  min-width: 0;
   color: var(--ink);
   font-family: var(--font-body);
 }
@@ -163,6 +166,57 @@
 .actions {
   display: grid;
   gap: 6px;
+}
+
+/* The free times of one day: a compact grid of hours. */
+.actions[data-compact="true"] {
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+}
+
+.actions[data-compact="true"] .meeting {
+  justify-content: center;
+  padding: 8px 6px;
+}
+
+.actions[data-compact="true"] .meeting strong {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Quick answers of a booking step ("Le matin", "Mar. 29 sept."…). */
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.choices button {
+  min-height: 32px;
+  padding: 6px 11px;
+  border: 1px solid rgb(21 112 240 / 0.28);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--may-deep);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.choices button:hover:not(:disabled) {
+  border-color: var(--may-blue);
+  background: #f5f9ff;
+}
+
+.choices button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.root[data-variant="mobile"] .choices button,
+.root[data-variant="mobile"] .actions[data-compact="true"] .meeting {
+  min-height: 42px;
 }
 
 .meeting {
@@ -329,6 +383,8 @@
 
 .form textarea {
   flex: 1;
+  /* A textarea is 20 characters wide by default: that minimum used to push the whole chat past the card. */
+  width: 0;
   min-width: 0;
   max-height: 76px;
   padding: 7px 0;

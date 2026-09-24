@@ -2,6 +2,7 @@ import type { AgentType } from "@/components/experience/agents/agents.config";
 import { CHANNELS, type ChannelId, type NeedId } from "./contact-content";
 import { buildResult, FEMININE, hoursSentence, type Answers } from "./diagnostic";
 import type { MayDraft } from "./may";
+import { readWhen, type DayPart } from "./may-dates";
 import { METHOD_PROMISES, METHOD_STEPS } from "./services";
 import { FAQ, lowerFirst } from "./site";
 import { TEAM } from "./team";
@@ -15,6 +16,19 @@ import { TEAM } from "./team";
 
 export type Slot = "task" | "time" | "tools" | "process";
 
+/** The meeting being arranged, step by step: part of the day, then the day, then the time. */
+export interface SlotQuery {
+  /** Calendar days (visitor's calendar), `to` included; absent = the coming two weeks. */
+  from?: string;
+  to?: string;
+  /** "pour la semaine prochaine"… (how May names the period). */
+  period?: string;
+  part?: DayPart | "any";
+}
+
+/** Steps of the booking: part of the day asked, day asked, times shown. */
+export type BookingStep = "slot-part" | "slot-day" | "slot";
+
 export interface MayMemory {
   task?: string;
   time?: string;
@@ -23,15 +37,17 @@ export interface MayMemory {
   toolsAsked?: boolean;
   process?: string;
   channel?: ChannelId;
-  /** Question May is waiting an answer to. */
-  asked?: Slot | "confirm";
+  /** Question May is waiting an answer to (booking steps: see BookingStep). */
+  asked?: Slot | "confirm" | BookingStep;
+  /** The meeting being arranged. */
+  slot?: SlotQuery;
   recommended?: { need: NeedId; line: string };
   /** What the visitor told May, in their words (the draft is made of them, nothing invented). */
   said: string[];
 }
 
 export type LocalOutcome =
-  | { kind: "reply"; text: string; memory: MayMemory; draft?: MayDraft; booking?: boolean }
+  | { kind: "reply"; text: string; memory: MayMemory; draft?: MayDraft; booking?: SlotQuery }
   | { kind: "ai"; memory: MayMemory };
 
 export const emptyMemory = (): MayMemory => ({ said: [] });
@@ -46,6 +62,14 @@ const norm = (s: string) =>
     .replace(/[’']/g, " ")
     .replace(/[^a-z0-9%]+/g, " ")
     .trim()} `;
+
+/** Morning, afternoon or no preference, in an answer to "le matin ou l'après-midi ?". */
+function readPart(t: string): DayPart | "any" | undefined {
+  if (/\b(apres midi|aprem|aprm|apm)\b/.test(t)) return "afternoon";
+  if (/\b(matin|matinee)\b/.test(t)) return "morning";
+  if (/\b(peu importe|n importe|indifferent|les deux|pas de preference|egal|comme vous voulez|je m adapte|quand vous voulez)\b/.test(t)) return "any";
+  return undefined;
+}
 
 /** True when the pattern appears without a negation just before it ("pas de prospection"). */
 function has(text: string, pattern: RegExp) {
@@ -222,7 +246,19 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
   if (tools.length) m.tools = [...new Set([...(m.tools ?? []), ...tools])];
 
   const callback = has(t, CALLBACK);
-  const booking = has(t, BOOKING) && !callback;
+  // A meeting, step by step: the request itself, then the answers to May's booking questions ("le matin",
+  // "mardi 29 septembre", "plutôt la semaine prochaine"…).
+  const when = readWhen(input);
+  const part = when?.part ?? readPart(t);
+  const inBooking = m.asked === "slot-part" || m.asked === "slot-day" || m.asked === "slot";
+  const asksMeeting = has(t, BOOKING);
+  const booking = (asksMeeting || (inBooking && (when !== null || part !== undefined))) && !callback;
+  let meeting: SlotQuery | undefined;
+  if (booking) {
+    meeting = asksMeeting && !inBooking ? {} : { ...m.slot };
+    if (when?.dated) Object.assign(meeting, { from: when.from, to: when.to, period: when.period });
+    if (part) meeting.part = part;
+  }
   const asking = /\?/.test(input) || QUESTION.test(t);
   const intents = asking ? INTENTS.filter((i) => has(t, i.re)) : [];
   const greeting = GREETING.test(t);
@@ -234,7 +270,7 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
 
   // An answer May expected but could not read: Claude takes over rather than guessing.
   let answered = false;
-  if (m.asked && m.asked !== "confirm" && !understood && !greeting) {
+  if (m.asked && m.asked !== "confirm" && !inBooking && !understood && !greeting) {
     const unsure = /\b(je ne sais pas|ne sais pas|sais pas|aucune idee|aucun|rien|pas d outil)\b/.test(t);
     if (m.asked === "tools" && unsure) m.tools = [];
     else if (m.asked === "process" && unsure) m.process = "standard";
@@ -250,8 +286,9 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
   if (callback) {
     return { kind: "reply", text: [...parts, `Je prépare votre demande pour que l’équipe vous ${m.channel === "phone" ? "rappelle" : "recontacte"}. ${READY}`].join("\n\n"), memory: { ...m, asked: undefined }, draft: draftOf(m) };
   }
-  if (booking) {
-    return { kind: "reply", text: [...parts, "Je regarde les créneaux disponibles de l’équipe."].join("\n\n"), memory: { ...m, asked: undefined }, booking: true };
+  if (meeting) {
+    // The chat runs the next booking step (asks the part of the day, shows the days, then the times).
+    return { kind: "reply", text: parts.join("\n\n"), memory: { ...m, slot: meeting, asked: "slot" }, booking: meeting };
   }
 
   if (m.tools === undefined && m.asked === "tools") m.toolsAsked = true;

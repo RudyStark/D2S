@@ -7,7 +7,8 @@ import { METHOD_PROMISES, METHOD_STEPS, SERVICES } from "@/lib/services";
 import { lowerFirst, SITE_SUMMARY } from "@/lib/site";
 import type { MayAction, MayDraft, MayEvent, MayMessage } from "@/lib/may";
 import { TEAM } from "@/lib/team";
-import { CalendlyConfigurationError, calendlyFallbackUrl, listMeetingSlots, listMeetingTypes } from "./calendly";
+import { ISO_DAY } from "@/lib/may-dates";
+import { CalendlyConfigurationError, calendlyFallbackUrl, findSlots, listMeetingTypes } from "./calendly";
 
 /*
  * May, the reception agent of d2saigency.com (not the prospecting agent D2S sells to its clients).
@@ -117,12 +118,17 @@ const TOOLS: Anthropic.Tool[] = [
   {
     name: "get_available_times",
     description:
-      "Retourne les prochains créneaux libres d’un type de rendez-vous (identifiant donné par list_meeting_types). Ne jamais proposer de créneau qui ne vient pas de cet outil. L’interface affiche les boutons des créneaux.",
+      "Retourne des créneaux libres d’un type de rendez-vous (identifiant donné par list_meeting_types), répartis sur plusieurs jours. Si le visiteur cite une période (semaine prochaine, un jour, une date, matin ou après-midi), passe-la en dates : les créneaux seront pris dans cette période. Ne jamais proposer de créneau qui ne vient pas de cet outil. L’interface affiche les boutons des créneaux.",
     strict: true,
     input_schema: {
       type: "object",
-      properties: { event_type_id: { type: "string", description: "Identifiant renvoyé par list_meeting_types." } },
-      required: ["event_type_id"],
+      properties: {
+        event_type_id: { type: "string", description: "Identifiant renvoyé par list_meeting_types." },
+        from_date: { type: "string", description: "Premier jour souhaité, AAAA-MM-JJ dans le calendrier du visiteur ; chaîne vide si aucune période n’est demandée." },
+        to_date: { type: "string", description: "Dernier jour souhaité (inclus), AAAA-MM-JJ ; chaîne vide si aucune période. Pour « la semaine prochaine » : du lundi au dimanche suivants." },
+        part_of_day: { type: "string", enum: ["morning", "afternoon", "any"], description: "Matin, après-midi, ou any." },
+      },
+      required: ["event_type_id", "from_date", "to_date", "part_of_day"],
       additionalProperties: false,
     },
   },
@@ -154,7 +160,7 @@ function safeLink(value: string) {
 }
 
 const slotLabel = (iso: string, timeZone: string) =>
-  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone }).format(new Date(iso));
+  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone }).format(new Date(iso)).replace(/ 1 (?=\p{L})/u, " 1er ");
 
 function bookingFallback(reason: string): ToolOutcome {
   const href = safeLink(calendlyFallbackUrl() ?? "");
@@ -238,10 +244,14 @@ async function runTool(name: string, input: Record<string, unknown>, timeZone: s
     if (name === "get_available_times") {
       const id = str(input.event_type_id, 200);
       if (!id) return { result: { error: "Identifiant de rendez-vous manquant." }, events: [], isError: true };
-      const [slots, types] = await Promise.all([listMeetingSlots(id), listMeetingTypes()]);
+      const from = str(input.from_date, 10);
+      const to = str(input.to_date, 10) || from;
+      const part = pick(input.part_of_day, ["morning", "afternoon"] as const);
+      const window = ISO_DAY.test(from) && ISO_DAY.test(to) && to >= from ? { from, to, part } : null;
+      const [found, types] = await Promise.all([findSlots(id, window, timeZone, 4), listMeetingTypes()]);
       const type = types.find((t) => t.id === id);
       if (!type) return { result: { error: "Type de rendez-vous inconnu : relance list_meeting_types." }, events: [], isError: true };
-      const shown = slots.slice(0, 3);
+      const shown = found.slots;
       if (!shown.length) {
         const href = safeLink(type.schedulingUrl);
         return {
@@ -253,8 +263,9 @@ async function runTool(name: string, input: Record<string, unknown>, timeZone: s
         result: {
           meeting: `${type.name} (${type.duration} min)`,
           timezone: timeZone,
+          ...(window ? { requested_period: `${window.from} → ${window.to}`, in_requested_period: found.inWindow } : {}),
           available_times: shown.map((s) => slotLabel(s.startTime, timeZone)),
-          next: "Les boutons de ces créneaux sont affichés : le visiteur confirme sur Calendly. Ne dis pas que le rendez-vous est réservé.",
+          next: `Les boutons de ces créneaux sont affichés : le visiteur confirme sur Calendly. Ne dis pas que le rendez-vous est réservé.${window && !found.inWindow ? " Aucun créneau libre dans la période demandée : dis-le simplement, ce sont les plus proches." : ""}`,
         },
         events: [
           {
@@ -315,7 +326,8 @@ ${KNOWLEDGE}`;
 
 function context(timeZone: string, known?: string) {
   const today = new Intl.DateTimeFormat("fr-FR", { dateStyle: "full", timeZone: "Europe/Paris" }).format(new Date());
-  return `Nous sommes le ${today} (heure de Paris). Fuseau du visiteur : ${timeZone}.${known ? `\nDéjà connu (compris avant toi dans la conversation) : ${known}` : ""}`;
+  const iso = new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  return `Nous sommes le ${today} (${iso}, heure de Paris). Fuseau du visiteur : ${timeZone}.${known ? `\nDéjà connu (compris avant toi dans la conversation) : ${known}` : ""}`;
 }
 
 /* ---------- Conversation ---------- */

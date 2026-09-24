@@ -1,5 +1,7 @@
 import "server-only";
 
+import { hourIn, spreadByDay, zonedMidnight } from "@/lib/may-dates";
+
 const CALENDLY_API = "https://api.calendly.com";
 
 interface CalendlyUserResponse {
@@ -134,15 +136,23 @@ const DAY = 24 * 60 * 60_000;
 
 /** Every free start time of an appointment type over the next `days` days (Calendly caps a query at 7 days). */
 export async function listSlotsAhead(eventTypeId: string, days = 14): Promise<MeetingSlot[]> {
-  if (!/^[a-zA-Z0-9_-]+$/.test(eventTypeId)) return [];
   const first = Date.now() + 30 * 60_000;
-  const windows = Array.from({ length: Math.ceil(days / 7) }, (_, i) => first + i * 7 * DAY);
+  return listSlotsBetween(eventTypeId, first, first + days * DAY);
+}
+
+/** Free times between two instants (Calendly answers at most 7 days per query: the range is split). */
+export async function listSlotsBetween(eventTypeId: string, startMs: number, endMs: number): Promise<MeetingSlot[]> {
+  if (!/^[a-zA-Z0-9_-]+$/.test(eventTypeId)) return [];
+  const first = Math.max(startMs, Date.now() + 15 * 60_000);
+  const last = Math.min(endMs, Date.now() + 62 * DAY);
+  if (last <= first) return [];
+  const windows = Array.from({ length: Math.ceil((last - first) / (7 * DAY)) }, (_, i) => first + i * 7 * DAY);
   const pages = await Promise.all(
     windows.map((start) => {
       const query = new URLSearchParams({
         event_type: `${CALENDLY_API}/event_types/${eventTypeId}`,
         start_time: new Date(start).toISOString(),
-        end_time: new Date(Math.min(start + 7 * DAY, first + days * DAY) - 60_000).toISOString(),
+        end_time: new Date(Math.min(start + 7 * DAY, last) - 60_000).toISOString(),
       });
       return calendlyFetch<CalendlyAvailableTimesResponse>(`/event_type_available_times?${query}`);
     }),
@@ -150,7 +160,36 @@ export async function listSlotsAhead(eventTypeId: string, days = 14): Promise<Me
   return pages
     .flatMap((page) => page.collection ?? [])
     .filter((slot) => slot.status !== "unavailable" && slot.start_time && slot.scheduling_url)
-    .map((slot) => ({ startTime: slot.start_time!, schedulingUrl: slot.scheduling_url! }));
+    .map((slot) => ({ startTime: slot.start_time!, schedulingUrl: slot.scheduling_url! }))
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+}
+
+/**
+ * The times to propose for a requested window (calendar days + part of the day, in the visitor's zone),
+ * spread over different days. Nothing free in the window: the nearest times after its start instead
+ * (`inWindow: false`, May says so). Without a window: the next free times, spread the same way.
+ */
+export async function findSlots(
+  eventTypeId: string,
+  window: { from: string; to: string; part?: "morning" | "afternoon" } | null,
+  timeZone: string,
+  count: number,
+): Promise<{ slots: MeetingSlot[]; inWindow: boolean }> {
+  const inPart = (slot: MeetingSlot) => {
+    if (!window?.part) return true;
+    const hour = hourIn(slot.startTime, timeZone);
+    return window.part === "morning" ? hour < 12 : hour >= 13;
+  };
+  if (window) {
+    const start = zonedMidnight(window.from, timeZone);
+    const end = zonedMidnight(window.to, timeZone) + DAY + 2 * 60 * 60_000 >= start ? zonedMidnight(window.to, timeZone) + DAY : start + DAY;
+    const inside = (await listSlotsBetween(eventTypeId, start, end)).filter(inPart);
+    if (inside.length) return { slots: spreadByDay(inside, count, timeZone), inWindow: true };
+    const after = (await listSlotsBetween(eventTypeId, start, start + 14 * DAY)).filter(inPart);
+    return { slots: spreadByDay(after, count, timeZone), inWindow: false };
+  }
+  const next = await listSlotsAhead(eventTypeId, 14);
+  return { slots: spreadByDay(next, count, timeZone), inWindow: true };
 }
 
 export type BookingResult =

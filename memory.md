@@ -635,6 +635,47 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   <button> (`ScrollCue onClick label`) → `scrollToElement(nos-services)` ; anneau qui s'allume au survol, focus
   visible. L'indice de la façade reste un simple repère.
 
+## Calendly en production (24/09)
+- Symptôme : May répondait « La réservation en ligne n'est pas encore ouverte » ; /api/may/meetings et
+  /api/booking/slots renvoyaient `configured: false`. Journaux du Worker (Observability) : `Calendly API 401` →
+  la valeur du secret `CALENDLY_API_TOKEN` sur Cloudflare était mauvaise (le jeton `d2s-site` de Calendly et celui
+  de `.env.local` étaient valides). L'utilisateur a recollé la valeur de `.env.local` → vérifié : créneaux en
+  prod (May + formulaire, 160 créneaux sur 14 jours). Diagnostic rapide : curl des 2 routes + logs Observability.
+- Reste : renommer « 30 Minute Meeting » dans Calendly (affiché dans le chat) ; plan B possible
+  `CALENDLY_FALLBACK_URL` + message moins trompeur si Calendly tombe (proposé, non fait).
+
+## May comprend la période demandée pour un rendez-vous (24/09, branche `fix/may-creneaux`)
+- Bug : « rendez-vous visio pour la semaine prochaine » → toujours les 3 premiers créneaux (tous demain).
+- `lib/may-dates.ts` (pur, partagé) : `readWhen(texte, aujourd'hui)` → {from, to, part, label} : semaine
+  prochaine, cette semaine, début/fin de semaine, jour nommé (« mardi » = le prochain, jamais aujourd'hui),
+  date (« le 30 », « 1er octobre », « 30/09 »), demain / après-demain, dans N semaines / 15 jours, mois
+  prochain, matin (< 12 h) / après-midi (≥ 13 h). Serveur : `zonedMidnight`, `hourIn`, `spreadByDay` (un créneau
+  par jour en alternant matin/après-midi, ou espacés dans la journée).
+- `calendly.ts` : `listSlotsBetween` (fenêtres de 7 j), `findSlots(type, fenêtre, tz, n)` → {slots, inWindow} ;
+  rien dans la période → les plus proches après (May le dit).
+- Niveau gratuit : `mayLocal` renvoie `when`, `asked: "slot"` après des créneaux (« plutôt mardi ? » relance) ;
+  MayChat passe from/to/part à /api/may/meetings et formule (« Voici des créneaux pour la semaine prochaine »).
+- IA : outil `get_available_times` + from_date / to_date / part_of_day (strict, chaîne vide = aucune période) ;
+  la date du jour en ISO est dans le contexte. Libellés « 1er » corrigés.
+- Vérifié : 18 formulations, chat local (semaine prochaine → lun 9 h / mar 13 h / mer 9 h / jeu 13 h ; « plutôt
+  mardi après-midi » → mar 13 h, 14 h, 15 h 30, 16 h 30), chemin IA (jeudi 1er oct. fin de matinée → 11 h 30).
+
+## Rendez-vous pas à pas avec May + chat mobile aligné (24/09, branche `fix/may-creneaux`)
+- Demande utilisateur : « prendre rendez-vous » ne doit pas lister des jours/heures au hasard → parcours guidé :
+  1) « Vous préférez le matin ou l'après-midi ? » (Le matin · L'après-midi · Peu importe) ; 2) les jours encore
+  libres (6 max, dans la période demandée, pastilles « Mar. 29 sept. ») ; 3) tous les horaires de ce jour dans
+  ce moment (grille compacte de boutons Calendly). Les étapes déjà connues sont sautées (« rdv mardi matin » →
+  horaires directement ; « semaine prochaine » → matin/après-midi puis jours de la semaine prochaine) ; on peut
+  corriger en route (« plutôt jeudi »). Période complète → May le dit et propose les jours suivants.
+- Code : `MayMemory.slot` (SlotQuery from/to/period/part) + étapes `slot-part` / `slot-day` / `slot` (may-local) ;
+  `bookingStep()` dans MayChat ; `MayChoice` (réponses rapides, seulement sur le dernier message) ; route
+  `/api/may/meetings?mode=days|times` (sans mode : ancien comportement). Dates explicites lues avant les jours
+  nommés (« lundi 5 octobre » = le 5). Gratuit (aucun appel IA).
+- Chat mobile qui débordait à droite (capture Android) : une <textarea> fait 20 caractères de large par défaut →
+  le formulaire imposait 277 px dans une carte de 260 → toute la colonne débordait. `.root` en
+  `grid-template-columns: minmax(0, 1fr)` + textarea `width: 0`. 0 débordement à 360/390/412 px.
+- Vérifié : 3 parcours desktop + 1 mobile (Playwright, vrai agenda), suite mobile 11/11.
+
 ## En cours / à faire
 - Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
   NS IONOS → matt / wanda.ns.cloudflare.com. Zone : 5 CNAME DNS only (autodiscover, _dmarc, _domainconnect,
@@ -649,8 +690,9 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
 - 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
   contact, mission, marque D2S AIgency, menu, correctifs du rendu. Plus rien de non commité à cette date.
-- PR https://github.com/RudyStark/D2S/pull/2 (feature/may-agent → main) ouverte le 23/09, NON fusionnée : fusion =
-  mise en ligne ; d'abord les secrets Cloudflare (ANTHROPIC_API_KEY, RESEND_API_KEY, CALENDLY_API_TOKEN, par l'utilisateur).
+- PR https://github.com/RudyStark/D2S/pull/3 (fix/flash-blanc → main) fusionnée le 24/09 et EN LIGNE (build Cloudflare OK,
+  code vérifié sur d2saigency.com) : flashs blancs, cran d'arrêt du lobby, bouton « Continuez l'exploration ».
+- PR https://github.com/RudyStark/D2S/pull/2 (feature/may-agent → main) fusionnée le 23/09 (secrets Cloudflare ajoutés par l'utilisateur, en type Secret).
 - bc7cb37 (poussé sur `feature/may-agent`, 23/09, PAS sur main) : May hybride + Claude, Resend, réservation
   Calendly (desktop + mobile), contact direct du menu, indice de scroll, étiquettes des agents, RGPD.
 - 581dd1c (poussé sur main, 21/09) : halo + « AI » animé en 3D, méthode pilotée par le scroll, RGPD
