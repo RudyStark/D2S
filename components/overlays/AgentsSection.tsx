@@ -6,6 +6,8 @@ import { ArrowUpRight, Sparkle } from "@/components/ui/Icons";
 import { useInView } from "@/hooks/useInView";
 import { lowerFirst } from "@/lib/site";
 import { TEAM, TEAM_INTRO } from "@/lib/team";
+import { MORE_START } from "@/lib/team-all";
+import { MORE_INTRO, MORE_TEAM, POLES, type PoleId } from "@/lib/team-more";
 import { AgentDialog } from "./AgentDialog";
 import styles from "./AgentsSection.module.css";
 import head from "./SectionHead.module.css";
@@ -21,6 +23,7 @@ export function AgentsSection() {
   const inView = useInView(section, 0.2);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [origin, setOrigin] = useState<DOMRect | null>(null);
+  const [pole, setPole] = useState<PoleId | "all">("all");
   const cards = useRef<(HTMLButtonElement | null)[]>([]);
   const lastOpened = useRef<number>(0);
 
@@ -103,6 +106,62 @@ export function AgentsSection() {
           <span className={styles.hintMouse}>Survolez un agent pour faire connaissance, cliquez pour le voir à l’œuvre.</span>
           <span className={styles.hintTouch}>Touchez un agent pour le voir à l’œuvre.</span>
         </p>
+
+        {/* The rest of the team (2D only): by pole, each card opens the same profile window. */}
+        <div className={styles.more} aria-labelledby="more-title">
+          <header className={styles.moreHead}>
+            <div>
+              <p className={head.kicker}>{MORE_INTRO.kicker}</p>
+              <h3 id="more-title" className={styles.moreTitle}>
+                {MORE_INTRO.title[0]} <span className={head.accent}>{MORE_INTRO.title[1]}</span>
+              </h3>
+              <p className={styles.moreLead}>{MORE_INTRO.lead}</p>
+            </div>
+            <div className={styles.poles} role="group" aria-label="Filtrer par pôle">
+              {[{ id: "all" as const, label: "Tous" }, ...POLES].map((p) => (
+                <button key={p.id} type="button" aria-pressed={pole === p.id} className={styles.pole} onClick={() => setPole(p.id)}>
+                  {p.label}
+                  <span className={styles.poleCount}>{p.id === "all" ? MORE_TEAM.length : MORE_TEAM.filter((a) => a.pole === p.id).length}</span>
+                </button>
+              ))}
+            </div>
+          </header>
+          <ul className={styles.moreCards}>
+            {MORE_TEAM.map((agent, j) => {
+              const i = MORE_START + j;
+              if (pole !== "all" && agent.pole !== pole) return null;
+              return (
+                <li key={agent.slug} className={styles.moreCard} style={{ "--i": j, "--tint-a": agent.tint[0], "--tint-b": agent.tint[1] } as React.CSSProperties}>
+                  <button
+                    ref={(el) => {
+                      cards.current[i] = el;
+                    }}
+                    type="button"
+                    className={`${styles.cardButton} ${styles.moreButton}`}
+                    aria-haspopup="dialog"
+                    aria-label={`${agent.name}, ${agent.role}. Découvrir ses missions`}
+                    onClick={(e) => {
+                      lastOpened.current = i;
+                      setOrigin(e.currentTarget.getBoundingClientRect());
+                      setOpenIndex(i);
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- transparent cut-out, sized in design units */}
+                    <img className={`${styles.figure} ${styles.moreFigure}`} src={agent.image} alt={`${agent.name}, ${lowerFirst(agent.role)} de D2S AIgency`} loading="lazy" decoding="async" />
+                    <span className={styles.open} aria-hidden="true">
+                      <ArrowUpRight size={18} />
+                    </span>
+                    <span className={`${styles.caption} ${styles.moreCaption}`} aria-hidden="true">
+                      <span className={styles.moreName}>{agent.name}</span>
+                      <span className={styles.role}>{agent.role}</span>
+                      <span className={styles.blurb}>{agent.blurb}</span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
 
       <AgentDialog index={openIndex} origin={origin} onChange={onChange} onClose={onClose} />

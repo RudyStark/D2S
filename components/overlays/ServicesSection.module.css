@@ -33,6 +33,8 @@
   position: relative;
   z-index: 1;
   width: calc(1672 * var(--u));
+  /* Centred when the window is wider than the reference ratio (--ox). */
+  margin-inline: auto;
   padding: calc(101 * var(--u)) 0 calc(40 * var(--u)) calc(179 * var(--u));
 }
 

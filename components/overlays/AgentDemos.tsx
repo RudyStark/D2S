@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AGENTS, type AgentType } from "@/components/experience/agents/agents.config";
-import { Alert, Bars, Calendar, ChatDots, Check, ContactCard, Package, PlayBox, Star, Users } from "@/components/ui/Icons";
+import { Alert, Bars, Calendar, ChatDots, Check, Clock, ContactCard, Package, PlayBox, Star, Users } from "@/components/ui/Icons";
 import styles from "./AgentDemos.module.css";
 
 /*
@@ -12,7 +12,7 @@ import styles from "./AgentDemos.module.css";
  * Reduced motion → final state at once. The agent bar at the bottom narrates what the agent is doing.
  */
 
-function useSequence(beats: number[], { run, reduced, play }: DemoProps) {
+export function useSequence(beats: number[], { run, reduced, play }: DemoProps) {
   const [step, setStep] = useState(0);
   useEffect(() => {
     setStep(reduced ? beats.length : 0);
@@ -27,7 +27,7 @@ function useSequence(beats: number[], { run, reduced, play }: DemoProps) {
 }
 
 /** Text typed character by character once `active`. */
-function Typewriter({ text, active, speed = 22, instant = false }: { text: string; active: boolean; speed?: number; instant?: boolean }) {
+export function Typewriter({ text, active, speed = 22, instant = false }: { text: string; active: boolean; speed?: number; instant?: boolean }) {
   const [n, setN] = useState(instant ? text.length : 0);
   useEffect(() => {
     if (instant) {
@@ -55,7 +55,7 @@ function Typewriter({ text, active, speed = 22, instant = false }: { text: strin
   );
 }
 
-function CountUp({ to, active, format = (v) => new Intl.NumberFormat("fr-FR").format(Math.round(v)), duration = 900 }: { to: number; active: boolean; format?: (v: number) => string; duration?: number }) {
+export function CountUp({ to, active, format = (v) => new Intl.NumberFormat("fr-FR").format(Math.round(v)), duration = 900 }: { to: number; active: boolean; format?: (v: number) => string; duration?: number }) {
   const [v, setV] = useState(0);
   useEffect(() => {
     if (!active) {
@@ -76,10 +76,77 @@ function CountUp({ to, active, format = (v) => new Intl.NumberFormat("fr-FR").fo
 }
 
 /** Last label whose beat has been reached. */
-function narrate(step: number, lines: [number, string][]) {
+export function narrate(step: number, lines: [number, string][]) {
   let label = lines[0][1];
   for (const [at, text] of lines) if (step >= at) label = text;
   return label;
+}
+
+/*
+ * The process under the screen (desktop): the agent's steps with their time, and a clock that runs while the agent
+ * works, until « Terminé en … ». Times are the simulated duration of the agent's work (illustrative demo).
+ */
+export interface ProcessDef {
+  /** `at`: the step at which the stage is completed; `t`: the clock (seconds) when it is. */
+  stages: { label: string; at: number; t: number }[];
+}
+
+const clock = (sec: number) => {
+  const s = Math.round(sec);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+const duration = (sec: number) => {
+  const s = Math.round(sec);
+  return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min${s % 60 ? ` ${String(s % 60).padStart(2, "0")} s` : ""}`;
+};
+
+/** The clock eases towards its target (the end time of the stage in progress). */
+function useClock(target: number, reduced: boolean) {
+  const [v, setV] = useState(reduced ? target : 0);
+  useEffect(() => {
+    if (reduced) {
+      setV(target);
+      return;
+    }
+    let raf = 0;
+    const from = v;
+    const t0 = performance.now();
+    const ms = Math.min(2200, 600 + Math.abs(target - from) * 25);
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - t0) / ms);
+      setV(from + (target - from) * k);
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- animate from the value shown
+  }, [target, reduced]);
+  return v;
+}
+
+function ProcessTrack({ process, step, done, reduced }: { process: ProcessDef; step: number; done: boolean; reduced: boolean }) {
+  const completed = process.stages.filter((s) => step >= s.at).length;
+  const last = process.stages[process.stages.length - 1];
+  // While a stage is in progress, the clock runs towards its end time; nothing runs before the demo starts.
+  const target = step === 0 ? 0 : done ? last.t : (process.stages[completed]?.t ?? last.t);
+  const shown = useClock(target, reduced);
+  return (
+    <div className={styles.process} data-done={done}>
+      <ol className={styles.stages}>
+        {process.stages.map((s, i) => (
+          <li key={s.label} data-state={i < completed ? "done" : i === completed && step > 0 && !done ? "now" : "todo"}>
+            <span className={styles.stageDot}>{i < completed ? <Check size={10} /> : null}</span>
+            <span className={styles.stageLabel}>{s.label}</span>
+            <span className={styles.stageTime}>{i < completed ? clock(s.t) : ""}</span>
+          </li>
+        ))}
+      </ol>
+      <span className={styles.clock} aria-label={done ? `Terminé en ${duration(last.t)}` : undefined}>
+        <Clock size={13} />
+        {done ? `Terminé en ${duration(last.t)}` : clock(shown)}
+      </span>
+    </div>
+  );
 }
 
 interface FrameProps {
@@ -87,12 +154,26 @@ interface FrameProps {
   icon: ReactNode;
   children: ReactNode;
   variant?: "chat" | "doc";
-  agent: AgentType;
+  /** One of the five (its avatar), or any avatar image (the rest of the team). */
+  agent?: AgentType;
+  avatar?: string;
   status: string;
   done: boolean;
+  /** Desktop: the process track under the screen. */
+  process?: ProcessDef;
+  step?: number;
+  reduced?: boolean;
 }
 
-function Frame({ app, icon, children, variant, agent, status, done }: FrameProps) {
+export function Frame({ app, icon, children, variant, agent, avatar, status, done, process, step = 0, reduced = false }: FrameProps) {
+  const screen = useRef<HTMLDivElement>(null);
+  // Desktop (with the process track): on a short screen, follow the newest element as it appears.
+  useEffect(() => {
+    const el = screen.current;
+    if (!process || !el || el.scrollHeight <= el.clientHeight) return;
+    const t = window.setTimeout(() => el.scrollTo({ top: el.scrollHeight, behavior: reduced ? "auto" : "smooth" }), 180);
+    return () => window.clearTimeout(t);
+  }, [step, process, reduced]);
   return (
     <div className={styles.frame} data-variant={variant}>
       <div className={styles.bar}>
@@ -103,10 +184,13 @@ function Frame({ app, icon, children, variant, agent, status, done }: FrameProps
           Démo
         </span>
       </div>
-      <div className={styles.screen}>{children}</div>
+      <div ref={screen} className={styles.screen}>
+        {children}
+      </div>
+      {process ? <ProcessTrack process={process} step={step} done={done} reduced={reduced} /> : null}
       <div className={styles.agentBar} data-done={done}>
         {/* eslint-disable-next-line @next/next/no-img-element -- avatar */}
-        <img src={AGENTS[agent].avatar} alt="" width={24} height={24} />
+        <img src={avatar ?? (agent ? AGENTS[agent].avatar : "")} alt="" width={24} height={24} />
         <span key={status} className={styles.agentText}>
           {status}
         </span>
@@ -127,7 +211,7 @@ function Frame({ app, icon, children, variant, agent, status, done }: FrameProps
   );
 }
 
-const Typing = () => (
+export const Typing = () => (
   <div className={`${styles.msg} ${styles.out} ${styles.typing}`} aria-hidden="true">
     <span />
     <span />
@@ -149,11 +233,13 @@ const DEA_STATUS: [number, string][] = [
   [6, "Prêt en 38 s · publié après votre validation"],
 ];
 
+const DEA_PROCESS: ProcessDef = { stages: [{ label: "Brief", at: 2, t: 3 }, { label: "Rédaction", at: 4, t: 24 }, { label: "Accroches", at: 5, t: 33 }, { label: "Programmation", at: 6, t: 38 }] };
+
 function DeaDemo(props: DemoProps) {
   const { reduced } = props;
   const step = useSequence([350, 2300, 1100, 3900, 900, 900], props);
   return (
-    <Frame app="Studio de contenu · LinkedIn" icon={<PlayBox size={14} />} variant="doc" agent="content" status={narrate(step, DEA_STATUS)} done={step >= 6}>
+    <Frame app="Studio de contenu · LinkedIn" icon={<PlayBox size={14} />} variant="doc" agent="content" status={narrate(step, DEA_STATUS)} done={step >= 6} process={props.timeline ? DEA_PROCESS : undefined} step={step} reduced={props.reduced}>
       <div className={styles.brief} data-on={step >= 1}>
         <span className={styles.label}>Votre brief</span>
         <p>
@@ -214,10 +300,12 @@ const LOIC_STATUS: [number, string][] = [
   [8, "Résolu en 1 min, sans mobiliser votre équipe"],
 ];
 
+const LOIC_PROCESS: ProcessDef = { stages: [{ label: "Demande comprise", at: 3, t: 4 }, { label: "Suivi de commande", at: 4, t: 11 }, { label: "Échange", at: 7, t: 52 }, { label: "Avis et résumé", at: 8, t: 60 }] };
+
 function LoicDemo(props: DemoProps) {
   const step = useSequence([300, 1000, 1100, 1300, 1500, 1100, 1300, 1300], props);
   return (
-    <Frame app="WhatsApp · Service client" icon={<ChatDots size={14} />} variant="chat" agent="support" status={narrate(step, LOIC_STATUS)} done={step >= 8}>
+    <Frame app="WhatsApp · Service client" icon={<ChatDots size={14} />} variant="chat" agent="support" status={narrate(step, LOIC_STATUS)} done={step >= 8} process={props.timeline ? LOIC_PROCESS : undefined} step={step} reduced={props.reduced}>
       <p className={styles.day}>Aujourd’hui · 21:47 · hors horaires d’ouverture</p>
       {step >= 1 && (
         <div className={`${styles.msg} ${styles.in}`}>
@@ -287,11 +375,13 @@ const MAY_STATUS: [number, string][] = [
   [8, "Rendez-vous calé · CRM à jour"],
 ];
 
+const MAY_PROCESS: ProcessDef = { stages: [{ label: "Qualification", at: 2, t: 6 }, { label: "Message", at: 3, t: 21 }, { label: "Objection", at: 5, t: 29 }, { label: "Rendez-vous", at: 7, t: 36 }, { label: "CRM", at: 8, t: 40 }] };
+
 function MayDemo(props: DemoProps) {
   const { reduced } = props;
   const step = useSequence([300, 900, 2700, 1200, 1100, 1300, 1200, 1000], props);
   return (
-    <Frame app="Prospection · LinkedIn" icon={<ContactCard size={14} />} variant="chat" agent="prospection" status={narrate(step, MAY_STATUS)} done={step >= 8}>
+    <Frame app="Prospection · LinkedIn" icon={<ContactCard size={14} />} variant="chat" agent="prospection" status={narrate(step, MAY_STATUS)} done={step >= 8} process={props.timeline ? MAY_PROCESS : undefined} step={step} reduced={props.reduced}>
       {step >= 1 && (
         <div className={styles.lead}>
           <span className={styles.avatar}>CM</span>
@@ -354,10 +444,12 @@ const DIVA_STATUS: [number, string][] = [
   [5, "Shortlist prête en 12 s · la décision reste la vôtre"],
 ];
 
+const DIVA_PROCESS: ProcessDef = { stages: [{ label: "48 CV lus", at: 2, t: 7 }, { label: "Classement", at: 3, t: 10 }, { label: "Invitations", at: 5, t: 12 }] };
+
 function DivaDemo(props: DemoProps) {
   const step = useSequence([300, 2000, 1500, 900, 1100], props);
   return (
-    <Frame app="Recrutement · Candidatures" icon={<Users size={14} />} variant="doc" agent="automation" status={narrate(step, DIVA_STATUS)} done={step >= 5}>
+    <Frame app="Recrutement · Candidatures" icon={<Users size={14} />} variant="doc" agent="automation" status={narrate(step, DIVA_STATUS)} done={step >= 5} process={props.timeline ? DIVA_PROCESS : undefined} step={step} reduced={props.reduced}>
       <div className={styles.job} data-on={step >= 1}>
         <span>
           <strong>Chargé·e de communication</strong>
@@ -430,6 +522,8 @@ const MORGAN_STATUS: [number, string][] = [
   [5, "Synthèse prête · sources : CRM, boutique, Analytics"],
 ];
 
+const MORGAN_PROCESS: ProcessDef = { stages: [{ label: "Données", at: 2, t: 5 }, { label: "Tendances", at: 3, t: 11 }, { label: "Synthèse", at: 5, t: 18 }] };
+
 function MorganDemo(props: DemoProps) {
   const step = useSequence([300, 1200, 1300, 1800, 1200], props);
   const pts = chartPath(BASKET, 320, 92);
@@ -438,7 +532,7 @@ function MorganDemo(props: DemoProps) {
   const drop = pts.slice(5).map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
   const last = pts[pts.length - 1];
   return (
-    <Frame app="Tableau de bord · Ventes" icon={<Bars size={14} />} variant="doc" agent="data" status={narrate(step, MORGAN_STATUS)} done={step >= 5}>
+    <Frame app="Tableau de bord · Ventes" icon={<Bars size={14} />} variant="doc" agent="data" status={narrate(step, MORGAN_STATUS)} done={step >= 5} process={props.timeline ? MORGAN_PROCESS : undefined} step={step} reduced={props.reduced}>
       <div className={`${styles.msg} ${styles.in} ${styles.question}`} data-on={step >= 1}>
         Comment se sont passées les ventes ce mois-ci ?
       </div>
@@ -500,10 +594,12 @@ function MorganDemo(props: DemoProps) {
   );
 }
 
-interface DemoProps {
+export interface DemoProps {
   run: number;
   reduced: boolean;
   play: boolean;
+  /** Desktop: show the process track (the mobile version keeps its demos as they are). */
+  timeline?: boolean;
 }
 
 const DEMOS: Record<AgentType, (p: DemoProps) => React.ReactElement> = {

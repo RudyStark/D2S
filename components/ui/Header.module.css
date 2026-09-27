@@ -47,7 +47,7 @@
 .logo {
   --logo-w: calc(116 * var(--u));
   position: absolute;
-  left: calc(92 * var(--u));
+  left: calc(var(--ox) + 92 * var(--u));
   top: calc((31 - 7 * var(--c)) * var(--u));
   display: block;
 }
@@ -128,7 +128,7 @@
 
 .inner .cta {
   position: absolute;
-  left: calc((1320 - 58 * var(--c)) * var(--u));
+  left: calc(var(--ox) + (1320 - 58 * var(--c)) * var(--u));
   top: calc((26 - 6 * var(--c)) * var(--u));
   width: calc((263 - 13 * var(--c)) * var(--u));
   height: calc(48 * var(--u));
@@ -144,7 +144,7 @@
 
 .lang {
   position: absolute;
-  left: calc((1516 + 36 * var(--c)) * var(--u));
+  left: calc(var(--ox) + (1516 + 36 * var(--c)) * var(--u));
   top: calc((123 - 89 * var(--c)) * var(--u));
 }
 

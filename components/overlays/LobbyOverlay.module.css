@@ -84,7 +84,7 @@
 
 .mission {
   position: absolute;
-  left: calc(1086 * var(--u));
+  left: calc(var(--ox) + 1086 * var(--u));
   top: calc(176 * var(--u));
   width: calc(351 * var(--u));
   padding: calc(32 * var(--u)) calc(32 * var(--u)) calc(30 * var(--u));
@@ -190,7 +190,7 @@
 
 @media (min-width: 1025px) {
   .mission {
-    left: calc(1078 * var(--u));
+    left: calc(var(--ox) + 1078 * var(--u));
     top: calc(164 * var(--u));
     width: calc(364 * var(--u));
     padding: 0;

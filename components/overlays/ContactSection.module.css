@@ -12,6 +12,8 @@
 .frame {
   position: relative;
   width: calc(1672 * var(--u));
+  /* Centred when the window is wider than the reference ratio (--ox). */
+  margin-inline: auto;
   /* Same top as the services / agents headings: arriving here from a button, the kicker clears the header. */
   padding: calc(101 * var(--u)) 0 calc(44 * var(--u)) calc(179 * var(--u));
 }
