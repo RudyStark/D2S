@@ -40,11 +40,18 @@
    * (design/references, minus browser chrome) and written as calc(N * var(--u)).
    */
   --u: 1px;
+  /* Horizontal offset of the 1672-wide design frame (desktop, windows wider than the reference ratio). */
+  --ox: 0px;
 }
 
 @media (min-width: 1025px) {
   :root {
     --u: min(calc(100vw / 1672), calc(100svh / 861));
+    /*
+     * A window wider than the reference (1672 × 861) is sized by its height: the design frame is then narrower
+     * than the window. --ox centres it (half the spare width), like the 3D scene behind it.
+     */
+    --ox: max(0px, calc((100vw - 1672 * var(--u)) / 2));
     --header-h: calc(96 * var(--u));
   }
 }

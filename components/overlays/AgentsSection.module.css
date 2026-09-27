@@ -13,6 +13,8 @@
   position: relative;
   padding: calc(101 * var(--u)) 0 calc(96 * var(--u)) calc(179 * var(--u));
   width: calc(1672 * var(--u));
+  /* Centred when the window is wider than the reference ratio (--ox). */
+  margin-inline: auto;
 }
 
 /* Handwritten annotation, top right of the heading (1340, 166 on the reference). */

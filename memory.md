@@ -815,3 +815,16 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - Vérifié en connexion bridée (~4 Mbit/s) : les 5 slides défilent puis bouclent, 0 erreur.
 - Limite : avant le loader, l'écran d'attente de `AdaptiveHome` (« Chargement de l'agence », zone MOBILE protégée)
   reste affiché le temps de télécharger le code du bureau (~5 s en connexion bridée) : les slides ne démarrent qu'après.
+
+## ⚠️ Contenu décalé à gauche sur fenêtre large et basse (27/09, corrigé)
+- Signalé : menu et blocs du lobby décalés, « tout le contenu trop à gauche, pas centré ». Existait AUSSI en ligne (pas
+  dû à la PR #8). Cause : `--u = min(100vw/1672, 100svh/861)` ; une fenêtre plus large que le ratio de référence (outils
+  de dev ouverts, barre de favoris, écran ultra-large…) est dimensionnée par la HAUTEUR → le cadre de design (1672u) est
+  plus étroit que la fenêtre mais restait collé à GAUCHE, alors que la 3D et le menu (centré) restent au milieu → le
+  bouton « Parlons de votre projet » chevauchait « Contact », blocs du lobby et texte de façade décalés.
+- Correctif : `--ox = max(0px, (100vw − 1672u) / 2)` (globals.css, 0 sous 1025 px et sur fenêtre « normale ») ajouté aux
+  éléments ancrés à gauche (Header : logo, CTA, langue ; Hero : badge, titre, texte, boutons, encart équipe et voile
+  blanc ; Lobby : panneau mission) ; les 5 sections (`.frame` de 1672u) ont `margin-inline: auto`.
+- Vérifié : 1440×900 identique au site en ligne ; 1512×680 menu symétrique sans chevauchement, façade et lobby centrés,
+  sections 96 px / 96 px. RÈGLE : toute nouvelle position `left: calc(N * var(--u))` sur un conteneur pleine largeur
+  doit ajouter `var(--ox)`.

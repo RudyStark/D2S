@@ -20,16 +20,16 @@
   position: absolute;
   left: 0;
   top: 0;
-  width: calc(620 * var(--u));
+  width: calc(var(--ox) + 620 * var(--u));
   height: 100%;
   background: linear-gradient(
     90deg,
     rgb(252 253 254 / 0.96) 0,
-    rgb(252 253 254 / 0.95) calc(470 * var(--u)),
-    rgb(252 253 254 / 0.82) calc(495 * var(--u)),
-    rgb(252 253 254 / 0.44) calc(530 * var(--u)),
-    rgb(252 253 254 / 0.14) calc(575 * var(--u)),
-    rgb(252 253 254 / 0) calc(620 * var(--u))
+    rgb(252 253 254 / 0.95) calc(var(--ox) + 470 * var(--u)),
+    rgb(252 253 254 / 0.82) calc(var(--ox) + 495 * var(--u)),
+    rgb(252 253 254 / 0.44) calc(var(--ox) + 530 * var(--u)),
+    rgb(252 253 254 / 0.14) calc(var(--ox) + 575 * var(--u)),
+    rgb(252 253 254 / 0) calc(var(--ox) + 620 * var(--u))
   );
   /*
    * Mask = vertical falloff ∩ everything except the black planter block's rect (--cut-left/top/bottom,
@@ -104,7 +104,7 @@
 
 .badge {
   position: absolute;
-  left: calc(66 * var(--u));
+  left: calc(var(--ox) + 66 * var(--u));
   top: calc(150 * var(--u));
   display: flex;
   align-items: center;
@@ -131,7 +131,7 @@
 
 .title {
   position: absolute;
-  left: calc(64.5 * var(--u));
+  left: calc(var(--ox) + 64.5 * var(--u));
   top: calc(212 * var(--u));
   margin: 0;
   font-family: var(--font-display);
@@ -157,7 +157,7 @@
 
 .lead {
   position: absolute;
-  left: calc(66.5 * var(--u));
+  left: calc(var(--ox) + 66.5 * var(--u));
   top: calc(383 * var(--u));
   width: calc(440 * var(--u));
   font-family: var(--font-body);
@@ -170,7 +170,7 @@
 
 .actions {
   position: absolute;
-  left: calc(65 * var(--u));
+  left: calc(var(--ox) + 65 * var(--u));
   top: calc(486 * var(--u));
   display: flex;
   gap: calc(10 * var(--u));
@@ -214,7 +214,7 @@
 
 .aside {
   position: absolute;
-  left: calc(1333 * var(--u));
+  left: calc(var(--ox) + 1333 * var(--u));
   top: calc(772 * var(--u));
   pointer-events: auto;
 }
