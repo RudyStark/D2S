@@ -356,6 +356,11 @@
 /* ——— Demo column ——— */
 .demo {
   grid-area: demo;
+  /* Always fully in view (the demo and its process track): only the left column scrolls under it. */
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: calc(min(800px, 100dvh - 32px) - 86px);
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -589,6 +594,11 @@
       "intro"
       "demo"
       "missions";
+  }
+
+  .demo {
+    position: static;
+    height: auto;
   }
 
   .intro {

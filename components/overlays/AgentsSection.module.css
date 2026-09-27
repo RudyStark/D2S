@@ -279,6 +279,151 @@
   }
 }
 
+/* ——— The rest of the team (2D) ——— */
+.more {
+  margin-top: calc(84 * var(--u));
+  width: calc(1251 * var(--u));
+}
+
+.moreHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(20 * var(--u)) calc(40 * var(--u));
+}
+
+.moreTitle {
+  margin: calc(10 * var(--u)) 0 0;
+  font-family: var(--font-display);
+  font-size: max(24px, calc(38 * var(--u)));
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.moreLead {
+  max-width: calc(620 * var(--u));
+  margin: calc(12 * var(--u)) 0 0;
+  font-family: var(--font-body);
+  font-size: max(13px, calc(16 * var(--u)));
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.poles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(8 * var(--u));
+}
+
+.pole {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  height: max(34px, calc(40 * var(--u)));
+  padding: 0 calc(16 * var(--u));
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.82);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.9), 0 8px 20px -14px rgb(11 18 56 / 0.35);
+  backdrop-filter: blur(10px);
+  font-family: var(--font-body);
+  font-size: max(12px, calc(14 * var(--u)));
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    background 0.3s var(--ease-out),
+    color 0.3s var(--ease-out);
+}
+
+.pole:hover {
+  color: var(--ink);
+}
+
+.pole[aria-pressed="true"] {
+  background: linear-gradient(140deg, #2a86ff, #0b38a0);
+  box-shadow: 0 12px 24px -12px rgb(21 112 240 / 0.9);
+  color: #fff;
+}
+
+.pole:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.poleCount {
+  display: grid;
+  place-items: center;
+  min-width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+  padding: 0 calc(5 * var(--u));
+  border-radius: var(--radius-pill);
+  background: rgb(11 18 56 / 0.07);
+  font-size: max(10px, calc(12 * var(--u)));
+}
+
+.pole[aria-pressed="true"] .poleCount {
+  background: rgb(255 255 255 / 0.22);
+}
+
+.moreCards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: calc(18 * var(--u));
+  margin: calc(28 * var(--u)) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.moreCard {
+  position: relative;
+  animation: moreIn 0.6s var(--ease-out) both;
+  animation-delay: calc(var(--i) * 40ms);
+}
+
+@keyframes moreIn {
+  from {
+    opacity: 0;
+    translate: 0 calc(16 * var(--u));
+  }
+}
+
+@media (hover: hover) {
+  .moreCards:hover .moreCard:not(:hover) {
+    opacity: 0.78;
+    filter: saturate(0.8);
+  }
+}
+
+.moreButton {
+  height: calc(400 * var(--u));
+}
+
+.moreFigure {
+  top: calc(16 * var(--u));
+  height: calc(470 * var(--u));
+}
+
+.moreCaption {
+  gap: calc(2 * var(--u));
+}
+
+/* The name is always shown here: eleven cards, no guessing game. */
+.moreName {
+  font-family: var(--font-display);
+  font-size: max(20px, calc(28 * var(--u)));
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  background: linear-gradient(90deg, #0b1238 0%, #1a3fb0 60%, #1570f0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 /* ——— Tablet & mobile: horizontal carousel ——— */
 @media (max-width: 1024px) {
   .frame {
@@ -317,9 +462,29 @@
   .figure {
     height: 560px;
   }
+
+  .more {
+    width: auto;
+  }
+
+  .moreCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .moreButton {
+    height: 400px;
+  }
+
+  .moreFigure {
+    height: 480px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .moreCard {
+    animation: none;
+  }
+
   .card,
   .cardButton,
   .figure,

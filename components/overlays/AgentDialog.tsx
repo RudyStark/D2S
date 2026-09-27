@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AGENTS, type AgentType } from "@/components/experience/agents/agents.config";
 import { ArrowRight, ChevronLeft, ChevronRight, Close, Replay, Shield } from "@/components/ui/Icons";
 import { useReducedMotion } from "@/hooks/useInView";
 import { setScrollLocked } from "@/lib/experience/director";
 import { goToContact, type ContactIntent } from "@/lib/contact";
+import { ALL_AGENTS, type DialogAgent } from "@/lib/team-all";
 import { CONTACT_HREF } from "@/lib/navigation";
-import { TEAM } from "@/lib/team";
 import { AgentDemo } from "./AgentDemos";
+import { MoreAgentDemo } from "./AgentDemosMore";
 import styles from "./AgentDialog.module.css";
 
 /** The demo waits until its stage is on screen (it sits below the missions on phones). */
-function DemoStage({ type, run, reduced }: { type: AgentType; run: number; reduced: boolean }) {
+function DemoStage({ demo, run, reduced }: { demo: DialogAgent["demo"]; run: number; reduced: boolean }) {
   const stage = useRef<HTMLDivElement>(null);
   const [play, setPlay] = useState(false);
   useEffect(() => {
@@ -32,13 +32,17 @@ function DemoStage({ type, run, reduced }: { type: AgentType; run: number; reduc
   }, []);
   return (
     <div ref={stage} className={styles.demoStage}>
-      <AgentDemo key={`${type}-${run}`} type={type} run={run} reduced={reduced} play={play} />
+      {demo.kind === "five" ? (
+        <AgentDemo key={`${demo.type}-${run}`} type={demo.type} run={run} reduced={reduced} play={play} timeline />
+      ) : (
+        <MoreAgentDemo key={`${demo.slug}-${run}`} slug={demo.slug} run={run} reduced={reduced} play={play} timeline />
+      )}
     </div>
   );
 }
 
 interface AgentDialogProps {
-  /** Index in TEAM, or null when closed. */
+  /** Index in ALL_AGENTS, or null when closed. */
   index: number | null;
   /** Screen rect of the card that opened the dialog: the panel grows out of it and returns to it. */
   origin: DOMRect | null;
@@ -61,7 +65,7 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
   /** "Recruter X": the form is reached once the window has closed and the page scrolls again. */
   const pendingContact = useRef<ContactIntent | null>(null);
   const open = index !== null;
-  const agent = open ? TEAM[index] : null;
+  const agent = open ? ALL_AGENTS[index] : null;
 
   useLayoutEffect(() => {
     const d = dialog.current;
@@ -112,14 +116,29 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
     (step: 1 | -1) => {
       if (index === null) return;
       setDirection(step);
-      onChange((index + step + TEAM.length) % TEAM.length);
+      onChange((index + step + ALL_AGENTS.length) % ALL_AGENTS.length);
     },
     [index, onChange],
   );
 
-  const def = agent ? AGENTS[agent.type] : null;
-  const prev = index === null ? null : TEAM[(index - 1 + TEAM.length) % TEAM.length];
-  const next = index === null ? null : TEAM[(index + 1) % TEAM.length];
+  // ← / → browse the team. On the window: the focused element disappears when the profile changes, and focus
+  // then leaves the dialog (a keydown on the dialog itself stopped working after the first press).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      if ((e.target as HTMLElement | null)?.closest?.("input, textarea, select")) return;
+      e.preventDefault();
+      go(e.key === "ArrowRight" ? 1 : -1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, go]);
+
+  const prev = index === null ? null : ALL_AGENTS[(index - 1 + ALL_AGENTS.length) % ALL_AGENTS.length];
+  const next = index === null ? null : ALL_AGENTS[(index + 1) % ALL_AGENTS.length];
+  // The footer shows the avatars of the agent's group (the five, or the rest of the team); ← / → browse everyone.
+  const group = agent ? ALL_AGENTS.map((a, i) => ({ a, i })).filter(({ a }) => a.group === agent.group) : [];
 
   return (
     <dialog
@@ -128,15 +147,6 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
       data-closing={closing}
       aria-labelledby="agent-dialog-name"
       aria-describedby="agent-dialog-pitch"
-      onKeyDown={(e) => {
-        if (e.key === "ArrowRight") {
-          e.preventDefault();
-          go(1);
-        } else if (e.key === "ArrowLeft") {
-          e.preventDefault();
-          go(-1);
-        }
-      }}
       onClick={(e) => {
         if (e.target === dialog.current) requestClose();
       }}
@@ -149,9 +159,9 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
           if (e.target === panel.current && closing) dialog.current?.close();
         }}
       >
-        {agent && def && (
+        {agent && (
           <div
-            key={agent.type}
+            key={agent.key}
             className={styles.body}
             data-direction={direction}
             style={{ "--tint-a": agent.tint[0], "--tint-b": agent.tint[1] } as React.CSSProperties}
@@ -161,7 +171,7 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
                 <header className={styles.hero}>
                   <div className={styles.portrait} aria-hidden="true">
                     {/* eslint-disable-next-line @next/next/no-img-element -- transparent cut-out */}
-                    <img src={def.image} alt="" />
+                    <img src={agent.image} alt="" />
                   </div>
                   <div className={styles.identity}>
                     <p className={styles.status}>
@@ -206,12 +216,12 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
                 </p>
               </section>
 
-              <section className={styles.demo} aria-label={`Démonstration : ${agent.demo}`}>
+              <section className={styles.demo} aria-label={`Démonstration : ${agent.demo.title}`}>
                 <h3 className={styles.demoTitle}>
                   <span>{agent.name} en action</span>
-                  {agent.demo}
+                  {agent.demo.title}
                 </h3>
-                <DemoStage type={agent.type} run={run} reduced={reduced} />
+                <DemoStage demo={agent.demo} run={run} reduced={reduced} />
                 <div className={styles.demoFoot}>
                   <p className={styles.demoNote}>Démonstration illustrative, données fictives.</p>
                   <button type="button" className={styles.replay} onClick={() => setRun((r) => r + 1)}>
@@ -228,8 +238,8 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
                   <ChevronLeft size={18} />
                 </button>
                 <ul className={styles.team}>
-                  {TEAM.map((t, i) => (
-                    <li key={t.type}>
+                  {group.map(({ a: t, i }) => (
+                    <li key={t.key}>
                       <button
                         type="button"
                         data-active={i === index}
@@ -242,7 +252,7 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
                         }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element -- avatar */}
-                        <img src={AGENTS[t.type].avatar} alt="" width={34} height={34} />
+                        <img src={t.avatar} alt="" width={34} height={34} />
                       </button>
                     </li>
                   ))}
@@ -256,7 +266,7 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
                 className={styles.cta}
                 onClick={(e) => {
                   e.preventDefault();
-                  pendingContact.current = { source: "agent", need: agent.type };
+                  pendingContact.current = agent.contact;
                   requestClose();
                 }}
               >

@@ -720,6 +720,26 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - `sessionStorage d2s:gpu-trouble` : après une perte de contexte WebGL, l'onglet reste plafonné en medium (1
   incident) ou low (2) jusqu'à sa fermeture → peut aussi expliquer « jamais high » (l'utilisateur l'a effacé).
 
+## Hub app.d2saigency.com (24/09) — dépôt séparé `../d2s-app`
+- Décision : hub (admin + portail client) dans un projet à part (`/Users/rudysaksik/Desktop/Projets/IA/d2s-app`,
+  Next 16 + Supabase), sa propre mémoire (`d2s-app/memory.md`). Agents = template NAIOM (`../naiom-hub`, fourni par
+  Brain Ecosystème). Socle écrit, Supabase `app-d2saigency` en place (eu-west-1), testé de bout en bout, refonte
+  design « le QG » faite (24/09) ; compte admin de Rudy activé. Pas encore en ligne ni sur GitHub. Lancement :
+  config `d2s-app` du launch.json (port 3400). Détails dans `d2s-app/memory.md`.
+- Étape 2 faite (24/09) : les agents tournent dans le hub (Claude, conversations, livrables, profil de marque,
+  documents, coût IA par client), agents renommés comme le site (Déa, May, Diva, Morgan + Loic). Reste la clé
+  ANTHROPIC_API_KEY du hub (par l’utilisateur) et les vrais essais.
+- PR #7 (#418 + qualité high) : build Cloudflare OK le 24/09 (18:06 UTC), en prod ; clone local repassé sur `main`.
+- 25/09 : studios des agents (6), puis les 10 agents « à enrichir » réécrits avec le savoir des guides Zeyneb & Maxim
+  (pipelines complets, tous « prêt »), Noam aiguilleur (−66 % sur son 1er message), premiers VRAIS essais avec la clé
+  Claude du hub (0,35 $ au total). Puis fiche prospect refaite, page Configuration (secrets chiffrés + « Vérifier »,
+  migration 0004 exécutée) et envoi des e-mails de May depuis le hub (SMTP). Détails dans `d2s-app/memory.md`.
+- 25/09 (suite) : « plateforme complète » NAIOM portée dans le hub en 7 phases, design D2S gardé : logique des agents
+  fusionnée + Clément (cerveau), May (détection en direct, score, coulisses), Victor (sources, lien suivi, onglet Suivi),
+  Chloé (dashboard Airtable, relances, facture PDF), Mia (Studio créa Higgsfield + Miniatures Gemini), Clément (graphe des
+  vraies données + actions réelles), decks en diapositives + tableau d’Inès + onglet Analytics. Migrations 0005 → 0009
+  exécutées. Rien de commité. Détails dans `d2s-app/memory.md`.
+
 ## En cours / à faire
 - Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
   NS IONOS → matt / wanda.ns.cloudflare.com. Zone : 5 CNAME DNS only (autodiscover, _dmarc, _domainconnect,
@@ -745,3 +765,53 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   Calendly (desktop + mobile), contact direct du menu, indice de scroll, étiquettes des agents, RGPD.
 - 581dd1c (poussé sur main, 21/09) : halo + « AI » animé en 3D, méthode pilotée par le scroll, RGPD
   (pages légales), sécurité (en-têtes, API), SEO + IA (métadonnées, JSON-LD, FAQ, llms.txt, robots, sitemap).
+
+## « Toute l'équipe » : 11 agents de plus en 2D (27/09, branche `feat/agents-equipe-complete`, non commité)
+- Demande : ajouter les nouveaux agents (ceux du hub) à la liste des agents du site, PAS en 3D, en 2D avec image et
+  détails poussés, SANS PRIX. Desktop uniquement (la version mobile n'est pas touchée : règle ChatGPT).
+- `TEAM` (lib/team.ts) INCHANGÉ (il pilote la 3D, le diagnostic, May, le mobile, le JSON-LD). Nouveau
+  `lib/team-more.ts` (`MORE_TEAM` : Jules, Victor, Antoine, Mia, Nina, Emma, Inès, Chloé, Hugo, Clément, Noam ; pôle,
+  accroche, pitch, 5 missions, canaux, garde-fou, exemple « Concrètement » situation → étapes → résultat, teinte) et
+  `lib/team-all.ts` (`ALL_AGENTS` = les 5 avec leur démo + les 11 avec leur exemple, pour la fenêtre de fiche).
+- `AgentsSection` : sous les 5 cartes, bloc « Toute l'équipe · Onze autres experts, prêts à rejoindre la vôtre. »,
+  filtres par pôle (Tous · Vente · Contenu & marketing · Opérations & finance · Pilotage), grille de 4 cartes (portrait
+  en pied, prénom toujours visible, rôle, accroche). `AgentDialog` généralisé : ← / → parcourent les 16 ; pied = avatars
+  du groupe de l'agent (5 ou 11) ; à droite, démo en direct pour les 5, sinon `ExampleStage` (situation, étapes animées,
+  agent au travail avec barre → « Terminé ✓ », résultat ; « Rejouer ») ; « Recruter {prénom} » → contact avec besoin
+  « Je ne sais pas encore » et le message « {prénom} ({rôle}) m'intéresse… ».
+- Images : `node scripts/build-team-extra.mjs [dossier]` (par défaut ../d2s-app/design/agents) → public/images/agents/
+  <slug>.webp (rognées, 1150 px, 75–140 Ko) + <slug>-avatar.webp (buste sur disque pâle, 128 px, NUDGE Emma).
+- Vérifié (Playwright, 1440×900) : 11 cartes, filtre Vente = 2, fiches Jules / Chloé (exemple animé, « Terminé »),
+  May garde sa démo (5 avatars au pied), « Recruter Nina » pré-remplit le message, mobile sans la section, 0 erreur.
+- Non fait : JSON-LD / llms.txt (le HTML prérendu est le mobile : ne pas y déclarer des agents qu'il n'affiche pas).
+- DÉMOS RÉALISTES (27/09, « les démos laissent à désirer ») : le panneau « Concrètement » est remplacé par une vraie
+  démo par agent (`components/overlays/AgentDemosMore.tsx` + `.module.css`) : une mini-interface du métier sur un cas
+  concret — Jules (visio → citations → BANT → objection → 72 % → relance), Victor (analyse → proposition PR-2026-014, 3
+  options SANS prix → PDF → « Claire a ouvert »), Antoine (idée → objectif → concurrents → cible → message → briefs Déa/
+  Mia/May), Mia (titre → concepts → 3 miniatures générées → choisie), Nina (recherche → 4 reels et vues → transcription →
+  pourquoi → idées pour Déa), Emma (fiche → script → avatar → rendu 9:16), Inès (boîte → tags → priorités → brouillon),
+  Chloé (encaissé/en attente/en retard → retards J+12/34/61 → relance ferme/2e → PDF → envoyées), Hugo (brief → slide
+  chiffres clés → 6 slides), Clément (question → graphe → réponse sourcée), Noam (objectif → chaîne Antoine → May →
+  Jules → Victor). « Démonstration illustrative, données fictives ».
+- FRISE DU PROCESSUS (desktop) sous l'écran de CHAQUE démo (les 16) : étapes avec leur temps, chrono qui défile,
+  « Terminé en … » (Jules 24 s, Victor 31 s — ordres de grandeur mesurés dans le hub —, Emma 3 min 38 s car rendu vidéo,
+  Nina 1 min 38 s car collecte Instagram…). `AgentDemos.tsx` exporte ses aides (useSequence, Typewriter, CountUp,
+  narrate, Frame, Typing, DemoProps, ProcessDef) ; `Frame` accepte `process` + `step` (et `avatar`) ; `DemoProps.timeline`
+  n'est passé QUE par la fiche desktop → la version MOBILE garde ses démos à l'identique (vérifié : pas de frise).
+  Sur écran court, l'écran de la démo suit le dernier élément apparu (défilement doux, seulement avec la frise).
+- Fiche : colonne de démo COLLANTE (sticky, hauteur = zone visible au-dessus du pied) → démo et frise toujours visibles
+  (16/16 à 1280×720, 1440×900, 1920×1080), seule la colonne de gauche défile. BUG corrigé : ← / → ne marchaient qu'une
+  fois (l'élément focalisé disparaît au changement de fiche) → écouteur sur la fenêtre tant que la fiche est ouverte.
+
+## Présentation pendant le chargement (27/09, branche `feat/agents-equipe-complete`, non commité)
+- Demande : « beaucoup de personnes trouvent le chargement lent » → une présentation automatique de D2S pendant le
+  chargement (durée PERÇUE). `SiteLoader` garde toute sa logique (progression réelle, calibration, portes) ; affichage
+  refait : logo qui se remplit EN HAUT, 5 slides au centre (Bienvenue · « D2S AIgency, l'agence des agents IA » + les 5
+  avatars ; « Seize experts, un métier chacun » + les 16 avatars ; « Ils travaillent là où vous travaillez » + outils ;
+  « Ils préparent. Vous validez. » + carte « Valider et envoyer » ; « Entrez dans l'agence. » + portes qui s'ouvrent),
+  2,8 s chacune, puis reprise à la 2ᵉ ; en bas : points de progression, étape de chargement + %, barre. Transitions
+  séquencées (sortie 0,3 s, entrée après 0,32 s : jamais deux slides superposées), trait des portes atténué pendant les
+  slides, mouvement réduit = fondus. Aucun chiffre promis.
+- Vérifié en connexion bridée (~4 Mbit/s) : les 5 slides défilent puis bouclent, 0 erreur.
+- Limite : avant le loader, l'écran d'attente de `AdaptiveHome` (« Chargement de l'agence », zone MOBILE protégée)
+  reste affiché le temps de télécharger le code du bureau (~5 s en connexion bridée) : les slides ne démarrent qu'après.

@@ -50,31 +50,21 @@
   transition: opacity 0.4s var(--ease-out);
 }
 
-/* ——— Centre block ——— */
-.center {
-  position: relative;
-  /* Own stacking context: its halo (::before, z −1) paints above the doors and the seam. */
+/* ——— Brand: the logo fills with the progress, at the top ——— */
+.brand {
+  position: absolute;
+  top: clamp(28px, 6vh, 64px);
+  left: 50%;
   z-index: 1;
-  display: grid;
-  justify-items: center;
+  translate: -50% 0;
   transition:
     opacity 0.45s var(--ease-out),
-    translate 0.6s var(--ease-out),
-    scale 0.6s var(--ease-out);
-}
-
-/* The logo sits on the seam: a soft white halo keeps it on a clean ground. */
-.center::before {
-  content: "";
-  position: absolute;
-  inset: -70px -110px;
-  z-index: -1;
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0));
+    translate 0.6s var(--ease-out);
 }
 
 .logo {
   position: relative;
-  width: var(--logo-w);
+  width: clamp(130px, 11vw, 170px);
   aspect-ratio: 344 / 147;
 }
 
@@ -108,17 +98,321 @@
   transition: opacity 0.5s var(--ease-out);
 }
 
+/* ——— Stage: the presentation, one slide at a time ——— */
+.stage {
+  position: relative;
+  z-index: 1;
+  width: min(780px, calc(100vw - 96px));
+  height: min(430px, 62vh);
+  transition:
+    opacity 0.45s var(--ease-out),
+    translate 0.6s var(--ease-out),
+    scale 0.6s var(--ease-out);
+}
+
+/* A soft white halo keeps the text on a clean ground over the seam. */
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: -60px -120px;
+  z-index: -1;
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0));
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  opacity: 0;
+  translate: 36px 0;
+  /* Leaving: quick, so two slides never overlap. */
+  transition:
+    opacity 0.3s ease-in,
+    translate 0.4s ease-in;
+  pointer-events: none;
+}
+
+.slide[data-past="true"] {
+  translate: -36px 0;
+}
+
+/* Arriving: once the previous one has gone. */
+.slide[data-active="true"] {
+  opacity: 1;
+  translate: 0 0;
+  transition:
+    opacity 0.6s var(--ease-out) 0.32s,
+    translate 0.8s var(--ease-out) 0.32s;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.9);
+  box-shadow: 0 10px 24px -16px rgb(11 18 56 / 0.35);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+
+.kicker span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #2a86ff, #0b38a0);
+  font-size: 11px;
+  letter-spacing: 0;
+  color: #fff;
+}
+
+.title {
+  max-width: 17ch;
+  margin: 22px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 3.6vw, 52px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  background: linear-gradient(90deg, #0b1238 0%, #1a3fb0 70%, #1570f0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text {
+  max-width: 46ch;
+  margin: 16px 0 0;
+  font-family: var(--font-body);
+  font-size: clamp(15px, 1.2vw, 18px);
+  line-height: 1.55;
+  color: var(--text);
+}
+
+/* ——— One visual per slide ——— */
+.visual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 72px;
+  margin-top: 30px;
+}
+
+.visual img,
+.tool {
+  opacity: 0;
+  translate: 0 10px;
+  transition:
+    opacity 0.45s var(--ease-out),
+    translate 0.5s var(--ease-out);
+  transition-delay: calc(0.35s + var(--k) * 60ms);
+}
+
+.slide[data-active="true"] .visual img,
+.slide[data-active="true"] .tool {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.visual[data-visual="team"] img {
+  width: 64px;
+  height: 64px;
+  margin: 0 -6px;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px #fff,
+    0 14px 28px -14px rgb(11 18 56 / 0.5);
+}
+
+.visual[data-visual="all"] {
+  max-width: 460px;
+  gap: 8px;
+}
+
+.visual[data-visual="all"] img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 10px 20px -12px rgb(11 18 56 / 0.5);
+  transition-delay: calc(0.3s + var(--k) * 35ms);
+}
+
+.tool {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(11 18 56 / 0.07),
+    0 10px 22px -16px rgb(11 18 56 / 0.4);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.approve {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 12px 12px 18px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(11 18 56 / 0.06),
+    0 18px 36px -22px rgb(11 18 56 / 0.5);
+  opacity: 0;
+  translate: 0 10px;
+  transition:
+    opacity 0.45s var(--ease-out) 0.35s,
+    translate 0.5s var(--ease-out) 0.35s;
+}
+
+.slide[data-active="true"] .approve {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.approveLine {
+  display: grid;
+  gap: 6px;
+  width: 190px;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-soft);
+}
+
+.approveLine b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.approveLine i {
+  height: 6px;
+  border-radius: 4px;
+  background: rgb(11 18 56 / 0.08);
+}
+
+.approveLine i + i {
+  width: 70%;
+}
+
+.approveButton {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: linear-gradient(140deg, #2a86ff, #0b38a0);
+  box-shadow: 0 12px 24px -12px rgb(21 112 240 / 0.9);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  animation: approve 2.8s var(--ease-out) infinite;
+}
+
+@keyframes approve {
+  0%,
+  55% {
+    scale: 1;
+  }
+  62% {
+    scale: 0.94;
+  }
+  70%,
+  100% {
+    scale: 1;
+  }
+}
+
+/* The last slide: two door leaves that part, a nod to the façade. */
+.doors {
+  position: relative;
+  display: flex;
+  width: 120px;
+  height: 72px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1a3fb0, #1570f0);
+  box-shadow: 0 16px 30px -18px rgb(11 18 56 / 0.6);
+}
+
+.doors i {
+  flex: 1;
+  background: linear-gradient(180deg, #eef3fb, #d9e3f3);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.8);
+  transition: translate 1.2s var(--ease-out) 0.5s;
+}
+
+.slide[data-active="true"] .doors i:first-child {
+  translate: -70% 0;
+}
+
+.slide[data-active="true"] .doors i:last-child {
+  translate: 70% 0;
+}
+
+/* ——— Foot: which slide, the loading step and the counter ——— */
+.foot {
+  position: absolute;
+  bottom: clamp(26px, 6vh, 56px);
+  left: 50%;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  translate: -50% 0;
+  transition: opacity 0.45s var(--ease-out);
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.dots li {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgb(11 18 56 / 0.14);
+  transition:
+    width 0.4s var(--ease-out),
+    background 0.4s var(--ease-out);
+}
+
+.dots li[data-active="true"] {
+  width: 24px;
+  background: var(--blue);
+}
+
 .label {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin: 34px 0 0;
+  margin: 0;
   font-family: var(--font-body);
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.26em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--ink);
+  color: var(--ink-soft);
 }
 
 .percent {
@@ -131,11 +425,11 @@
 
 .bar {
   position: relative;
-  width: 180px;
-  height: 2px;
-  margin-top: 14px;
+  width: 260px;
+  height: 3px;
+  margin-top: 12px;
   overflow: hidden;
-  border-radius: 2px;
+  border-radius: 3px;
   background: rgb(11 18 56 / 0.08);
 }
 
@@ -149,13 +443,9 @@
   scale: var(--p) 1;
 }
 
-.step {
-  min-height: 1.5em;
-  margin: 14px 0 0;
-  font-family: var(--font-body);
-  font-size: 12.5px;
-  font-weight: 400;
-  color: var(--text);
+/* While the slides play, the doors' seam stays discreet (it would cross the text). */
+.loader[data-phase="loading"] .seam {
+  opacity: 0.25;
 }
 
 /* ——— Welcome: logo complete, edge light dims ——— */
@@ -168,15 +458,24 @@
   color: var(--ink);
 }
 
+/* Ready: the presentation steps back, « Bienvenue » under the complete logo. */
+.loader[data-phase="welcome"] .stage {
+  opacity: 0;
+  scale: 0.98;
+}
+
 /* ——— Opening: the logo lifts away, the doors slide apart ——— */
 .loader[data-phase="opening"] {
   pointer-events: none;
 }
 
-.loader[data-phase="opening"] .center {
+.loader[data-phase="opening"] :is(.stage, .foot) {
   opacity: 0;
-  translate: 0 -10px;
-  scale: 1.04;
+}
+
+.loader[data-phase="opening"] .brand {
+  opacity: 0;
+  translate: -50% -10px;
 }
 
 .loader[data-phase="opening"] .seam {
@@ -193,7 +492,6 @@
 
 @media (max-width: 767px) {
   .label {
-    margin-top: 26px;
     font-size: 10px;
   }
 }
@@ -201,8 +499,23 @@
 /* Reduced motion: no sliding, a short cross-fade. */
 @media (prefers-reduced-motion: reduce) {
   .door,
-  .center {
+  .stage,
+  .brand,
+  .foot {
     transition: opacity 0.45s linear;
+  }
+
+  .slide,
+  .visual img,
+  .tool,
+  .approve,
+  .doors i {
+    translate: none !important;
+    transition: opacity 0.3s linear;
+  }
+
+  .approveButton {
+    animation: none;
   }
 
   .loader[data-phase="opening"] .door[data-side="left"],
@@ -211,8 +524,7 @@
     opacity: 0;
   }
 
-  .loader[data-phase="opening"] .center {
-    translate: none;
-    scale: none;
+  .loader[data-phase="opening"] .brand {
+    translate: -50% 0;
   }
 }
