@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { NEED_IDS } from "@/lib/contact-content";
 import { bookSlot } from "@/lib/server/calendly";
 import { ResendConfigurationError, sendContactEmails, type ContactLead } from "@/lib/server/resend";
 
@@ -9,7 +10,6 @@ import { ResendConfigurationError, sendContactEmails, type ContactLead } from "@
  * CONTACT_WEBHOOK_URL remains an optional secondary CRM/automation hand-off.
  */
 
-const NEEDS = ["content", "support", "prospection", "automation", "data", "custom", "unsure"];
 const CHANNELS = ["visio", "phone", "email"];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MAX_BODY_BYTES = 16_000;
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     company: text(body.company, 160),
     phone: text(body.phone, 40),
     message: text(body.message, 4_000),
-    need: NEEDS.includes(String(body.need)) ? String(body.need) : "unsure",
+    need: (NEED_IDS as string[]).includes(String(body.need)) ? String(body.need) : "unsure",
     channel: CHANNELS.includes(String(body.channel)) ? String(body.channel) : "visio",
     source: text(body.source, 40),
     diagnostic: Array.isArray(body.diagnostic) ? body.diagnostic.slice(0, 8).map((line) => text(line, 200)) : [],

@@ -12,7 +12,6 @@ import {
   type NeedId,
 } from "@/lib/contact-content";
 import { PRIVACY_HREF } from "@/lib/legal";
-import { TEAM } from "@/lib/team";
 import { SlotPicker, type PickedSlot } from "@/components/overlays/SlotPicker";
 import type { MobileContactIntent } from "./mobile-navigation";
 import styles from "./MobileHome.module.css";
@@ -266,14 +265,19 @@ export function MobileContact({
                 value={values.need}
                 onChange={(e) => update("need", e.target.value as NeedId)}
               >
-                {NEEDS.map((need) => (
+                {NEEDS.filter((need) => !need.team).map((need) => (
                   <option key={need.id} value={need.id}>
                     {need.label}
-                    {need.agent
-                      ? ` · ${TEAM.find((person) => person.type === need.agent)?.name}`
-                      : ""}
+                    {need.name ? ` · ${need.name}` : ""}
                   </option>
                 ))}
+                <optgroup label="Toute l’équipe">
+                  {NEEDS.filter((need) => need.team).map((need) => (
+                    <option key={need.id} value={need.id}>
+                      {need.label} · {need.name}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
             <div className={styles.field}>

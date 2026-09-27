@@ -4,8 +4,25 @@
  * Kept apart from TEAM (lib/team.ts), which drives the 3D world, the diagnostic, May and the mobile version.
  */
 
+/** The eleven, in display order (their keys everywhere: images, demos, the diagnostic). */
+export const MORE_SLUGS = [
+  "fireflies",
+  "proposition",
+  "strategiste",
+  "designer",
+  "veille",
+  "ecommerce",
+  "gmail",
+  "comptabilite",
+  "presentateur",
+  "cerveau",
+  "orchestrateur",
+] as const;
+
+export type MoreSlug = (typeof MORE_SLUGS)[number];
+
 export interface MoreAgent {
-  slug: string;
+  slug: MoreSlug;
   name: string;
   role: string;
   pole: PoleId;
@@ -262,4 +279,15 @@ export const MORE_TEAM: MoreAgent[] = [
     tint: ["#e6efff", "#d4e2fd"],
     ...img("orchestrateur"),
   },
+];
+
+/*
+ * Mobile (« Nos agents IA »): the rest of the team in a few lines instead of eleven cards — one concrete sentence
+ * per pole, with the faces of who does it.
+ */
+export const MORE_BY_POLE: { pole: PoleId; label: string; agents: string[]; text: string }[] = [
+  { pole: "commercial", label: "Vente", agents: ["fireflies", "proposition"], text: "Jules analyse vos rendez-vous, Victor rédige vos propositions commerciales." },
+  { pole: "marketing", label: "Contenu & marketing", agents: ["strategiste", "designer", "veille", "ecommerce"], text: "Antoine pose votre stratégie, Mia crée vos visuels, Nina repère les tendances, Emma produit vos vidéos produit." },
+  { pole: "operations", label: "Opérations & finance", agents: ["gmail", "comptabilite", "presentateur"], text: "Inès trie vos e-mails, Chloé suit et relance vos factures, Hugo monte vos présentations." },
+  { pole: "pilotage", label: "Pilotage", agents: ["cerveau", "orchestrateur"], text: "Clément retrouve toute l’information de l’entreprise, Noam coordonne l’équipe." },
 ];

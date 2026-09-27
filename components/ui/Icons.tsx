@@ -264,3 +264,26 @@ export const Package = ({ size = 16, ...p }: IconProps) => (
     <path d="m4 7 8 4 8-4M12 11v10" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
   </svg>
 );
+
+export const Picture = ({ size = 20, ...p }: IconProps) => (
+  <svg {...base(size, p)}>
+    <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+    <circle cx="9" cy="9.5" r="1.8" fill="currentColor" />
+    <path d="m4 17.5 5-4.5 3.5 3 3-2.5 4.5 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const Receipt = ({ size = 20, ...p }: IconProps) => (
+  <svg {...base(size, p)}>
+    <path d="M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4v-17Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M9 8.5h6M9 12h6M9 15.5h3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+export const Slides = ({ size = 20, ...p }: IconProps) => (
+  <svg {...base(size, p)}>
+    <rect x="3" y="4" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M12 16v3.5M8.5 20.5h7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M7.5 12.5v-2M11 12.5V8M14.5 12.5v-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);

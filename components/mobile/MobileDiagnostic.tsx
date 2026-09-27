@@ -8,13 +8,16 @@ import {
   Replay,
   Sparkle,
 } from "@/components/ui/Icons";
+import { agentCard } from "@/lib/agent-directory";
 import {
+  activeQuestions,
   buildResult,
   CUSTOM_STEPS,
   diagnosticSummary,
-  FEMININE,
   hoursSentence,
-  QUESTIONS,
+  optionsFor,
+  resultNeed,
+  withAnswer,
   type Answers,
   type DiagnosticResult,
 } from "@/lib/diagnostic";
@@ -35,11 +38,15 @@ export function MobileDiagnostic({
   const [changed, setChanged] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const card = useRef<HTMLDivElement>(null);
-  const question = QUESTIONS[step];
+  const questions = activeQuestions(answers);
+  const question = questions[Math.min(step, questions.length - 1)];
+  const options = optionsFor(question, answers);
   const selected = answers[question.id] ?? [];
-  const recommended = result
-    ? TEAM.find((person) => person.type === result.agent)!
-    : null;
+  const recommended = result ? agentCard(result.agent) : null;
+  // The five of the 3D world have a profile window on mobile; the others are presented in the result itself.
+  const profile = result
+    ? TEAM.find((person) => person.type === result.agent)
+    : undefined;
 
   useEffect(() => {
     if (!changed) return;
@@ -58,7 +65,7 @@ export function MobileDiagnostic({
         ? selected.filter((value) => value !== id)
         : [...selected, id]
       : [id];
-    setAnswers((previous) => ({ ...previous, [question.id]: values }));
+    setAnswers((previous) => withAnswer(previous, question.id, values));
   };
 
   return (
@@ -78,7 +85,8 @@ export function MobileDiagnostic({
             <span>pour vous ?</span>
           </h2>
           <p className={styles.lead}>
-            4 questions pour trouver votre point de départ.
+            Quelques questions pour trouver, parmi nos 16 agents, votre
+            point de départ.
           </p>
         </div>
         <div ref={card} className={styles.quizCard} data-reveal>
@@ -88,16 +96,16 @@ export function MobileDiagnostic({
                 e.preventDefault();
                 if (!selected.length) return;
                 setChanged(true);
-                if (step < QUESTIONS.length - 1) setStep(step + 1);
+                if (step < questions.length - 1) setStep(step + 1);
                 else setResult(buildResult(answers));
               }}
             >
               <div className={styles.quizProgress}>
                 <span aria-live="polite">
-                  Question <strong>{step + 1}</strong> sur {QUESTIONS.length}
+                  Question <strong>{step + 1}</strong> sur {questions.length}
                 </span>
                 <div aria-hidden="true">
-                  {QUESTIONS.map((item, i) => (
+                  {questions.map((item, i) => (
                     <span key={item.id} data-done={i <= step} />
                   ))}
                 </div>
@@ -118,7 +126,7 @@ export function MobileDiagnostic({
                 aria-labelledby="mobile-question-title"
                 aria-describedby="mobile-question-help"
               >
-                {question.options.map((option) => (
+                {options.map((option) => (
                   <label
                     key={option.id}
                     className={styles.option}
@@ -157,7 +165,7 @@ export function MobileDiagnostic({
                   className={styles.primary}
                   disabled={!selected.length}
                 >
-                  {step === QUESTIONS.length - 1
+                  {step === questions.length - 1
                     ? "Voir mon résultat"
                     : "Continuer"}
                   <ArrowRight size={18} />
@@ -196,7 +204,7 @@ export function MobileDiagnostic({
                   <div className={styles.resultAgent}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`/images/agents/${recommended!.type}-avatar.webp`}
+                      src={recommended!.avatar}
                       alt=""
                       width={72}
                       height={72}
@@ -205,22 +213,31 @@ export function MobileDiagnostic({
                       <h3 ref={heading} tabIndex={-1}>
                         {recommended!.name},{" "}
                         {result.outcome === "adapted"
-                          ? `adapté${FEMININE[result.agent] ? "e" : ""} à vos règles.`
+                          ? `adapté${recommended!.feminine ? "e" : ""} à vos règles.`
                           : "à vos côtés."}
                       </h3>
                       <p>{recommended!.role}</p>
                     </div>
                   </div>
                   <p>{recommended!.blurb}</p>
+                  {!profile && (
+                    <ul className={styles.resultMissions}>
+                      {recommended!.missions.slice(0, 3).map((mission) => (
+                        <li key={mission}>{mission}</li>
+                      ))}
+                    </ul>
+                  )}
                   <p className={styles.resultControl}>{recommended!.control}</p>
-                  <button
-                    type="button"
-                    className={styles.secondary}
-                    onClick={() => onAgent(recommended!)}
-                  >
-                    Découvrir {recommended!.name}
-                    <ChevronRight size={18} />
-                  </button>
+                  {profile && (
+                    <button
+                      type="button"
+                      className={styles.secondary}
+                      onClick={() => onAgent(profile)}
+                    >
+                      Découvrir {recommended!.name}
+                      <ChevronRight size={18} />
+                    </button>
+                  )}
                 </>
               )}
               <div className={styles.estimate}>
@@ -247,9 +264,10 @@ export function MobileDiagnostic({
               </details>
               {result.duo && (
                 <p>
-                  En complément :{" "}
-                  {TEAM.find((person) => person.type === result.duo)?.name} peut
-                  prendre le relais sur d’autres tâches.
+                  Idéal en duo avec {agentCard(result.duo).name},{" "}
+                  {agentCard(result.duo).role.charAt(0).toLowerCase() +
+                    agentCard(result.duo).role.slice(1)}
+                  .
                 </p>
               )}
               <button
@@ -258,7 +276,7 @@ export function MobileDiagnostic({
                 onClick={() =>
                   onContact({
                     source: "mobile-diagnostic",
-                    need: result.outcome === "custom" ? "custom" : result.agent,
+                    need: resultNeed(result),
                     diagnostic: diagnosticSummary(answers, result),
                   })
                 }

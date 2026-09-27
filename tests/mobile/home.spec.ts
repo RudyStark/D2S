@@ -163,10 +163,12 @@ async function answer(page: Page, label: string, last = false) {
     .click();
 }
 
+// Field of work, then the precise task (none for « Autre chose »), time, tools, process.
 for (const scenario of [
   {
     name: "ready",
-    task: "Trouver des clients",
+    area: "Vendre",
+    task: "Trouver de nouveaux clients",
     tools: "CRM",
     process: "Classique",
     need: "prospection",
@@ -174,7 +176,8 @@ for (const scenario of [
   },
   {
     name: "adapted",
-    task: "Trouver des clients",
+    area: "Vendre",
+    task: "Trouver de nouveaux clients",
     tools: "Logiciel métier",
     process: "Quelques spécificités",
     need: "prospection",
@@ -182,18 +185,29 @@ for (const scenario of [
   },
   {
     name: "custom",
-    task: "Autre chose",
+    area: "Autre chose",
+    task: null,
     tools: "Logiciel métier",
     process: "Unique à notre métier",
     need: "custom",
     result: "Un agent sur mesure, autour de votre métier.",
+  },
+  {
+    name: "rest of the team",
+    area: "Vendre",
+    task: "Rédiger vos propositions commerciales",
+    tools: "Documents",
+    process: "Classique",
+    need: "proposition",
+    result: "Victor, à vos côtés.",
   },
 ])
   test(`diagnostic ${scenario.name} produces a result and carries the answers to contact`, async ({
     page,
   }) => {
     await page.goto("/#comment-choisir");
-    await answer(page, scenario.task);
+    await answer(page, scenario.area);
+    if (scenario.task) await answer(page, scenario.task);
     await answer(page, "2 à 10 h");
     await answer(page, scenario.tools);
     await answer(page, scenario.process, true);
@@ -215,13 +229,18 @@ for (const scenario of [
 
 test("diagnostic back navigation preserves choices", async ({ page }) => {
   await page.goto("/#comment-choisir");
-  await answer(page, "Créer du contenu");
-  await page
+  await answer(page, "Contenu et marketing");
+  await answer(page, "Créer vos visuels");
+  const back = page
     .locator("#comment-choisir")
-    .getByRole("button", { name: "Retour", exact: true })
-    .click();
+    .getByRole("button", { name: "Retour", exact: true });
+  await back.click();
   await expect(
-    page.getByLabel("Créer du contenu", { exact: false }),
+    page.getByLabel("Créer vos visuels", { exact: false }),
+  ).toBeChecked();
+  await back.click();
+  await expect(
+    page.getByLabel("Contenu et marketing", { exact: false }),
   ).toBeChecked();
 });
 

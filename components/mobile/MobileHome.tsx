@@ -32,6 +32,7 @@ import {
 } from "@/lib/services";
 import { FAQ } from "@/lib/site";
 import { TEAM, type AgentProfile } from "@/lib/team";
+import { MORE_BY_POLE, MORE_TEAM } from "@/lib/team-more";
 import { LEGAL_HREF, PRIVACY_HREF } from "@/lib/legal";
 import { MobileAgentDialog } from "./MobileAgentDialog";
 import { MobileContact } from "./MobileContact";
@@ -527,7 +528,7 @@ export default function MobileHome() {
                 <span>Vos ambitions.</span>
               </h2>
               <p className={styles.lead}>
-                Cinq expertises complémentaires pour couvrir vos besoins.
+                Cinq agents phares, et toute une équipe derrière eux.
               </p>
             </div>
             <ul className={styles.agentList}>
@@ -566,6 +567,42 @@ export default function MobileHome() {
                 </li>
               ))}
             </ul>
+            {/* The rest of the team: a few concrete lines, not eleven more cards. */}
+            <div className={styles.moreTeam} data-reveal>
+              <div className={styles.moreHead}>
+                <span className={styles.moreStack} aria-hidden="true">
+                  {MORE_TEAM.slice(0, 5).map((a) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={a.slug} src={a.avatar} alt="" width={34} height={34} loading="lazy" />
+                  ))}
+                  <b>+{MORE_TEAM.length - 5}</b>
+                </span>
+                <span>
+                  <strong>+{MORE_TEAM.length} experts dans l’équipe</strong>
+                  Chacun a son métier précis, et ils se passent le relais.
+                </span>
+              </div>
+              <ul className={styles.morePoles}>
+                {MORE_BY_POLE.map((p) => (
+                  <li key={p.pole}>
+                    <span className={styles.morePole}>
+                      <strong>{p.label}</strong>
+                      <span className={styles.moreFaces} aria-hidden="true">
+                        {p.agents.map((slug) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img key={slug} src={`/images/agents/${slug}-avatar.webp`} alt="" width={24} height={24} loading="lazy" />
+                        ))}
+                      </span>
+                    </span>
+                    <p>{p.text}</p>
+                  </li>
+                ))}
+              </ul>
+              <a href="#comment-choisir" className={styles.moreLink} onClick={(e) => anchorClick(e, "comment-choisir")}>
+                Trouver l’agent qu’il vous faut
+                <ChevronRight />
+              </a>
+            </div>
             <p className={styles.control}>
               <People size={26} />
               <span>

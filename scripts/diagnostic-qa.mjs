@@ -10,10 +10,14 @@ const tag = args.includes("--tag") ? args[args.indexOf("--tag") + 1] : "current"
 const out = path.join(root, "design/captures/diagnostic-qa", tag);
 mkdirSync(out, { recursive: true });
 
+// area → precise task (skipped for « other ») → time → tools → process.
 const SCENARIOS = {
-  ready: { task: "content", time: "mid", tools: ["social", "mail"], process: "standard" },
-  adapted: { task: "support", time: "high", tools: ["chat", "crm", "software"], process: "specific" },
-  custom: { task: "other", time: "high", tools: ["software", "sheet"], process: "unique" },
+  ready: { area: "marketing", task: "content", time: "mid", tools: ["social", "mail"], process: "standard" },
+  adapted: { area: "clients", task: "support", time: "high", tools: ["chat", "crm", "software"], process: "specific" },
+  custom: { area: "other", time: "high", tools: ["software", "sheet"], process: "unique" },
+  victor: { area: "sales", task: "proposals", time: "mid", tools: ["crm", "docs"], process: "standard" },
+  chloe: { area: "admin", task: "billing", time: "low", tools: ["sheet", "mail"], process: "specific" },
+  noam: { area: "team", task: "orchestration", time: "high", tools: ["mail"], process: "standard" },
 };
 
 const browser = await chromium.launch({ args: ["--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist"] });
@@ -56,9 +60,14 @@ for (const [name, s] of Object.entries(SCENARIOS)) {
     await page.getByRole("button", { name: "Refaire le diagnostic" }).click();
     await wait(900);
   }
-  await pick(s.task);
+  await pick(s.area);
   await wait(800);
-  if (first) await page.screenshot({ path: path.join(out, "1-task.png") });
+  if (first) await page.screenshot({ path: path.join(out, "1-area.png") });
+  if (s.task) {
+    await pick(s.task);
+    await wait(800);
+    if (first) await page.screenshot({ path: path.join(out, "2-task.png") });
+  }
   await pick(s.time);
   await wait(800);
   for (const t of s.tools) await pick(t);

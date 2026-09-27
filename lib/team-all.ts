@@ -1,4 +1,5 @@
 import { AGENTS, type AgentType } from "@/components/experience/agents/agents.config";
+import { agentCard } from "@/lib/agent-directory";
 import type { ContactIntent } from "@/lib/contact";
 import { TEAM } from "@/lib/team";
 import { MORE_TEAM } from "@/lib/team-more";
@@ -55,7 +56,7 @@ export const ALL_AGENTS: DialogAgent[] = [
     avatar: m.avatar,
     group: "equipe" as const,
     demo: { kind: "more" as const, slug: m.slug, title: m.demo },
-    contact: { source: "agent", need: "unsure" as const, message: `Bonjour, ${m.name} (${m.role.charAt(0).toLowerCase()}${m.role.slice(1)}) m’intéresse pour notre entreprise. Pouvez-vous m’en dire plus ?` },
+    contact: { source: "agent", need: agentCard(m.slug).need, message: `Bonjour, ${m.name} (${m.role.charAt(0).toLowerCase()}${m.role.slice(1)}) m’intéresse pour notre entreprise. Pouvez-vous m’en dire plus ?` },
   })),
 ];
 

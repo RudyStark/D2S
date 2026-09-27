@@ -30,6 +30,8 @@ export interface MayChoice {
 export interface MayDraft {
   need: NeedId;
   message: string;
+  /** The agent May recommended, for the card (« Hugo, créateur de présentations »). */
+  agent?: string;
   name?: string;
   company?: string;
   channel?: ChannelId;

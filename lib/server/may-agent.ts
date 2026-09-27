@@ -1,12 +1,14 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { CHANNELS, CONTACT_INTRO, NEEDS, NEXT_STEPS, type ChannelId, type NeedId } from "@/lib/contact-content";
-import { buildResult, hoursSentence, QUESTIONS, type Answers } from "@/lib/diagnostic";
+import { AGENT_CARDS, agentCard, type AgentKey } from "@/lib/agent-directory";
+import { buildResult, hoursSentence, QUESTIONS, resultNeed, type Answers } from "@/lib/diagnostic";
 import { OFFICE, PUBLISHER } from "@/lib/legal";
 import { METHOD_PROMISES, METHOD_STEPS, SERVICES } from "@/lib/services";
 import { lowerFirst, SITE_SUMMARY } from "@/lib/site";
 import type { MayAction, MayDraft, MayEvent, MayMessage } from "@/lib/may";
 import { TEAM } from "@/lib/team";
+import { MORE_TEAM } from "@/lib/team-more";
 import { ISO_DAY } from "@/lib/may-dates";
 import { CalendlyConfigurationError, calendlyFallbackUrl, findSlots, listMeetingTypes } from "./calendly";
 
@@ -48,11 +50,16 @@ export const mayConfigured = () => Boolean(process.env.ANTHROPIC_API_KEY?.trim()
 
 const ids = (questionId: string) => QUESTIONS.find((q) => q.id === questionId)!.options.map((o) => o.id);
 
+// « prospection = trouver de nouveaux clients (…) → May », one per precise task: the model picks the task, the code the agent.
+const TASK_GUIDE = QUESTIONS.find((q) => q.id === "task")!
+  .options.map((o) => `${o.id} = ${lowerFirst(o.label)}${o.hint ? ` (${lowerFirst(o.hint)})` : ""}${o.agent ? ` → ${agentCard(o.agent).name}` : " → sur mesure"}`)
+  .join(" ; ");
+
 const TOOLS: Anthropic.Tool[] = [
   {
     name: "recommend_agent",
     description:
-      "Calcule la recommandation officielle du diagnostic D2S (le même calcul que la section « Comment choisir votre agent IA ? » du site) : l’agent adapté, ou un agent sur mesure, et le temps récupéré estimé. À appeler dès que tu connais la tâche prioritaire, le temps hebdomadaire, les outils et le type de processus. N’annonce jamais d’agent ni d’estimation sans ce résultat.",
+      "Calcule la recommandation officielle du diagnostic D2S (le même calcul que la section « Comment choisir votre agent IA ? » du site) : l’agent adapté parmi les seize de l’équipe, ou un agent sur mesure, le temps récupéré estimé et l’agent à lui associer. À appeler dès que tu connais la tâche prioritaire, le temps hebdomadaire, les outils et le type de processus. N’annonce jamais d’agent ni d’estimation sans ce résultat.",
     strict: true,
     input_schema: {
       type: "object",
@@ -60,13 +67,14 @@ const TOOLS: Anthropic.Tool[] = [
         task: {
           type: "string",
           enum: ids("task"),
-          description: "content = créer du contenu, support = répondre aux clients, prospection = trouver des clients, hr = recruter / accompagner, data = comprendre ses chiffres, other = autre processus métier.",
+          description: `La tâche précise que le visiteur veut déléguer en priorité : ${TASK_GUIDE}.`,
         },
         time: { type: "string", enum: ids("time"), description: "Temps passé par semaine : low = moins de 2 h, mid = 2 à 10 h, high = plus de 10 h." },
         tools: {
           type: "array",
           items: { type: "string", enum: ids("tools") },
-          description: "Où se passe ce travail : mail, chat (WhatsApp, chat du site), social (LinkedIn, réseaux), crm, sheet (tableurs), calendar (agenda), software (logiciel métier). Liste vide si inconnu.",
+          description:
+            "Où se passe ce travail : mail, chat (WhatsApp, chat du site), social (LinkedIn, réseaux), crm, sheet (tableurs), calendar (agenda, visio), shop (boutique en ligne), docs (documents, Drive), software (logiciel métier). Liste vide si inconnu.",
         },
         process: {
           type: "string",
@@ -96,6 +104,11 @@ const TOOLS: Anthropic.Tool[] = [
           description:
             "Synthèse de la demande, écrite à la première personne pour le visiteur (2 à 6 phrases) : activité, tâche à déléguer, volume, outils, particularités, agent recommandé et ce qu’il attend du premier échange. Uniquement les faits que le visiteur a donnés ou le résultat de recommend_agent : n’ajoute aucun détail, besoin ni qualificatif qu’il n’a pas exprimé ; omets ce qui est inconnu.",
         },
+        agent: {
+          type: "string",
+          enum: [...AGENT_CARDS.map((a) => a.key), "none"],
+          description: `L’agent recommandé par recommend_agent (${AGENT_CARDS.map((a) => `${a.key} = ${a.name}`).join(", ")}), ou none (sur mesure, ou pas encore de recommandation).`,
+        },
         name: { type: ["string", "null"], description: "Prénom et nom, seulement si le visiteur les a donnés." },
         company: { type: ["string", "null"], description: "Entreprise, seulement si le visiteur l’a donnée." },
         channel: {
@@ -104,7 +117,7 @@ const TOOLS: Anthropic.Tool[] = [
           description: "Préférence d’échange (visio, phone, email) si le visiteur l’a exprimée, sinon unknown.",
         },
       },
-      required: ["need", "message", "name", "company", "channel"],
+      required: ["need", "message", "agent", "name", "company", "channel"],
       additionalProperties: false,
     },
   },
@@ -185,8 +198,8 @@ async function runTool(name: string, input: Record<string, unknown>, timeZone: s
       process: [pick(input.process, ids("process")) ?? "standard"],
     };
     const r = buildResult(answers);
-    const agent = TEAM.find((t) => t.type === r.agent)!;
-    const duo = r.duo ? TEAM.find((t) => t.type === r.duo) : null;
+    const agent = agentCard(r.agent);
+    const duo = r.duo ? agentCard(r.duo) : null;
     return {
       result: {
         outcome: r.outcome,
@@ -199,7 +212,7 @@ async function runTool(name: string, input: Record<string, unknown>, timeZone: s
         compatibility_percent: r.percent,
         time_given_back: `${hoursSentence(r.hours)} (estimation indicative, pas une promesse)`,
         good_duo_with: duo ? `${duo.name}, ${duo.role}` : null,
-        form_need: r.outcome === "custom" ? "custom" : r.agent,
+        form_need: resultNeed(r),
       },
       events: [],
     };
@@ -210,6 +223,13 @@ async function runTool(name: string, input: Record<string, unknown>, timeZone: s
     const message = str(input.message, 3_800);
     if (message.length < 10) return { result: { error: "La synthèse est vide ou trop courte." }, events: [], isError: true };
     const draft: MayDraft = { need, message };
+    // The recommended agent: named on the card, and it decides the form's need (unless the model chose custom).
+    const agent = pick(input.agent, AGENT_CARDS.map((a) => a.key)) as AgentKey | undefined;
+    if (agent) {
+      const card = agentCard(agent);
+      draft.agent = `${card.name}, ${lowerFirst(card.role)}`;
+      if (need !== "custom") draft.need = card.need;
+    }
     const name = str(input.name, 120);
     const company = str(input.company, 160);
     const channel = pick(input.channel, CHANNELS.map((c) => c.id)) as ChannelId | undefined;
@@ -295,8 +315,10 @@ const KNOWLEDGE = [
   ...SERVICES.map((s) => `- ${s.title} : ${s.text}`),
   "- Agent IA sur mesure : quand un processus a ses propres règles (cadrage, prototype sur cas réels, mise en service, amélioration continue).",
   "",
-  "Agents :",
+  "Agents phares :",
   ...TEAM.map((a) => `- ${a.name}, ${a.role} : ${a.blurb} Missions : ${a.missions.join(" ; ")}. Canaux : ${a.channels.join(", ")}. ${a.control}`),
+  "Le reste de l’équipe (seize agents au total) :",
+  ...MORE_TEAM.map((a) => `- ${a.name}, ${a.role} : ${a.blurb} Missions : ${a.missions.join(" ; ")}. ${a.control}`),
   "",
   `Méthode : ${METHOD_STEPS.map((s, i) => `${i + 1}. ${s.title} (${lowerFirst(s.summary.replace(/\.$/, ""))})`).join(" ; ")}. Engagements : ${METHOD_PROMISES.join(" ; ")}.`,
   `Contact : ${CONTACT_INTRO.lead} Ensuite : ${NEXT_STEPS.map((s) => `${lowerFirst(s.title)} (${lowerFirst(s.text.replace(/\.$/, ""))})`).join(", ")}. Échanges possibles : ${CHANNELS.map((c) => c.label).join(", ")}.`,

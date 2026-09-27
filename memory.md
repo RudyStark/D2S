@@ -720,6 +720,38 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - `sessionStorage d2s:gpu-trouble` : après une perte de contexte WebGL, l'onglet reste plafonné en medium (1
   incident) ou low (2) jusqu'à sa fermeture → peut aussi expliquer « jamais high » (l'utilisateur l'a effacé).
 
+## Diagnostic et May : les 16 agents (27/09, non commité)
+- `lib/agent-directory.ts` (pur) : `AGENT_CARDS` / `agentCard(key)` = les 5 (TEAM) + les 11 (MORE_TEAM), clé = type ou
+  slug (`AgentKey`), nom, rôle, blurb, missions, control, tint, image/avatar `/images/agents/<clé>(-avatar).webp`,
+  `feminine`, `core`, `need` = puce du formulaire la plus proche (Jules/Victor → prospection, Antoine/Mia/Nina/Emma →
+  content, Inès → support, Chloé → data, Hugo/Clément/Noam → unsure). `MORE_SLUGS` / `MoreSlug` dans team-more.
+- `lib/diagnostic.ts` : 5 questions — domaine (`area` : Vendre, Clients et e-mails, Contenu et marketing, Gestion et
+  chiffres, Équipe et organisation, Autre chose ; +20 aux agents du domaine) → tâche précise (`task`, 16 options,
+  filtrées par domaine via `optionsFor`, +40 à l'agent du métier, quelques points aux collègues, `pair` = duo
+  choisi à la main, `share` = part prise en charge) → temps → outils (+ Boutique en ligne, Documents/Drive) →
+  processus. « Autre chose » saute la tâche (`activeQuestions`), `withAnswer` garde la tâche cohérente avec le
+  domaine, `completeAnswers` déduit le domaine de la tâche (May ne connaît que la tâche). Anciens ids de tâche
+  conservés (content, support, prospection, hr, data, other). Duo = toujours affiché hors sur mesure.
+  Vérifié : chaque tâche → son agent sur toutes les combinaisons temps × outils × processus (0 échec).
+- Desktop : classement en direct = 5 meilleurs agents + sur mesure (les autres attendent masqués sous la dernière
+  ligne). Mobile : mêmes questions ; nouvel agent = portrait + 3 missions (pas de fiche mobile pour eux).
+- May local : tâches en mots forts / faibles (« visuels pour Instagram » = Mia, « rédaction des devis » = Victor),
+  un manque n'est pas une négation (« on n'a pas de stratégie »), « décrocher des rendez-vous » ≠ réserver avec D2S,
+  question de départage qui nomme les tâches. May IA : `recommend_agent` décrit les 16 tâches → agent, base avec
+  les 11 (≈ 7 960 tokens en cache), `prepare_contact_request` reçoit `agent` → la carte affiche « Victor,
+  propositions commerciales » (`MayDraft.agent`). FAQ / résumé / llms : 16 agents.
+- ⚠️ RÉGRESSION corrigée : `@property --fill` (frises des démos, PR #8) était GLOBAL et cassait les barres du
+  diagnostic et de la méthode (toutes pleines, en prod) → renommé `--stage-fill`. Règle : jamais de `@property`
+  au nom générique.
+- FORMULAIRE DE CONTACT (demande du 27/09) : `NeedId` = les 16 agents + custom + unsure (`NEEDS` dans
+  contact-content : 5 phares, sur mesure, je ne sais pas, puis les 11 avec `team: true` ; `needLabel()` =
+  « Victor · Propositions » pour les e-mails et le chat ; `NEED_IDS` validés par /api/contact ; 11 exemples de
+  message). Desktop : pastille « Toute l'équipe +11 » qui déplie les 11 (ouverte d'office si l'un d'eux est
+  choisi) ; mobile : `<optgroup>` « Toute l'équipe ». Chaque agent a désormais son propre besoin (plus de
+  « famille la plus proche ») : diagnostic, May, « Recruter X » pré-sélectionnent l'agent exact.
+- QA : `node scripts/diagnostic-qa.mjs --tag X` (6 scénarios), suite mobile 12/12 (tests mis à jour), build OK,
+  `next start` 0 erreur, chat du lobby → Victor sans appel IA.
+
 ## Hub app.d2saigency.com (24/09) — dépôt séparé `../d2s-app`
 - Décision : hub (admin + portail client) dans un projet à part (`/Users/rudysaksik/Desktop/Projets/IA/d2s-app`,
   Next 16 + Supabase), sa propre mémoire (`d2s-app/memory.md`). Agents = template NAIOM (`../naiom-hub`, fourni par
@@ -754,6 +786,9 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - faf2edb (poussé sur main) : passe matériaux lobby + bassin + memory.md/CLAUDE.md.
 - 4476cd4 (poussé sur main, 21/09) : tout le reste — façade, agents 3D, Services, Agents, diagnostic,
   contact, mission, marque D2S AIgency, menu, correctifs du rendu. Plus rien de non commité à cette date.
+- PR https://github.com/RudyStark/D2S/pull/8 (feat/agents-equipe-complete) fusionnée le 27/09 et EN LIGNE (vérifié sur
+  d2saigency.com : 11 cartes « Toute l'équipe », --ox actif, lobby centré à 1512×680) : 11 agents en 2D + démos
+  réalistes + frise, présentation pendant le chargement, contenu centré sur fenêtre large.
 - PR https://github.com/RudyStark/D2S/pull/5 (feat/may-chat-grand) fusionnée le 24/09 et EN LIGNE : chat de May qui
   s'agrandit, sol en marbre en qualité basse, calibration moins sévère (120 Hz).
 - PR https://github.com/RudyStark/D2S/pull/4 (fix/may-creneaux) fusionnée le 24/09 et EN LIGNE (build OK, routes
@@ -828,3 +863,12 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - Vérifié : 1440×900 identique au site en ligne ; 1512×680 menu symétrique sans chevauchement, façade et lobby centrés,
   sections 96 px / 96 px. RÈGLE : toute nouvelle position `left: calc(N * var(--u))` sur un conteneur pleine largeur
   doit ajouter `var(--ox)`.
+
+## Mobile : « +11 experts dans l'équipe » (27/09, SUR DEMANDE EXPLICITE de l'utilisateur, non commité)
+- Demande : ajouter les nouveaux agents sur mobile SANS fiches (trop de scroll), avec leur nombre et du concret.
+- `MobileHome` (section Nos agents IA), sous les 5 fiches : bloc compact « +11 experts dans l'équipe » (5 avatars qui
+  se chevauchent + « +6 »), « Chacun a son métier précis, et ils se passent le relais. », puis une ligne par pôle
+  (`MORE_BY_POLE` dans lib/team-more.ts : Vente · Contenu & marketing · Opérations & finance · Pilotage — qui fait quoi,
+  avec leurs visages), et « Trouver l'agent qu'il vous faut » → diagnostic. Accroche de la section : « Cinq agents
+  phares, et toute une équipe derrière eux. » Aucun bouton ajouté (le test mobile compte 5 boutons dans #nos-agents-ia).
+- Vérifié 390 / 320 px : bloc ~540–560 px, 0 débordement, lien vers le diagnostic OK, 0 erreur.
