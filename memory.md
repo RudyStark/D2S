@@ -720,7 +720,7 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - `sessionStorage d2s:gpu-trouble` : après une perte de contexte WebGL, l'onglet reste plafonné en medium (1
   incident) ou low (2) jusqu'à sa fermeture → peut aussi expliquer « jamais high » (l'utilisateur l'a effacé).
 
-## Diagnostic et May : les 16 agents (27/09, non commité)
+## Diagnostic et May : les 16 agents (27/09, poussé le 28/09 sur `feat/diagnostic-16-agents`, commit 9203be6, PR à ouvrir)
 - `lib/agent-directory.ts` (pur) : `AGENT_CARDS` / `agentCard(key)` = les 5 (TEAM) + les 11 (MORE_TEAM), clé = type ou
   slug (`AgentKey`), nom, rôle, blurb, missions, control, tint, image/avatar `/images/agents/<clé>(-avatar).webp`,
   `feminine`, `core`, `need` = puce du formulaire la plus proche (Jules/Victor → prospection, Antoine/Mia/Nina/Emma →
