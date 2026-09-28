@@ -720,7 +720,7 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - `sessionStorage d2s:gpu-trouble` : après une perte de contexte WebGL, l'onglet reste plafonné en medium (1
   incident) ou low (2) jusqu'à sa fermeture → peut aussi expliquer « jamais high » (l'utilisateur l'a effacé).
 
-## Diagnostic et May : les 16 agents (27/09, poussé le 28/09 sur `feat/diagnostic-16-agents`, commit 9203be6, PR à ouvrir)
+## Diagnostic et May : les 16 agents (PR https://github.com/RudyStark/D2S/pull/9 fusionnée le 28/09 par l'utilisateur, EN LIGNE ~90 s après : vérifié sur d2saigency.com desktop + mobile, 0 erreur)
 - `lib/agent-directory.ts` (pur) : `AGENT_CARDS` / `agentCard(key)` = les 5 (TEAM) + les 11 (MORE_TEAM), clé = type ou
   slug (`AgentKey`), nom, rôle, blurb, missions, control, tint, image/avatar `/images/agents/<clé>(-avatar).webp`,
   `feminine`, `core`, `need` = puce du formulaire la plus proche (Jules/Victor → prospection, Antoine/Mia/Nina/Emma →
@@ -872,3 +872,24 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   avec leurs visages), et « Trouver l'agent qu'il vous faut » → diagnostic. Accroche de la section : « Cinq agents
   phares, et toute une équipe derrière eux. » Aucun bouton ajouté (le test mobile compte 5 boutons dans #nos-agents-ia).
 - Vérifié 390 / 320 px : bloc ~540–560 px, 0 débordement, lien vers le diagnostic OK, 0 erreur.
+
+## SEO (28/09)
+- Audit du site en ligne : Lighthouse mobile SEO 100 / accessibilité 100 / bonnes pratiques 100 / perf 69 (estimation
+  simulée ; mesure réelle 4G lente + CPU ×4 : H1 à 1,9 s, image à 3,5 s, CLS 0). HTML prérendu = mobile (indexé en
+  mobile-first), canonical, OG, robots, sitemap, JSON-LD (Organization + WebSite + WebPage + 7 Services + FAQPage), 301/308
+  et 404 corrects.
+- Search Console : propriété DOMAINE `d2saigency.com` ajoutée le 28/09 (validation automatique par le fournisseur de nom
+  de domaine, rien ajouté dans Cloudflare). L'accueil était DÉJÀ indexé (dernière exploration 24/09, Googlebot
+  smartphone) ; nouvelle indexation demandée le 28/09. Sitemap envoyé (`https://d2saigency.com/sitemap.xml`) : état
+  « Impossible de récupérer » juste après l'envoi (habituel sur une propriété neuve ; le fichier répond 200 en
+  application/xml, y compris pour l'UA Googlebot) → à revérifier.
+- Pistes proposées, non faites : meta description trop longue (205 car.) et limitée à 5 domaines ; /etudes-de-cas,
+  /a-propos, /blog en noindex + canonical vers l'accueil (signaux contradictoires) ; pages dédiées par agent / service /
+  locale (le site n'a qu'une URL indexable) ; Google Business Profile ; liens entrants ; portraits mobiles 1150 px pour
+  ~180 px affichés (zone mobile) ; dépôt GitHub PUBLIC qui ressort sur le nom de marque et expose memory.md.
+- 28/09, décision utilisateur : /etudes-de-cas et /blog n'existeront JAMAIS → retirées de PLACEHOLDER_PAGES
+  (lib/navigation.ts) : vraie 404 (pas de redirection vers l'accueil = soft 404). /a-propos reste (noindex) avec un
+  canonical vers elle-même (avant : vers l'accueil, contradictoire). Non commité.
+- 28/09 : meta description raccourcie (205 → 151 car.) : « D2S AIgency, agence IA en Île-de-France : 16 agents IA prêts
+  à l'emploi ou sur mesure pour la prospection, le support client, le contenu et la gestion. » (SITE_DESCRIPTION :
+  aussi OG, Twitter, manifest, JSON-LD).
