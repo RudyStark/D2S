@@ -10,7 +10,7 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3
 export const SITE_NAME = "D2S AIgency";
 export const SITE_TITLE = "D2S AIgency — Agence IA : agents IA sur mesure pour votre entreprise";
 export const SITE_DESCRIPTION =
-  "D2S AIgency conçoit et déploie des agents IA pour les entreprises : création de contenu, support client, prospection, RH et analyse de données. Prêts à l’emploi ou sur mesure, connectés à vos outils.";
+  "D2S AIgency, agence IA en Île-de-France : 16 agents IA prêts à l’emploi ou sur mesure pour la prospection, le support client, le contenu et la gestion.";
 /** One paragraph an assistant can quote as is. */
 export const SITE_SUMMARY =
   "D2S AIgency est une agence d’intelligence artificielle basée aux Pavillons-sous-Bois, en Île-de-France, qui conçoit, connecte et fait évoluer des agents IA pour les entreprises. Ses cinq agents phares (Déa pour le contenu, Loic pour le support client, May pour la prospection, Diva pour les RH et Morgan pour l’analyse de données) et onze autres experts (vente, marketing, gestion, pilotage) travaillent dans les outils existants de l’entreprise, 24h/24, et laissent toujours la décision aux équipes. Quand un processus est propre au métier, D2S AIgency construit un agent sur mesure. Le premier échange, de 30 minutes, est gratuit et sans engagement.";

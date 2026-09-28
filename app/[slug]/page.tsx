@@ -12,8 +12,9 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const page = PLACEHOLDER_PAGES[slug];
-  // Rooms still under construction: reachable, but kept out of search results until they have content.
-  return page ? { title: page.kicker, robots: { index: false, follow: true } } : {};
+  // Rooms still under construction: reachable, but kept out of search results until they have content. Their
+  // canonical is their own URL (the home page's would contradict the noindex).
+  return page ? { title: page.kicker, robots: { index: false, follow: true }, alternates: { canonical: `/${slug}` } } : {};
 }
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
