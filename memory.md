@@ -893,3 +893,54 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
 - 28/09 : meta description raccourcie (205 → 151 car.) : « D2S AIgency, agence IA en Île-de-France : 16 agents IA prêts
   à l'emploi ou sur mesure pour la prospection, le support client, le contenu et la gestion. » (SITE_DESCRIPTION :
   aussi OG, Twitter, manifest, JSON-LD).
+
+## Brochure PDF « Imagerie médicale » (28/09, pour le frère de l'utilisateur, commercial en échographes)
+- Source `design/brochures/imagerie/brochure.html` (+ `qr-site.svg`), génération `node scripts/build-brochure.mjs`
+  → `design/brochures/imagerie/D2S-AIgency-Imagerie-medicale.pdf` (A4, 7 pages) + aperçus PNG dans
+  design/captures/brochure/ ; le script signale tout débordement de page.
+- Contenu : couverture (6 agents : Loic, Inès, Chloé, Diva, Clément, Hugo) · constat chiffré SOURCÉ (CNOM/Académie
+  26/01/2023 : 6–10 % de RDV non honorés, ~2 h/sem, 27 M/an ; IRM 32 j, Cemka/Snitem 2018 via France Assos Santé 2024 ;
+  DREES 26/08/2026 : 6 h/sem de gestion pour les MG ; LFSS 2025 : 300 M€ d'économies imagerie 2025-2027) · agents et
+  limites · exemple de calcul (cabinet d'échographie type, hypothèses affichées : 11–18 créneaux perdus/sem,
+  16–26 examens récupérés/mois, 20–30 h rendues/mois) · amélioration continue + rapport mensuel · conformité (pas de
+  diagnostic, pas de conseil médical, pas de dossier patient, HDS art. L1111-8 CSP, RGPD, AI Act, déontologie) · contact.
+- Garde-fous : aucun logo ni mention Samsung ; Loic = WhatsApp / e-mail / chat (PAS le téléphone) ; aucun prix.
+- ⚠️ PIÈGE PDF (signalé par l'utilisateur « la brochure est buguée ») : les captures PNG de la page HTML ne montrent PAS
+  le rendu du PDF. Dans Aperçu (PDFKit), `background-clip: text` (titres en dégradé) devient un RECTANGLE bleu plein et
+  les `box-shadow` floues des cartes deviennent des BLOCS GRIS ; `filter: drop-shadow` alourdit le fichier (7,9 → 4,9 Mo).
+  → Brochure en couleurs pleines + bordures fines (bloc « Print-safe overrides » en fin de CSS). TOUJOURS contrôler le
+  vrai PDF : `swift scripts/pdf-pages.swift <pdf> <dossier>` (rendu PDFKit, page par page). Couverture : 3 chiffres
+  clés ajoutés (sourcés p. 2 et 7) pour combler le vide. PDF final : 7 pages, ~4,7 Mo, vérifié page par page.
+- 28/09 (retour utilisateur) : (1) portraits ronds mal centrés → `node scripts/build-faces.mjs` détecte la tête sur
+  chaque image (haut des cheveux, centre de la tête hors mains) et découpe `design/brochures/faces/<clé>.png`
+  (480 px, 16 agents ; décalage vers le bas pour Déa et Diva, cheveux volumineux) + planche de contrôle
+  design/captures/brochure/faces.png. (2) AUDIT MÉTIER : Diva (recrutement) et Hugo (présentations) ne sont pas des
+  priorités d'un cabinet d'imagerie → retirés de la sélection. Sélection = 6 irritants : téléphone saturé (Loic,
+  écrit 24/7), rendez-vous non honorés et liste d'attente (Loic), boîte mail des prescripteurs (Inès, l'échange
+  médical reste sur la messagerie sécurisée de santé), impayés (Chloé, à partir des exports du logiciel), remplissage
+  des appareils (Morgan, données agrégées), médecins correspondants et avis Google (Déa, sans confirmer qu'une personne
+  est patiente). Comptes rendus / envoi des résultats / cotation = sur mesure avec hébergement HDS. Couverture :
+  Loic, Inès, Chloé, Morgan, Déa. `build-brochure.mjs` signale maintenant le chevauchement du pied de page et les
+  images cassées.
+- 28/09 v4 (« mets les BONS agents sur les VRAIS problèmes, lis leurs fiches dans la plateforme ») : fiches relues dans
+  `../d2s-app/agents/*.md`. Constats : Loic = support (base de réponses, réponses, grille d'escalade — santé → humain —,
+  AVIS GOOGLE, mode observation 50–100 réponses validées) et ne gère AUCUN agenda ; Inès trie les e-mails qu'on lui
+  confie, n'envoie rien, pas de données de santé ; Chloé = trésorerie 13 sem., charges, marge, alertes, clôture et
+  relances B2B (pas les restes à charge patients) ; Morgan = analyse d'exports agrégés → deck + plan 30 j ; Clément =
+  savoir interne + accueil des recrues. → Brochure : Loic (questions des patients), Inès (boîte mail), Clément (savoir
+  du cabinet), Chloé (trésorerie), Morgan (pilotage) + carte « Sur mesure HDS » (comptes rendus, résultats, rappels
+  et rendez-vous selon l'agenda connectable) ; « au besoin » Diva, Déa. RETIRÉS : promesses sur les rendez-vous non
+  honorés / créneaux reproposés (aucun agent ne le fait), stat CNOM et Cochrane. Calcul p. 4 refait : 25 demandes
+  écrites/j × 3 min × 4,5 j ≈ 24 h/mois, Loic 55–75 % → 13–18 h ; gestion 6 h × 40–60 % × 2 praticiens → 20–30 h ;
+  total 35–50 h/mois. Titre : « Moins d'administratif. Plus de temps médical. » Sources = DREES, France Assos Santé,
+  LFSS 2025/Sénat. PDF 7 pages ~6 Mo, vérifié page par page (PDFKit).
+- 28/09 v5 : cible = CABINETS D'ÉCHOGRAPHIE OBSTÉTRICALE (décision utilisateur). Dossier renommé
+  `design/brochures/echographie-obstetricale/` → `D2S-AIgency-Echographie-obstetricale.pdf` (build-brochure.mjs par
+  défaut sur ce dossier). Chiffres SOURCÉS : ENP 2021 (rapport Inserm/SpF 2022, texte lu dans le PDF : 6,3 écho en
+  moyenne en 2021 vs 5,5 en 2016, 49 % ≥ 6, 3 proposées), INSEE Focus 383 (643 905 naissances en 2025), arrêté du
+  20/04/2018 (écho T1 entre 11 et 13 SA + 6 j ; « examen médical, pas un souvenir »). Estimation affichée comme telle :
+  ≈ 4 M d'échographies de grossesse/an. Retirés : 300 M€ (scanner/IRM/TEP), IRM 32 j, DREES 6 h (généralistes).
+  Agents : Loic (questions des patientes + avis Google), Clément (règles du cabinet, recrues), Inès (boîte mail),
+  Morgan (délais par type d'écho, occupation des plages) + « Sur mesure » (comptes rendus aux prescripteurs,
+  téléphone, rendez-vous) ; au besoin Chloé, Diva, Déa. Calcul p. 4 : Loic 11–15 h + Inès 8–12 h = 19–27 h/mois,
+  Clément « à mesurer ». Vérifié page par page (PDFKit), ~5 Mo.
