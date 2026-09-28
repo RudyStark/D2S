@@ -581,6 +581,108 @@
   background: var(--blue-tint);
   color: var(--blue);
 }
+/* The rest of the team: compact, one concrete line per pole. */
+.moreTeam {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid var(--mobile-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+.moreHead {
+  display: grid;
+  gap: 12px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.moreHead strong {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--ink);
+}
+.moreStack {
+  display: flex;
+  align-items: center;
+}
+.moreStack img,
+.moreStack b {
+  width: 34px;
+  height: 34px;
+  margin-right: -8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.moreStack b {
+  display: grid;
+  place-items: center;
+  background: var(--blue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.morePoles {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--mobile-border);
+  list-style: none;
+}
+.morePoles li {
+  display: grid;
+  gap: 4px;
+}
+.morePole {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.moreFaces {
+  display: flex;
+}
+.moreFaces img {
+  width: 24px;
+  height: 24px;
+  margin-right: -7px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.moreFaces img:last-child {
+  margin-right: 0;
+}
+.morePoles p {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.morePoles strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.moreLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.moreLink svg {
+  width: 16px;
+  height: 16px;
+}
 .control {
   display: flex;
   align-items: center;
@@ -733,6 +835,29 @@
   border-radius: 10px;
   color: var(--ink);
   font-size: 14px;
+}
+.resultMissions {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--ink);
+}
+.resultMissions li {
+  position: relative;
+  padding-left: 22px;
+}
+.resultMissions li::before {
+  content: "";
+  position: absolute;
+  top: 0.45em;
+  left: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
 }
 .resultIcon {
   color: var(--blue);

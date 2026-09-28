@@ -1,22 +1,25 @@
-import type { AgentType } from "@/components/experience/agents/agents.config";
-import { TEAM } from "./team";
+import { AGENT_CARDS, agentCard, type AgentKey } from "./agent-directory";
 
 /*
- * "Comment choisir votre agent IA ?" — a four-question diagnostic. Every answer moves a live compatibility
- * score for the five agents and for a custom-built agent; the result is one of three outcomes:
+ * "Comment choisir votre agent IA ?" — a short diagnostic. The field of work, then the precise task (that is
+ * what tells our sixteen agents apart), the time it takes, the tools and how standard the process is. Every
+ * answer moves a live compatibility score for each agent and for a custom-built agent; the result is one of
+ * three outcomes:
  *  - ready:   one of our agents fits as is (plug & play),
  *  - adapted: one of our agents is the right base, trained on the company's own rules,
  *  - custom:  the process is specific enough to deserve an agent built around it.
  * Scores are a transparent heuristic (no data leaves the page); the time saved is an indicative estimate.
+ * Shared by the desktop section, the mobile version and May (lib/may-local.ts, lib/server/may-agent.ts).
  */
 
 export const DIAGNOSTIC_INTRO = {
   kicker: "Comment ça marche",
   title: ["Comment choisir", "votre agent IA ?"],
-  lead: "Quatre questions sur votre activité, une minute. Nous vous disons quel agent de l’équipe peut prendre le relais, ou s’il vous faut un agent sur mesure, construit autour de votre métier.",
+  lead: "Quelques questions sur votre activité, une minute. Parmi nos seize agents, nous vous disons lequel peut prendre le relais, ou s’il vous faut un agent sur mesure, construit autour de votre métier.",
 };
 
-export type Candidate = AgentType | "custom";
+export type { AgentKey } from "./agent-directory";
+export type Candidate = AgentKey | "custom";
 
 export type OptionIcon =
   | "content"
@@ -25,6 +28,17 @@ export type OptionIcon =
   | "hr"
   | "data"
   | "custom"
+  | "meetings"
+  | "proposals"
+  | "inbox"
+  | "visuals"
+  | "video"
+  | "trends"
+  | "strategy"
+  | "billing"
+  | "decks"
+  | "knowledge"
+  | "orchestration"
   | "clock-low"
   | "clock-mid"
   | "clock-high"
@@ -34,10 +48,14 @@ export type OptionIcon =
   | "crm"
   | "sheet"
   | "calendar"
+  | "shop"
+  | "docs"
   | "software"
   | "standard"
   | "specific"
   | "unique";
+
+export type AreaId = "sales" | "clients" | "marketing" | "admin" | "team" | "other";
 
 export interface DiagnosticOption {
   id: string;
@@ -48,30 +66,92 @@ export interface DiagnosticOption {
   icon: OptionIcon;
   /** Points added to each candidate when chosen. */
   score: Partial<Record<Candidate, number>>;
+  /** Precise tasks: their field of work. */
+  area?: AreaId;
+  /** Precise tasks: the agent whose job it is. */
+  agent?: AgentKey;
+  /** Precise tasks: the agent that completes it best (« Idéal en duo avec… »). */
+  pair?: AgentKey;
+  /** Precise tasks: share of the work an agent typically takes over (low, high), see estimateHours. */
+  share?: [number, number];
 }
 
 export interface DiagnosticQuestion {
-  id: "task" | "time" | "tools" | "process";
+  id: "area" | "task" | "time" | "tools" | "process";
   title: string;
   help: string;
   multiple?: boolean;
   options: DiagnosticOption[];
 }
 
-const ALL_AGENTS = (n: number): Partial<Record<Candidate, number>> => ({ content: n, support: n, prospection: n, automation: n, data: n });
+const AGENT_KEYS = AGENT_CARDS.map((a) => a.key);
+const EVERY_AGENT = (n: number): Partial<Record<Candidate, number>> => Object.fromEntries(AGENT_KEYS.map((k) => [k, n]));
+
+/* The field of work: 20 points to each of its agents (the precise task then adds 40 to the one whose job it is). */
+const AREA_AGENTS: Record<AreaId, Candidate[]> = {
+  sales: ["prospection", "fireflies", "proposition"],
+  clients: ["support", "gmail"],
+  marketing: ["content", "designer", "ecommerce", "veille", "strategiste"],
+  admin: ["comptabilite", "data", "presentateur"],
+  team: ["automation", "cerveau", "orchestrateur"],
+  other: ["custom"],
+};
+const areaScore = (area: AreaId) => Object.fromEntries(AREA_AGENTS[area].map((c) => [c, 20]));
+
+/*
+ * The precise task: the agent whose job it is (+40), the colleagues who help on it (a few points), the agent
+ * to pair it with, and the share of this kind of work an agent usually takes over.
+ */
+function task(
+  id: string,
+  area: AreaId,
+  label: string,
+  hint: string,
+  icon: OptionIcon,
+  agent: AgentKey,
+  pair: AgentKey,
+  share: [number, number],
+  helpers: Partial<Record<AgentKey, number>> = {},
+): DiagnosticOption {
+  return { id, label, hint, icon, area, agent, pair, share, score: { ...helpers, [agent]: 40 } };
+}
 
 export const QUESTIONS: DiagnosticQuestion[] = [
   {
-    id: "task",
-    title: "Quelle tâche aimeriez-vous déléguer en priorité ?",
-    help: "Choisissez celle qui vous coûte le plus de temps aujourd’hui.",
+    id: "area",
+    title: "Où aimeriez-vous être épaulé en priorité ?",
+    help: "Choisissez le domaine qui vous coûte le plus de temps. On précise juste après.",
     options: [
-      { id: "content", label: "Créer du contenu", hint: "Posts, newsletters, articles", icon: "content", score: { content: 60 } },
-      { id: "support", label: "Répondre à vos clients", hint: "Questions, suivi de commande, SAV", icon: "support", score: { support: 60 } },
-      { id: "prospection", label: "Trouver des clients", hint: "Prospection, relances, rendez-vous", icon: "prospection", score: { prospection: 60 } },
-      { id: "hr", label: "Recruter, accompagner", hint: "CV, entretiens, onboarding", icon: "hr", score: { automation: 60 } },
-      { id: "data", label: "Comprendre vos chiffres", hint: "Tableaux de bord, alertes, analyses", icon: "data", score: { data: 60 } },
-      { id: "other", label: "Autre chose", hint: "Un processus propre à votre métier", icon: "custom", score: { custom: 60 } },
+      { id: "sales", label: "Vendre", hint: "Prospection, rendez-vous, propositions", icon: "prospection", score: areaScore("sales") },
+      { id: "clients", label: "Vos clients et vos e-mails", hint: "Questions, SAV, boîte de réception", icon: "support", score: areaScore("clients") },
+      { id: "marketing", label: "Contenu et marketing", hint: "Posts, visuels, vidéos, stratégie", icon: "content", score: areaScore("marketing") },
+      { id: "admin", label: "Gestion et chiffres", hint: "Factures, tableaux de bord, présentations", icon: "data", score: areaScore("admin") },
+      { id: "team", label: "Équipe et organisation", hint: "Recrutement, savoir interne, coordination", icon: "hr", score: areaScore("team") },
+      { id: "other", label: "Autre chose", hint: "Un processus propre à votre métier", icon: "custom", score: areaScore("other") },
+    ],
+  },
+  {
+    id: "task",
+    title: "Plus précisément, que voulez-vous déléguer ?",
+    help: "La tâche qui vous prend le plus de temps aujourd’hui.",
+    options: [
+      task("prospection", "sales", "Trouver de nouveaux clients", "Cibler, contacter, relancer, décrocher des rendez-vous", "prospection", "prospection", "fireflies", [0.4, 0.6]),
+      task("meetings", "sales", "Exploiter vos rendez-vous commerciaux", "Comptes rendus, objections, relance après chaque rendez-vous", "meetings", "fireflies", "proposition", [0.5, 0.7], { proposition: 8 }),
+      task("proposals", "sales", "Rédiger vos propositions commerciales", "Des offres argumentées, envoyées le jour même", "proposals", "proposition", "fireflies", [0.45, 0.65], { fireflies: 8 }),
+      task("support", "clients", "Répondre à vos clients", "WhatsApp, chat du site, suivi de commande, SAV", "support", "support", "gmail", [0.55, 0.75], { gmail: 6 }),
+      task("inbox", "clients", "Tenir votre boîte mail", "Tri, priorités du jour, réponses préparées, relances", "inbox", "gmail", "support", [0.4, 0.6], { support: 6 }),
+      task("content", "marketing", "Écrire vos posts et newsletters", "LinkedIn, newsletters, articles", "content", "content", "designer", [0.45, 0.65], { veille: 8 }),
+      task("visuals", "marketing", "Créer vos visuels", "Posts, bannières, miniatures YouTube", "visuals", "designer", "content", [0.4, 0.6], { content: 8 }),
+      task("video", "marketing", "Produire des vidéos produit", "E-commerce, publicités, sans tournage", "video", "ecommerce", "designer", [0.45, 0.65], { designer: 8 }),
+      task("trends", "marketing", "Savoir ce qui marche dans votre secteur", "Tendances, concurrents, idées de contenu", "trends", "veille", "content", [0.5, 0.7], { content: 8, strategiste: 6 }),
+      task("strategy", "marketing", "Définir votre stratégie marketing", "Cible, positionnement, message, campagnes", "strategy", "strategiste", "content", [0.3, 0.5], { veille: 8 }),
+      task("billing", "admin", "Suivre vos factures et vos impayés", "Factures, relances, trésorerie, marge", "billing", "comptabilite", "data", [0.45, 0.65], { data: 8 }),
+      task("data", "admin", "Comprendre vos chiffres", "Tableaux de bord, indicateurs, alertes", "data", "data", "presentateur", [0.5, 0.7], { comptabilite: 6, presentateur: 6 }),
+      task("decks", "admin", "Préparer vos présentations", "Decks clients, comités, rapports", "decks", "presentateur", "data", [0.5, 0.7], { data: 8 }),
+      task("hr", "team", "Recruter et intégrer", "CV, entretiens, onboarding", "hr", "automation", "cerveau", [0.4, 0.6], { cerveau: 6 }),
+      task("knowledge", "team", "Retrouver l’information interne", "Documents, historique, réponses sourcées", "knowledge", "cerveau", "orchestrateur", [0.4, 0.6], { orchestrateur: 6 }),
+      task("orchestration", "team", "Déléguer un peu de tout", "Un seul interlocuteur qui répartit le travail entre les agents", "orchestration", "orchestrateur", "cerveau", [0.3, 0.5], { cerveau: 8 }),
+      { id: "other", area: "other", label: "Un processus propre à votre métier", icon: "custom", share: [0.3, 0.5], score: { custom: 40 } },
     ],
   },
   {
@@ -90,13 +170,15 @@ export const QUESTIONS: DiagnosticQuestion[] = [
     help: "Plusieurs réponses possibles.",
     multiple: true,
     options: [
-      { id: "mail", label: "E-mail", phrase: "l’e-mail", icon: "mail", score: { support: 8, prospection: 8, automation: 8, content: 5 } },
+      { id: "mail", label: "E-mail", phrase: "l’e-mail", icon: "mail", score: { gmail: 14, support: 8, prospection: 8, automation: 8, proposition: 6, comptabilite: 6, content: 5, fireflies: 4 } },
       { id: "chat", label: "WhatsApp, chat du site", phrase: "WhatsApp, le chat du site", icon: "chat", score: { support: 14, prospection: 5 } },
-      { id: "social", label: "LinkedIn, réseaux sociaux", phrase: "LinkedIn", icon: "social", score: { content: 14, prospection: 10 } },
-      { id: "crm", label: "CRM", phrase: "votre CRM", icon: "crm", score: { prospection: 12, data: 8, support: 5 } },
-      { id: "sheet", label: "Tableurs, reporting", phrase: "vos tableurs", icon: "sheet", score: { data: 14, automation: 4 } },
-      { id: "calendar", label: "Agenda", phrase: "votre agenda", icon: "calendar", score: { automation: 10, prospection: 8, content: 4 } },
-      { id: "software", label: "Logiciel métier, outil interne", phrase: "votre logiciel métier", icon: "software", score: { custom: 22, data: 4 } },
+      { id: "social", label: "LinkedIn, réseaux sociaux", phrase: "les réseaux sociaux", icon: "social", score: { content: 14, designer: 12, veille: 12, prospection: 10, ecommerce: 8, strategiste: 8 } },
+      { id: "crm", label: "CRM", phrase: "votre CRM", icon: "crm", score: { prospection: 12, data: 8, fireflies: 8, proposition: 8, support: 5, cerveau: 4 } },
+      { id: "sheet", label: "Tableurs, reporting", phrase: "vos tableurs", icon: "sheet", score: { data: 14, comptabilite: 12, presentateur: 6, automation: 4 } },
+      { id: "calendar", label: "Agenda, visio", phrase: "votre agenda", icon: "calendar", score: { automation: 10, fireflies: 10, prospection: 8, content: 4 } },
+      { id: "shop", label: "Boutique en ligne", phrase: "votre boutique en ligne", icon: "shop", score: { ecommerce: 14, support: 8, data: 4 } },
+      { id: "docs", label: "Documents, Drive", phrase: "vos documents", icon: "docs", score: { cerveau: 12, presentateur: 10, proposition: 6, automation: 4 } },
+      { id: "software", label: "Logiciel métier, outil interne", phrase: "votre logiciel métier", icon: "software", score: { custom: 22, cerveau: 6, data: 4 } },
     ],
   },
   {
@@ -104,8 +186,8 @@ export const QUESTIONS: DiagnosticQuestion[] = [
     title: "Comment décririez-vous ce processus ?",
     help: "C’est ce qui décide entre un agent prêt à l’emploi et un agent sur mesure.",
     options: [
-      { id: "standard", label: "Classique", hint: "Il ressemble à ce que font la plupart des entreprises.", icon: "standard", score: { ...ALL_AGENTS(14), custom: -10 } },
-      { id: "specific", label: "Quelques spécificités", hint: "Des règles à nous, mais le cœur reste standard.", icon: "specific", score: { ...ALL_AGENTS(6), custom: 12 } },
+      { id: "standard", label: "Classique", hint: "Il ressemble à ce que font la plupart des entreprises.", icon: "standard", score: { ...EVERY_AGENT(14), custom: -10 } },
+      { id: "specific", label: "Quelques spécificités", hint: "Des règles à nous, mais le cœur reste standard.", icon: "specific", score: { ...EVERY_AGENT(6), custom: 12 } },
       { id: "unique", label: "Unique à notre métier", hint: "Des règles, des validations et des cas particuliers bien à nous.", icon: "unique", score: { custom: 36 } },
     ],
   },
@@ -113,12 +195,56 @@ export const QUESTIONS: DiagnosticQuestion[] = [
 
 export type Answers = Partial<Record<DiagnosticQuestion["id"], string[]>>;
 
-export const CANDIDATES: Candidate[] = ["content", "support", "prospection", "automation", "data", "custom"];
+const question = (id: DiagnosticQuestion["id"]) => QUESTIONS.find((q) => q.id === id)!;
+const TASKS = question("task").options;
+
+/** A precise task (option of the "task" question). */
+export const taskOption = (id: string | undefined) => TASKS.find((o) => o.id === id);
+
+/**
+ * The answers made whole: the field of work follows from the precise task (May only knows the task), and
+ * « Autre chose » has a single task. Every calculation below starts from here.
+ */
+export function completeAnswers(answers: Answers): Answers {
+  const task = taskOption(answers.task?.[0]);
+  const area = task?.area ?? answers.area?.[0];
+  const out: Answers = { ...answers };
+  if (area) out.area = [area];
+  if (area === "other") out.task = ["other"];
+  return out;
+}
+
+/** The questions to ask for these answers: the precise task is skipped for « Autre chose ». */
+export function activeQuestions(answers: Answers) {
+  return QUESTIONS.filter((q) => !(q.id === "task" && answers.area?.[0] === "other"));
+}
+
+/** Options shown for a question: the precise tasks of the chosen field only. */
+export function optionsFor(q: DiagnosticQuestion, answers: Answers) {
+  if (q.id !== "task") return q.options;
+  const area = answers.area?.[0];
+  return q.options.filter((o) => o.area === area && o.id !== "other");
+}
+
+/** New answers after a choice, keeping the task coherent with the field (a new field clears the task). */
+export function withAnswer(answers: Answers, id: DiagnosticQuestion["id"], values: string[]): Answers {
+  const next: Answers = { ...answers, [id]: values };
+  if (id === "area") {
+    const area = values[0];
+    if (area === "other") next.task = ["other"];
+    else if (taskOption(answers.task?.[0])?.area !== area) delete next.task;
+  }
+  return next;
+}
+
+/** Every candidate, in display order: the five of the 3D world, the eleven others, then the custom agent. */
+export const CANDIDATES: Candidate[] = [...AGENT_KEYS, "custom"];
 
 /** Highest score a candidate can reach (for the live bars). */
 const MAX_SCORE = 104;
 
-export function scoreAnswers(answers: Answers): Record<Candidate, number> {
+export function scoreAnswers(input: Answers): Record<Candidate, number> {
+  const answers = completeAnswers(input);
   const scores = Object.fromEntries(CANDIDATES.map((c) => [c, 0])) as Record<Candidate, number>;
   for (const q of QUESTIONS) {
     for (const id of answers[q.id] ?? []) {
@@ -128,6 +254,11 @@ export function scoreAnswers(answers: Answers): Record<Candidate, number> {
     }
   }
   return scores;
+}
+
+/** Candidates from best to worst (ties keep the display order). */
+export function rankCandidates(scores: Record<Candidate, number>) {
+  return [...CANDIDATES].sort((a, b) => scores[b] - scores[a] || CANDIDATES.indexOf(a) - CANDIDATES.indexOf(b));
 }
 
 /** 0–1 fill of a live bar. */
@@ -144,15 +275,16 @@ export type Outcome = "ready" | "adapted" | "custom";
 export interface DiagnosticResult {
   outcome: Outcome;
   /** Recommended agent (ready / adapted), or the closest agent to start from (custom). */
-  agent: AgentType;
+  agent: AgentKey;
   percent: number;
   /** Time given back per month, indicative (see estimateHours). */
   hours: HoursEstimate;
   /** Chosen tools (options of the "tools" question). */
   tools: DiagnosticOption[];
+  /** The precise task (« Autre chose » = the custom task). */
   task: DiagnosticOption;
-  /** Second agent worth pairing with the recommendation, if it scored well enough. */
-  duo: AgentType | null;
+  /** The agent that completes the recommendation best, on the same job. */
+  duo: AgentKey | null;
 }
 
 /*
@@ -162,15 +294,7 @@ export interface DiagnosticResult {
  */
 const WEEKLY_HOURS: Record<string, number> = { low: 1.5, mid: 6, high: 14 };
 const WEEKS_PER_MONTH = 4.33;
-/** Share of the task an agent typically takes over (low, high), by priority task. */
-const AGENT_SHARE: Record<string, [number, number]> = {
-  content: [0.45, 0.65],
-  support: [0.55, 0.75],
-  prospection: [0.4, 0.6],
-  hr: [0.4, 0.6],
-  data: [0.5, 0.7],
-  other: [0.3, 0.5],
-};
+const DEFAULT_SHARE: [number, number] = [0.3, 0.5];
 const PROCESS_FACTOR: Record<string, number> = { standard: 1, specific: 0.85, unique: 0.7 };
 
 export interface HoursEstimate {
@@ -184,9 +308,10 @@ export interface HoursEstimate {
 
 const roundHours = (h: number) => (h < 10 ? Math.max(1, Math.round(h)) : Math.round(h / 5) * 5);
 
-export function estimateHours(answers: Answers): HoursEstimate {
-  const weekly = WEEKLY_HOURS[answers.time?.[0] ?? "mid"];
-  const share = AGENT_SHARE[answers.task?.[0] ?? "other"] ?? AGENT_SHARE.other;
+export function estimateHours(input: Answers): HoursEstimate {
+  const answers = completeAnswers(input);
+  const weekly = WEEKLY_HOURS[answers.time?.[0] ?? "mid"] ?? WEEKLY_HOURS.mid;
+  const share = taskOption(answers.task?.[0])?.share ?? DEFAULT_SHARE;
   const factor = PROCESS_FACTOR[answers.process?.[0] ?? "standard"] ?? 1;
   const base = weekly * WEEKS_PER_MONTH * factor;
   const min = roundHours(base * share[0]);
@@ -200,15 +325,18 @@ export function hoursSentence({ min, max, days }: HoursEstimate) {
   return `${range} récupérées chaque mois${days >= 1 ? `, soit jusqu’à ${days} jour${days > 1 ? "s" : ""} de travail` : ""}`;
 }
 
-export function buildResult(answers: Answers): DiagnosticResult {
+export function buildResult(input: Answers): DiagnosticResult {
+  const answers = completeAnswers(input);
   const scores = scoreAnswers(answers);
-  const agents = CANDIDATES.filter((c): c is AgentType => c !== "custom").sort((a, b) => scores[b] - scores[a]);
-  const best = agents[0];
+  const ranked = rankCandidates(scores).filter((c): c is AgentKey => c !== "custom");
+  const best = ranked[0];
   const custom = scores.custom;
   const outcome: Outcome = custom >= scores[best] ? "custom" : custom >= 30 ? "adapted" : "ready";
-  const task = QUESTIONS[0].options.find((o) => o.id === answers.task?.[0]) ?? QUESTIONS[0].options[0];
+  const task = taskOption(answers.task?.[0]) ?? taskOption("other")!;
   const toolIds = answers.tools ?? [];
-  const tools = QUESTIONS[2].options.filter((o) => toolIds.includes(o.id));
+  const tools = question("tools").options.filter((o) => toolIds.includes(o.id));
+  // The partner on the same job: the task's pair, or the task's own agent if the tools put someone else first.
+  const partner = task.pair && task.pair !== best ? task.pair : task.agent && task.agent !== best ? task.agent : null;
   return {
     outcome,
     agent: best,
@@ -216,27 +344,32 @@ export function buildResult(answers: Answers): DiagnosticResult {
     hours: estimateHours(answers),
     tools,
     task,
-    duo: outcome !== "custom" && scores[agents[1]] >= 25 ? agents[1] : null,
+    duo: outcome === "custom" ? null : partner,
   };
 }
 
 /** Tools each agent already works with (option ids of the "tools" question). */
-export const AGENT_TOOLS: Record<AgentType, string[]> = {
+export const AGENT_TOOLS: Record<AgentKey, string[]> = {
   content: ["social", "mail", "calendar"],
-  support: ["chat", "mail", "crm"],
+  support: ["chat", "mail", "crm", "shop"],
   prospection: ["mail", "social", "crm", "calendar", "chat"],
-  automation: ["mail", "calendar", "sheet"],
-  data: ["sheet", "crm", "software"],
+  automation: ["mail", "calendar", "sheet", "docs"],
+  data: ["sheet", "crm", "software", "shop"],
+  fireflies: ["calendar", "crm", "mail"],
+  proposition: ["crm", "mail", "docs"],
+  strategiste: ["social"],
+  designer: ["social"],
+  veille: ["social"],
+  ecommerce: ["shop", "social"],
+  gmail: ["mail"],
+  comptabilite: ["sheet", "mail"],
+  presentateur: ["docs", "sheet"],
+  cerveau: ["docs", "crm", "software"],
+  orchestrateur: [],
 };
 
 /** Grammatical gender of each agent's name, for the result sentence. */
-export const FEMININE: Record<AgentType, boolean> = {
-  content: true,
-  support: false,
-  prospection: true,
-  automation: true,
-  data: false,
-};
+export const FEMININE = Object.fromEntries(AGENT_CARDS.map((a) => [a.key, a.feminine])) as Record<AgentKey, boolean>;
 
 export const CUSTOM_STEPS = [
   { title: "Atelier de cadrage", text: "Une heure avec vous pour cartographier vos règles et vos cas particuliers." },
@@ -244,21 +377,25 @@ export const CUSTOM_STEPS = [
   { title: "Mise en service et suivi", text: "Connecté à vos outils, mesuré, et amélioré en continu." },
 ];
 
+/** The contact form's need for a result: the recommended agent, or the custom agent. */
+export const resultNeed = (result: DiagnosticResult) => (result.outcome === "custom" ? ("custom" as const) : agentCard(result.agent).need);
+
 /** The diagnostic in a few lines, attached to the contact request. */
-export function diagnosticSummary(answers: Answers, result: DiagnosticResult) {
+export function diagnosticSummary(input: Answers, result: DiagnosticResult) {
+  const answers = completeAnswers(input);
   const labels = (id: DiagnosticQuestion["id"]) =>
-    QUESTIONS.find((q) => q.id === id)!
+    question(id)
       .options.filter((o) => answers[id]?.includes(o.id))
       .map((o) => o.label)
       .join(", ");
-  const name = TEAM.find((t) => t.type === result.agent)?.name ?? "";
+  const agent = agentCard(result.agent);
   const reco =
     result.outcome === "custom"
       ? "Recommandation : agent sur mesure"
-      : `Recommandation : ${name} (${result.percent} %)${result.outcome === "adapted" ? ", adapté à vos règles" : ""}`;
+      : `Recommandation : ${agent.name}, ${agent.role.charAt(0).toLowerCase()}${agent.role.slice(1)} (${result.percent} %)${result.outcome === "adapted" ? ", adapté à vos règles" : ""}`;
   return [
     reco,
-    `Priorité : ${labels("task")}`,
+    `Priorité : ${result.task.label}${result.task.area !== "other" ? ` (${labels("area").toLowerCase()})` : ""}`,
     `${labels("time")} par semaine`,
     answers.tools?.length ? `Outils : ${labels("tools")}` : "",
     `Processus : ${labels("process").toLowerCase()}`,

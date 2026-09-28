@@ -523,8 +523,17 @@
   translate: 0 calc(var(--rank) * 66 * var(--u));
   transition:
     translate 0.7s cubic-bezier(0.34, 1.2, 0.64, 1),
+    opacity 0.45s var(--ease-out),
+    scale 0.45s var(--ease-out),
     box-shadow 0.4s var(--ease-out),
     background 0.4s var(--ease-out);
+}
+
+/* Outside the five best: waits, faded, under the last row (it slides in when it climbs). */
+.row[data-hidden="true"] {
+  opacity: 0;
+  scale: 0.96;
+  pointer-events: none;
 }
 
 .row[data-lead="true"] {

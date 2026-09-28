@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AGENTS, type AgentType } from "@/components/experience/agents/agents.config";
 import {
   ArrowRight,
   Bars,
@@ -16,14 +15,25 @@ import {
   Gear,
   Globe,
   Mail,
+  Package,
+  People,
+  Picture,
+  Play,
   PlayBox,
+  Receipt,
   Replay,
+  Rocket,
+  Search,
+  Slides,
   Sparkle,
   Target,
+  TrendUp,
   Users,
 } from "@/components/ui/Icons";
 import { useInView, useReducedMotion } from "@/hooks/useInView";
+import { agentCard } from "@/lib/agent-directory";
 import {
+  activeQuestions,
   AGENT_TOOLS,
   barFill,
   buildResult,
@@ -31,12 +41,14 @@ import {
   CUSTOM_STEPS,
   DIAGNOSTIC_INTRO,
   diagnosticSummary,
-  FEMININE,
   hoursSentence,
   joinFr,
   matchPercent,
-  QUESTIONS,
+  optionsFor,
+  rankCandidates,
+  resultNeed,
   scoreAnswers,
+  withAnswer,
   type Answers,
   type Candidate,
   type DiagnosticResult,
@@ -44,7 +56,7 @@ import {
 } from "@/lib/diagnostic";
 import { contactClick } from "@/lib/contact";
 import { CONTACT_HREF } from "@/lib/navigation";
-import { TEAM } from "@/lib/team";
+import { ALL_AGENTS } from "@/lib/team-all";
 import { AgentDialog } from "./AgentDialog";
 import styles from "./DiagnosticSection.module.css";
 import glass from "./Glass.module.css";
@@ -59,12 +71,25 @@ const ICONS: Partial<Record<OptionIcon, (p: { size?: number }) => ReactNode>> = 
   hr: Users,
   data: Bars,
   custom: Sparkle,
+  meetings: Calendar,
+  proposals: Doc,
+  inbox: Mail,
+  visuals: Picture,
+  video: Play,
+  trends: TrendUp,
+  strategy: Rocket,
+  billing: Receipt,
+  decks: Slides,
+  knowledge: Search,
+  orchestration: People,
   mail: Mail,
   chat: Chat,
   social: Globe,
   crm: ContactCard,
   sheet: Doc,
   calendar: Calendar,
+  shop: Package,
+  docs: Doc,
   software: Gear,
   standard: Check,
   specific: Gear,
@@ -114,13 +139,15 @@ function Counter({ value, reduced }: { value: number; reduced: boolean }) {
   return <>{Math.round(shown)}</>;
 }
 
-const agentOf = (type: AgentType) => TEAM.find((t) => t.type === type)!;
+/** Rows of the live ranking: the five best agents, and the custom agent. */
+const SHOWN = 5;
 
 /**
- * "Comment choisir votre agent IA ?" — an animated four-question diagnostic after the team.
- * Left: one question at a time (native radios / checkboxes, click = next, keyboard = Continuer).
- * Right: every answer re-ranks the team and the custom agent live. Then the recommendation: one of our
- * agents as is, one of our agents adapted to the company's rules, or an agent built for its trade.
+ * "Comment choisir votre agent IA ?" — an animated diagnostic after the team (field, precise task, time, tools,
+ * process). Left: one question at a time (native radios / checkboxes, click = next, keyboard = Continuer).
+ * Right: every answer re-ranks the sixteen agents and the custom agent live (the five best are shown). Then the
+ * recommendation: one of our agents as is, one of our agents adapted to the company's rules, or an agent built
+ * for its trade.
  */
 export function DiagnosticSection() {
   const section = useRef<HTMLElement>(null);
@@ -139,14 +166,18 @@ export function DiagnosticSection() {
   // Radios also fire "click" on arrow keys: only a pointer pick moves on by itself.
   const viaPointer = useRef(false);
 
-  const question = QUESTIONS[step];
+  const questions = activeQuestions(answers);
+  const question = questions[Math.min(step, questions.length - 1)];
+  const options = optionsFor(question, answers);
   const selected = answers[question.id] ?? [];
   const answered = Object.keys(answers).length > 0;
   const scores = useMemo(() => scoreAnswers(answers), [answers]);
-  const ranking = useMemo(
-    () => [...CANDIDATES].sort((a, b) => scores[b] - scores[a] || CANDIDATES.indexOf(a) - CANDIDATES.indexOf(b)),
-    [scores],
-  );
+  // The five best agents and the custom agent, in rank order (the others wait, hidden, below the last row).
+  const ranking = useMemo(() => {
+    const ranked = rankCandidates(scores);
+    const top = new Set<Candidate>([...ranked.filter((c) => c !== "custom").slice(0, SHOWN), "custom"]);
+    return ranked.filter((c) => top.has(c));
+  }, [scores]);
   const leader = answered ? ranking[0] : null;
 
   useEffect(() => () => void (advance.current && window.clearTimeout(advance.current)), []);
@@ -157,7 +188,7 @@ export function DiagnosticSection() {
 
   const next = useCallback(
     (current: Answers) => {
-      if (step < QUESTIONS.length - 1) {
+      if (step < activeQuestions(current).length - 1) {
         setDir(1);
         setStep((s) => s + 1);
       } else {
@@ -171,7 +202,7 @@ export function DiagnosticSection() {
     const q = question;
     const current = answers[q.id] ?? [];
     const value = q.multiple ? (current.includes(id) ? current.filter((v) => v !== id) : [...current, id]) : [id];
-    const updated = { ...answers, [q.id]: value };
+    const updated = withAnswer(answers, q.id, value);
     setAnswers(updated);
     // Single choice picked with the pointer: move on after a beat (keyboard users confirm with Continuer).
     if (!q.multiple && pointer) {
@@ -193,7 +224,7 @@ export function DiagnosticSection() {
     setStep(0);
   };
 
-  const recommended = result ? agentOf(result.agent) : null;
+  const recommended = result ? agentCard(result.agent) : null;
 
   return (
     <section ref={section} id={DIAGNOSTIC_ID} className={styles.diagnostic} aria-labelledby="diagnostic-title">
@@ -228,10 +259,10 @@ export function DiagnosticSection() {
                     <ChevronLeft size={16} />
                   </button>
                   <span className={styles.count} aria-live="polite">
-                    Question <strong>{step + 1}</strong> sur {QUESTIONS.length}
+                    Question <strong>{step + 1}</strong> sur {questions.length}
                   </span>
                   <span className={styles.segments} aria-hidden="true">
-                    {QUESTIONS.map((q, i) => (
+                    {questions.map((q, i) => (
                       <span key={q.id} data-state={i < step ? "done" : i === step ? "now" : "todo"} />
                     ))}
                   </span>
@@ -246,7 +277,7 @@ export function DiagnosticSection() {
                     onPointerDown={() => (viaPointer.current = true)}
                     onKeyDown={() => (viaPointer.current = false)}
                   >
-                    {question.options.map((o, i) => {
+                    {options.map((o, i) => {
                       const checked = selected.includes(o.id);
                       return (
                         <label
@@ -286,7 +317,7 @@ export function DiagnosticSection() {
                     Anonyme, sans inscription : vos réponses restent dans votre navigateur.
                   </p>
                   <button type="submit" className={styles.next} disabled={!selected.length}>
-                    {step === QUESTIONS.length - 1 ? "Voir ma recommandation" : "Continuer"}
+                    {step === questions.length - 1 ? "Voir ma recommandation" : "Continuer"}
                     <ArrowRight size={17} />
                   </button>
                 </div>
@@ -306,11 +337,11 @@ export function DiagnosticSection() {
                     </>
                   ) : result.outcome === "adapted" ? (
                     <>
-                      {recommended!.name}, <span className={styles.accent}>{FEMININE[result.agent] ? "adaptée" : "adapté"} à votre métier.</span>
+                      {recommended!.name}, <span className={styles.accent}>{recommended!.feminine ? "adaptée" : "adapté"} à votre métier.</span>
                     </>
                   ) : (
                     <>
-                      {recommended!.name} est <span className={styles.accent}>{FEMININE[result.agent] ? "faite" : "fait"} pour vous.</span>
+                      {recommended!.name} est <span className={styles.accent}>{recommended!.feminine ? "faite" : "fait"} pour vous.</span>
                     </>
                   )}
                 </h3>
@@ -319,7 +350,7 @@ export function DiagnosticSection() {
                     ? `Votre processus a sa propre logique. Plutôt que de le faire entrer dans un agent standard, nous construisons un agent autour de vos règles${result.tools.length ? `, connecté à ${joinFr(result.tools.map((t) => t.phrase ?? t.label))}` : ""}.`
                     : result.outcome === "adapted"
                       ? `Nous partons de ${recommended!.name} (${recommended!.role}) et l’entraînons à vos règles : le cœur est prêt, nous ajustons le reste avec vous.`
-                      : `${recommended!.role}, ${FEMININE[result.agent] ? "prête" : "prêt"} à travailler dans vos outils en quelques jours, sans rien changer à votre organisation.`}
+                      : `${recommended!.role}, ${recommended!.feminine ? "prête" : "prêt"} à travailler dans vos outils en quelques jours, sans rien changer à votre organisation.`}
                 </p>
 
                 {result.outcome === "custom" ? (
@@ -352,9 +383,9 @@ export function DiagnosticSection() {
                     {result.duo && (
                       <p className={styles.duo}>
                         {/* eslint-disable-next-line @next/next/no-img-element -- avatar */}
-                        <img src={AGENTS[result.duo].avatar} alt="" width={36} height={36} />
+                        <img src={agentCard(result.duo).avatar} alt="" width={36} height={36} />
                         <span>
-                          Idéal en duo avec <strong>{agentOf(result.duo).name}</strong>, {agentOf(result.duo).role}
+                          Idéal en duo avec <strong>{agentCard(result.duo).name}</strong>, {lowerFirst(agentCard(result.duo).role)}
                         </span>
                       </p>
                     )}
@@ -367,7 +398,7 @@ export function DiagnosticSection() {
                     className={styles.primary}
                     onClick={contactClick({
                       source: "diagnostic",
-                      need: result.outcome === "custom" ? "custom" : result.agent,
+                      need: resultNeed(result),
                       diagnostic: diagnosticSummary(answers, result),
                     })}
                   >
@@ -381,7 +412,7 @@ export function DiagnosticSection() {
                       className={styles.secondary}
                       onClick={(e) => {
                         setOrigin(e.currentTarget.getBoundingClientRect());
-                        setDialogIndex(TEAM.findIndex((t) => t.type === result.agent));
+                        setDialogIndex(ALL_AGENTS.findIndex((a) => a.key === result.agent));
                       }}
                     >
                       Découvrir {recommended!.name}
@@ -408,14 +439,26 @@ export function DiagnosticSection() {
                   <span className={styles.liveDot} aria-hidden="true" />
                   Compatibilité en direct
                 </p>
-                <p className={styles.liveHelp}>{answered ? "Le classement évolue à chaque réponse." : "Répondez : l’équipe se classe en direct."}</p>
+                <p className={styles.liveHelp}>{answered ? "Les 5 plus compatibles parmi nos 16 agents, à chaque réponse." : "Répondez : nos 16 agents se classent en direct."}</p>
                 <ol className={styles.ranking} aria-hidden="true">
-                  {CANDIDATES.map((c) => (
-                    <LiveRow key={c} candidate={c} rank={ranking.indexOf(c)} score={scores[c]} answered={answered} lead={leader === c} reduced={reduced} />
-                  ))}
+                  {CANDIDATES.map((c) => {
+                    const rank = ranking.indexOf(c);
+                    return (
+                      <LiveRow
+                        key={c}
+                        candidate={c}
+                        rank={rank < 0 ? SHOWN : rank}
+                        hidden={rank < 0}
+                        score={scores[c]}
+                        answered={answered}
+                        lead={leader === c}
+                        reduced={reduced}
+                      />
+                    );
+                  })}
                 </ol>
                 <p className="visually-hidden" role="status">
-                  {leader ? `En tête : ${leader === "custom" ? "un agent sur mesure" : agentOf(leader).name}, ${matchPercent(scores[leader])} % de compatibilité.` : ""}
+                  {leader ? `En tête : ${leader === "custom" ? "un agent sur mesure" : agentCard(leader).name}, ${matchPercent(scores[leader])} % de compatibilité.` : ""}
                 </p>
               </div>
             ) : result.outcome === "custom" ? (
@@ -440,9 +483,11 @@ export function DiagnosticSection() {
   );
 }
 
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
 function whyLines(result: DiagnosticResult) {
-  const agent = agentOf(result.agent);
-  const pronoun = FEMININE[result.agent] ? "Elle" : "Il";
+  const agent = agentCard(result.agent);
+  const pronoun = agent.feminine ? "Elle" : "Il";
   const shared = result.tools.filter((t) => AGENT_TOOLS[result.agent].includes(t.id)).map((t) => t.phrase ?? t.label);
   const lines = [
     `Votre priorité, « ${result.task.label.toLowerCase()} », c’est le métier de ${agent.name}.`,
@@ -458,6 +503,7 @@ function whyLines(result: DiagnosticResult) {
 function LiveRow({
   candidate,
   rank,
+  hidden,
   score,
   answered,
   lead,
@@ -465,15 +511,18 @@ function LiveRow({
 }: {
   candidate: Candidate;
   rank: number;
+  /** Outside the five best: faded out below the last row, ready to slide in. */
+  hidden: boolean;
   score: number;
   answered: boolean;
   lead: boolean;
   reduced: boolean;
 }) {
-  const agent = candidate === "custom" ? null : agentOf(candidate);
+  const agent = candidate === "custom" ? null : agentCard(candidate);
   return (
     <li
       className={styles.row}
+      data-hidden={hidden}
       data-lead={lead}
       data-custom={candidate === "custom"}
       style={{ "--rank": rank, "--fill": answered ? barFill(score) : 0, "--tint-a": agent?.tint[0], "--tint-b": agent?.tint[1] } as React.CSSProperties}
@@ -481,7 +530,7 @@ function LiveRow({
       <span className={styles.rowAvatar}>
         {agent ? (
           // eslint-disable-next-line @next/next/no-img-element -- avatar
-          <img src={AGENTS[agent.type].avatar} alt="" width={40} height={40} />
+          <img src={agent.avatar} alt="" width={40} height={40} loading="lazy" />
         ) : (
           <Sparkle size={18} />
         )}
@@ -507,11 +556,11 @@ function LiveRow({
 }
 
 function Portrait({ result, reduced }: { result: DiagnosticResult; reduced: boolean }) {
-  const agent = agentOf(result.agent);
+  const agent = agentCard(result.agent);
   return (
     <div className={styles.portrait} style={{ "--tint-a": agent.tint[0], "--tint-b": agent.tint[1], "--pct": result.percent } as React.CSSProperties}>
       {/* eslint-disable-next-line @next/next/no-img-element -- transparent cut-out */}
-      <img className={styles.figure} src={AGENTS[result.agent].image} alt="" />
+      <img className={styles.figure} src={agent.image} alt="" />
       <div className={styles.score}>
         <svg viewBox="0 0 64 64" aria-hidden="true">
           <circle cx="32" cy="32" r="27" pathLength={100} className={styles.ringTrack} />

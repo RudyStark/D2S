@@ -1,5 +1,6 @@
 import { METHOD_PROMISES, METHOD_STEPS, SERVICES } from "./services";
 import { TEAM } from "./team";
+import { MORE_TEAM } from "./team-more";
 
 /*
  * Site identity for search engines and AI assistants (metadata, JSON-LD, sitemap, robots, llms.txt).
@@ -12,7 +13,7 @@ export const SITE_DESCRIPTION =
   "D2S AIgency conçoit et déploie des agents IA pour les entreprises : création de contenu, support client, prospection, RH et analyse de données. Prêts à l’emploi ou sur mesure, connectés à vos outils.";
 /** One paragraph an assistant can quote as is. */
 export const SITE_SUMMARY =
-  "D2S AIgency est une agence d’intelligence artificielle basée aux Pavillons-sous-Bois, en Île-de-France, qui conçoit, connecte et fait évoluer des agents IA pour les entreprises. Ses cinq agents spécialisés (Déa pour le contenu, Loic pour le support client, May pour la prospection, Diva pour les RH et Morgan pour l’analyse de données) travaillent dans les outils existants de l’entreprise, 24h/24, et laissent toujours la décision aux équipes. Quand un processus est propre au métier, D2S AIgency construit un agent sur mesure. Le premier échange, de 30 minutes, est gratuit et sans engagement.";
+  "D2S AIgency est une agence d’intelligence artificielle basée aux Pavillons-sous-Bois, en Île-de-France, qui conçoit, connecte et fait évoluer des agents IA pour les entreprises. Ses cinq agents phares (Déa pour le contenu, Loic pour le support client, May pour la prospection, Diva pour les RH et Morgan pour l’analyse de données) et onze autres experts (vente, marketing, gestion, pilotage) travaillent dans les outils existants de l’entreprise, 24h/24, et laissent toujours la décision aux équipes. Quand un processus est propre au métier, D2S AIgency construit un agent sur mesure. Le premier échange, de 30 minutes, est gratuit et sans engagement.";
 
 /** "Support client IA" → "support client IA" (only the first letter: acronyms keep their capitals). */
 export const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
@@ -31,11 +32,11 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Quels agents IA propose D2S AIgency ?",
-    a: `Cinq agents spécialisés : ${TEAM.map((t) => `${t.name}, ${lowerFirst(t.role.replace(/ IA$/, ""))} (${lowerFirst(t.blurb.replace(/\.$/, ""))})`).join(" ; ")}.`,
+    a: `Seize agents, chacun expert de son métier. Cinq agents phares : ${TEAM.map((t) => `${t.name}, ${lowerFirst(t.role.replace(/ IA$/, ""))} (${lowerFirst(t.blurb.replace(/\.$/, ""))})`).join(" ; ")}. Et onze autres : ${MORE_TEAM.map((m) => `${m.name}, ${lowerFirst(m.role)}`).join(" ; ")}.`,
   },
   {
     q: "Comment choisir le bon agent IA pour mon entreprise ?",
-    a: "Le diagnostic « Comment choisir votre agent IA ? » pose quatre questions : la tâche à déléguer, le temps qu’elle prend chaque semaine, les outils utilisés et la spécificité du processus. Il recommande l’agent de l’équipe le plus adapté, le même agent entraîné à vos règles, ou un agent sur mesure, avec une estimation indicative du temps récupéré chaque mois.",
+    a: "Le diagnostic « Comment choisir votre agent IA ? » pose quelques questions : le domaine puis la tâche précise à déléguer, le temps qu’elle prend chaque semaine, les outils utilisés et la spécificité du processus. Il recommande, parmi les seize agents de l’équipe, le plus adapté et celui qui le complète, le même agent entraîné à vos règles, ou un agent sur mesure, avec une estimation indicative du temps récupéré chaque mois.",
   },
   {
     q: "Quand faut-il un agent IA sur mesure ?",

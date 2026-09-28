@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ArrowRight, Calendar, ChatDots } from "@/components/ui/Icons";
-import { NEEDS } from "@/lib/contact-content";
+import { needLabel } from "@/lib/contact-content";
 import { PRIVACY_HREF } from "@/lib/legal";
 import { MAY_LIMITS, MAY_STARTERS, type MayAction, type MayChoice, type MayDraft, type MayEvent, type MayRole } from "@/lib/may";
 import { draftOf, emptyMemory, mayLocal, memorySummary, type BookingStep, type MayMemory, type SlotQuery } from "@/lib/may-local";
@@ -103,7 +103,6 @@ interface MayChatProps {
 }
 
 const INITIAL_MESSAGE = "Dites-moi ce qui vous prend du temps aujourd’hui : je vous oriente vers le bon agent, puis je prépare votre demande ou un rendez-vous.";
-const needLabel = (need: MayDraft["need"]) => NEEDS.find((n) => n.id === need)?.label ?? "";
 
 const BOOKING_CLOSED = "La réservation en ligne n’est pas encore ouverte. Je prépare votre demande pour que l’équipe vous propose un créneau ?";
 const LIMIT_REACHED = "Nous avons fait le tour de ce que je peux faire ici : le mieux est maintenant d’échanger avec l’équipe. Votre demande est prête juste en dessous.";
@@ -347,7 +346,9 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
                   <div className={styles.draft}>
                     <p className={styles.draftTitle}>Votre demande est prête</p>
                     <p className={styles.draftMeta}>
-                      {[needLabel(message.draft.need), message.draft.company, message.draft.name].filter(Boolean).join(" · ")}
+                      {[message.draft.agent ?? (message.draft.need !== "unsure" ? needLabel(message.draft.need) : ""), message.draft.company, message.draft.name]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                     <p className={styles.draftText}>{message.draft.message}</p>
                     <button type="button" className={styles.draftButton} onClick={() => openDraft(message.draft!)}>

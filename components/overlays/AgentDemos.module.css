@@ -1092,16 +1092,16 @@
   left: -50%;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--blue) var(--fill, 0%), rgb(11 18 56 / 0.1) var(--fill, 0%));
-  transition: --fill 0.6s var(--ease-out);
+  background: linear-gradient(90deg, var(--blue) var(--stage-fill, 0%), rgb(11 18 56 / 0.1) var(--stage-fill, 0%));
+  transition: --stage-fill 0.6s var(--ease-out);
 }
 
 .stages li[data-state="done"]::before,
 .stages li[data-state="now"]::before {
-  --fill: 100%;
+  --stage-fill: 100%;
 }
 
-@property --fill {
+@property --stage-fill {
   syntax: "<percentage>";
   inherits: false;
   initial-value: 0%;

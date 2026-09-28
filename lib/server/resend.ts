@@ -1,5 +1,5 @@
 import "server-only";
-import { CHANNELS, DIRECT_TOPICS, NEEDS, type ChannelId, type NeedId } from "@/lib/contact-content";
+import { CHANNELS, DIRECT_TOPICS, needLabel, type ChannelId } from "@/lib/contact-content";
 
 const RESEND_API = "https://api.resend.com/emails";
 const DEFAULT_MAY_EMAIL = "may@d2saigency.com";
@@ -46,7 +46,7 @@ const escapeHtml = (value: string) =>
 const paragraphs = (value: string) => escapeHtml(value).replace(/\n/g, "<br />");
 
 function labelForNeed(value: string) {
-  return NEEDS.find((item) => item.id === (value as NeedId))?.label ?? "À préciser";
+  return needLabel(value) || "À préciser";
 }
 
 function labelForChannel(value: string) {

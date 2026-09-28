@@ -18,7 +18,7 @@ export function llmsText({ full }: { full: boolean }) {
     "",
     `- [Accueil](${abs("/")}) : la visite de l’agence en 3D, puis les services, les agents, le diagnostic, la FAQ et le contact.`,
     `- [Nos services](${abs("/#nos-services")}) : ${SERVICES_INTRO.lead}`,
-    `- [Nos agents IA](${abs("/#nos-agents-ia")}) : les cinq agents spécialisés et leurs démonstrations.`,
+    `- [Nos agents IA](${abs("/#nos-agents-ia")}) : les cinq agents phares, les onze autres experts de l’équipe et leurs démonstrations.`,
     `- [Comment choisir votre agent IA](${abs("/#comment-choisir")}) : ${DIAGNOSTIC_INTRO.lead}`,
     `- [Questions fréquentes](${abs("/#questions")})`,
     `- [Contact](${abs("/#contact")}) : ${CONTACT_INTRO.lead}`,

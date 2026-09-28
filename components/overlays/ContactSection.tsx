@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AGENTS } from "@/components/experience/agents/agents.config";
-import { ArrowRight, Check, Close, Doc, Replay, Sparkle } from "@/components/ui/Icons";
+import { ArrowRight, Check, ChevronDown, Close, Doc, Replay, Sparkle } from "@/components/ui/Icons";
 import { Logo } from "@/components/ui/Logo";
 import { useInView } from "@/hooks/useInView";
 import {
@@ -15,11 +15,11 @@ import {
   NEXT_STEPS,
   useContactIntent,
   type ChannelId,
+  type Need,
   type NeedId,
 } from "@/lib/contact";
 import { scrollToElement } from "@/lib/experience/director";
 import { LEGAL_HREF, PRIVACY_HREF } from "@/lib/legal";
-import { TEAM } from "@/lib/team";
 import { AGENTS_ID } from "./AgentsSection";
 import { SlotPicker, type PickedSlot } from "./SlotPicker";
 import styles from "./ContactSection.module.css";
@@ -90,6 +90,29 @@ function Field({
  * labels, errors on blur and on submit (focus moves to the first one), honeypot + fill time against bots,
  * then an animated confirmation with what happens next.
  */
+const TEAM_NEEDS = NEEDS.filter((n) => n.team);
+
+/** One need of the form: an agent (avatar, first name, domain), the custom agent, or « not sure yet ». */
+function NeedChip({ need, checked, onChange }: { need: Need; checked: boolean; onChange: () => void }) {
+  return (
+    <label className={styles.need} data-checked={checked}>
+      <input className={styles.hiddenInput} type="radio" name="need" value={need.id} checked={checked} onChange={onChange} />
+      {need.agent ? (
+        // eslint-disable-next-line @next/next/no-img-element -- avatar
+        <img src={`/images/agents/${need.agent}-avatar.webp`} alt="" width={26} height={26} loading="lazy" />
+      ) : need.id === "custom" ? (
+        <span className={styles.needIcon} aria-hidden="true">
+          <Sparkle size={14} />
+        </span>
+      ) : null}
+      <span>
+        {need.name && <strong>{need.name} · </strong>}
+        {need.label}
+      </span>
+    </label>
+  );
+}
+
 export function ContactSection() {
   const uid = useId();
   const section = useRef<HTMLElement>(null);
@@ -103,6 +126,10 @@ export function ContactSection() {
   const [submitted, setSubmitted] = useState(false);
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [flash, setFlash] = useState(false);
+  // « Toute l'équipe »: the eleven other agents, on demand (always shown when one of them is the chosen need).
+  const [teamOpen, setTeamOpen] = useState(false);
+  const teamChosen = TEAM_NEEDS.some((n) => n.id === values.need);
+  const showTeam = teamOpen || teamChosen;
   // Visio slot picked in the form, and what happened to it (booked, or to confirm on Calendly).
   const [slot, setSlot] = useState<PickedSlot | null>(null);
   const [booking, setBooking] = useState<{ booked: boolean; confirmUrl?: string; label?: string } | null>(null);
@@ -306,28 +333,37 @@ export function ContactSection() {
                 <fieldset className={styles.needs} data-flash={flash}>
                   <legend className={styles.groupLabel}>Votre projet</legend>
                   <div className={styles.needList}>
-                    {NEEDS.map((n) => {
-                      const agent = n.agent ? TEAM.find((t) => t.type === n.agent)! : null;
-                      const checked = values.need === n.id;
-                      return (
-                        <label key={n.id} className={styles.need} data-checked={checked}>
-                          <input className={styles.hiddenInput} type="radio" name="need" value={n.id} checked={checked} onChange={() => set("need", n.id)} />
-                          {agent ? (
-                            // eslint-disable-next-line @next/next/no-img-element -- avatar
-                            <img src={AGENTS[agent.type].avatar} alt="" width={26} height={26} />
-                          ) : n.id === "custom" ? (
-                            <span className={styles.needIcon} aria-hidden="true">
-                              <Sparkle size={14} />
-                            </span>
-                          ) : null}
-                          <span>
-                            {agent && <strong>{agent.name} · </strong>}
-                            {n.label}
-                          </span>
-                        </label>
-                      );
-                    })}
+                    {NEEDS.filter((n) => !n.team).map((n) => (
+                      <NeedChip key={n.id} need={n} checked={values.need === n.id} onChange={() => set("need", n.id)} />
+                    ))}
+                    <button
+                      type="button"
+                      className={styles.teamToggle}
+                      aria-expanded={showTeam}
+                      aria-controls={`${uid}-team`}
+                      onClick={() => setTeamOpen(!showTeam)}
+                      disabled={teamChosen}
+                    >
+                      <span className={styles.teamFaces} aria-hidden="true">
+                        {TEAM_NEEDS.slice(0, 3).map((n) => (
+                          // eslint-disable-next-line @next/next/no-img-element -- avatar
+                          <img key={n.id} src={`/images/agents/${n.agent}-avatar.webp`} alt="" width={22} height={22} />
+                        ))}
+                      </span>
+                      Toute l’équipe <span className={styles.teamCount}>+{TEAM_NEEDS.length}</span>
+                      <ChevronDown size={14} />
+                    </button>
                   </div>
+                  {showTeam && (
+                    <div id={`${uid}-team`} className={styles.teamList}>
+                      <p className={styles.teamLabel}>Toute l’équipe · un expert par métier</p>
+                      <div className={styles.needList}>
+                        {TEAM_NEEDS.map((n) => (
+                          <NeedChip key={n.id} need={n} checked={values.need === n.id} onChange={() => set("need", n.id)} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </fieldset>
 
                 {intent?.diagnostic?.length ? (

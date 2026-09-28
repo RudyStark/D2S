@@ -1,11 +1,12 @@
-import type { AgentType } from "@/components/experience/agents/agents.config";
+import { agentCard } from "./agent-directory";
 import { CHANNELS, type ChannelId, type NeedId } from "./contact-content";
-import { buildResult, FEMININE, hoursSentence, type Answers } from "./diagnostic";
+import { buildResult, hoursSentence, resultNeed, taskOption, type Answers } from "./diagnostic";
 import type { MayDraft } from "./may";
 import { readWhen, type DayPart } from "./may-dates";
 import { METHOD_PROMISES, METHOD_STEPS } from "./services";
 import { FAQ, lowerFirst } from "./site";
 import { TEAM } from "./team";
+import { MORE_TEAM } from "./team-more";
 
 /*
  * May's free first level, run in the visitor's browser: it understands the usual messages (the four
@@ -41,7 +42,7 @@ export interface MayMemory {
   asked?: Slot | "confirm" | BookingStep;
   /** The meeting being arranged. */
   slot?: SlotQuery;
-  recommended?: { need: NeedId; line: string };
+  recommended?: { need: NeedId; line: string; agent?: string };
   /** What the visitor told May, in their words (the draft is made of them, nothing invented). */
   said: string[];
 }
@@ -71,23 +72,50 @@ function readPart(t: string): DayPart | "any" | undefined {
   return undefined;
 }
 
-/** True when the pattern appears without a negation just before it ("pas de prospection"). */
+/**
+ * True when the pattern appears without a negation just before it ("pas de prospection"). A lack is a need, not a
+ * negation: « on n'a pas de stratégie », « je n'arrive plus à trier mes mails ».
+ */
 function has(text: string, pattern: RegExp) {
   const re = new RegExp(pattern.source, "g");
   for (const m of text.matchAll(re)) {
     const before = text.slice(Math.max(0, m.index - 24), m.index);
-    if (!/\b(pas|sans|ni|plus|jamais)\b[^.]*$/.test(before)) return true;
+    const negated = /\b(pas|sans|ni|plus|jamais)\b[^.]*$/.test(before);
+    const lacking = /\b(n a|n ai|n avons|n ont|n arrive|n arrivons|n arrivent|ne s en sort|ne m en sors|ne nous en sortons|manque)\b/.test(before);
+    if (!negated || lacking) return true;
   }
   return false;
 }
 
-const TASKS: [string, RegExp][] = [
-  ["content", /\b(contenus?|posts?|publications?|reseaux sociaux|linkedin|instagram|facebook|tiktok|newsletters?|articles?|blog|redaction|rediger|community)\b/],
+/*
+ * Precise tasks of the diagnostic (lib/diagnostic.ts): each one is the job of one agent of the team. Strong words
+ * name the task itself; weak ones (a channel, a generic word) only count when nothing stronger was said, so
+ * « des visuels pour Instagram » is Mia's job and « la rédaction des devis » Victor's.
+ */
+const TASKS: [id: string, strong: RegExp, weak?: RegExp][] = [
+  ["prospection", /\b(prospect\w*|leads?|(trouver|avoir|gagner|signer) (plus de |des |de nouveaux |davantage de )?clients|nouveaux clients|relances? commerciales?|pipeline|demarchage|(decrocher|obtenir|generer|plus de) (des |de )?rendez vous|appels? a froid|cold (mails?|calls?|emailing))\b/],
+  ["meetings", /\b(comptes? rendus?|notes? de (rendez vous|reunions?|visios?|calls?|appels?)|transcri\w*|debrief\w*|(mes|nos|apres (les|mes|nos)) rendez vous commerciaux|analyser (mes|nos|les) (rendez vous|appels|calls|visios))\b/, /\b(objections?)\b/],
+  ["proposals", /\b(propositions? commerciales?|devis|offres? commerciales?|appels? d offres?|chiffrages?)\b/],
   ["support", /\b(sav|service client|support|repondre (aux|a nos|a mes) (clients?|demandes|questions|acheteurs|locataires|patients)|demandes? (des |de nos |de mes )?(clients?|acheteurs|locataires)|questions? (des |de nos )?clients?|suivi de commandes?|reclamations?)\b/],
-  ["prospection", /\b(prospect\w*|leads?|trouver (des |de nouveaux )?clients|nouveaux clients|relances? commerciales?|rendez vous commerciaux|pipeline|demarchage)\b/],
-  ["hr", /\b(recrut\w*|cv|candidat\w*|onboarding|entretiens? d embauche|embauches?|ressources humaines|rh)\b/],
+  ["inbox", /\b(boite (mail|e ?mail|de reception)|trier (mes |nos |les )?(e ?mails?|mails?|messages)|tri (de |des )?(e ?mails?|mails?)|trop (de|d) (e ?mails?|mails?)|repondre (a|aux) (mes |nos |tous les )?(e ?mails?|mails?)|inbox)\b/],
+  ["content", /\b(posts?|newsletters?|articles?|blog|community manag\w*|publications?)\b/, /\b(contenus?|redaction|rediger|reseaux sociaux|linkedin|instagram|facebook)\b/],
+  ["visuals", /\b(visuels?|miniatures?|graphisme|graphiste|bannieres?|affiches?|infographies?|charte graphique)\b/, /\b(images?)\b/],
+  ["video", /\b(videos?|ugc|tournages?|spots? publicitaires?)\b/],
+  ["trends", /\b(veille|tendances?|concurren\w*|ce qui (marche|fonctionne))\b/, /\b(inspirations?)\b/],
+  ["strategy", /\b(strategie|positionnement|plan marketing|persona|proposition de valeur)\b/, /\b(marketing|cible|ciblage|campagnes?)\b/],
+  ["billing", /\b(factur\w*|impayes?|retards? de paiement|relances? (de |des )?(paiements?|factures?|impayes?)|tresorerie|comptab\w*|encaissements?|recouvrement)\b/],
   ["data", /\b(chiffres|reporting|tableaux? de bord|dashboards?|kpi|indicateurs|analyses? de donnees|donnees de vente|statistiques)\b/],
+  ["decks", /\b(presentations?|slides?|decks?|powerpoint|keynote|diaporamas?)\b/],
+  ["hr", /\b(recrut\w*|cv|candidat\w*|onboarding|entretiens? d embauche|embauches?|ressources humaines|rh)\b/],
+  ["knowledge", /\b(documentation|base de connaissances?|informations? internes?|retrouver (l |les |des |une )?(info|infos|information|informations|documents?)|memoire de l entreprise|savoir interne|procedures? internes?|wiki)\b/],
+  ["orchestration", /\b(un peu de tout|plusieurs taches|tout deleguer|toutes les taches|coordonner|orchestr\w*|un seul interlocuteur)\b/],
 ];
+
+/** Tasks named in a message: the strong words first, the weak ones only if nothing else was said. */
+function readTasks(t: string) {
+  const strong = TASKS.filter(([, re]) => has(t, re)).map(([id]) => id);
+  return strong.length ? strong : TASKS.filter(([, , weak]) => weak && has(t, weak)).map(([id]) => id);
+}
 
 const TOOLS: [string, RegExp][] = [
   ["mail", /\b(e ?mails?|mails?|courriels?|boite mail|gmail|outlook)\b/],
@@ -96,6 +124,8 @@ const TOOLS: [string, RegExp][] = [
   ["crm", /\b(crm|hubspot|salesforce|pipedrive)\b/],
   ["sheet", /\b(excel|tableurs?|google sheets?|sheets|tableaux?)\b/],
   ["calendar", /\b(agendas?|calendriers?|calendly)\b/],
+  ["shop", /\b(shopify|woocommerce|prestashop|boutique en ligne|e ?commerce|site marchand|marketplace)\b/],
+  ["docs", /\b(google drive|drive|dropbox|sharepoint|notion|documents?)\b/],
   ["software", /\b(logiciels?|erp|outils? interne|outils? metier|intranet)\b/],
 ];
 
@@ -111,7 +141,7 @@ function readTime(t: string): string | undefined {
     if (/\b(par|chaque|le|au) mois\b/.test(t)) h /= 4.33;
     return h < 2 ? "low" : h <= 10 ? "mid" : "high";
   }
-  if (/\b(peu|pas beaucoup|pas grand chose|un peu|quelques minutes|rarement)\b/.test(t)) return "low";
+  if (/\b(peu|pas beaucoup|pas grand chose|un peu|quelques minutes|rarement)\b/.test(t.replace(/\bun peu de tout\b/g, " "))) return "low";
   if (/\b(plein temps|temps plein|un poste|toute la journee|toute la semaine|enormement)\b/.test(t)) return "high";
   return undefined;
 }
@@ -142,9 +172,9 @@ const GREETING = /^ ?(bonjour|bonsoir|salut|hello|hey|coucou|bjr)( may)?( .{0,12
 const faq = (start: string) => FAQ.find((f) => f.q.startsWith(start))!.a;
 
 const QUESTIONS: Record<Slot, string> = {
-  task: "Qu’est-ce qui vous prend le plus de temps aujourd’hui : créer du contenu, répondre à vos clients, trouver de nouveaux clients, recruter, suivre vos chiffres… ?",
+  task: "Qu’est-ce qui vous prend le plus de temps aujourd’hui : trouver des clients, rédiger vos propositions, répondre à vos clients ou à vos e-mails, créer du contenu ou des visuels, suivre vos factures ou vos chiffres, recruter… ?",
   time: "Combien de temps y passez-vous environ chaque semaine, toute l’équipe comprise ?",
-  tools: "Où se passe ce travail aujourd’hui : e-mail, WhatsApp ou chat du site, réseaux sociaux, CRM, tableurs, agenda, logiciel métier ?",
+  tools: "Où se passe ce travail aujourd’hui : e-mail, WhatsApp ou chat du site, réseaux sociaux, CRM, tableurs, agenda, boutique en ligne, documents, logiciel métier ?",
   process: "Et votre façon de faire : plutôt classique, avec quelques règles bien à vous, ou vraiment propre à votre métier ?",
 };
 
@@ -164,7 +194,8 @@ const INTENTS: { id: string; re: RegExp; answer: () => string }[] = [
   {
     id: "agents",
     re: /\b(quels agents|vos agents|votre equipe|les agents|qui sont|liste des agents|vous proposez quoi|que proposez vous)\b/,
-    answer: () => `Nous avons cinq agents : ${TEAM.map((t) => `${t.name}, ${lowerFirst(t.role)}`).join(" ; ")}. Et un agent sur mesure quand votre processus est unique.`,
+    answer: () =>
+      `Seize agents, chacun expert de son métier. Nos cinq agents phares : ${TEAM.map((t) => `${t.name}, ${lowerFirst(t.role)}`).join(" ; ")}. Et onze autres : ${MORE_TEAM.map((m) => `${m.name} (${lowerFirst(m.role)})`).join(", ")}. Plus un agent sur mesure quand votre processus est unique.`,
   },
   { id: "control", re: /\b(garder la main|controle|valider|validation|remplacer (mes|nos) (salaries|employes|equipes)|humain)\b/, answer: () => faq("Est-ce que je garde") },
   { id: "custom", re: /\b(sur mesure|personnalise|specifique a (notre|mon))\b/, answer: () => faq("Quand faut-il") },
@@ -176,6 +207,7 @@ const WHICH_AGENT = /\b(quel agent|quels agents pour|lequel choisir|m orienter|c
 const STARTERS = new Set([" quel agent pour mon besoin ", " comment travaillez vous ", " prendre rendez vous "]);
 
 const CALLBACK = /\b(rappelez moi|recontactez moi|contactez moi|appelez moi|etre (re)?contacte|etre rappele|parler a (un|quelqu un|l equipe)|un humain|un conseiller)\b/;
+const SALES_MEETINGS = /\b((decrocher|obtenir|generer|plus de) (des |de )?rendez vous|(mes|nos|les|des|apres (les|mes|nos)) rendez vous (commerciaux|clients|prospects)|rendez vous (commerciaux|clients|prospects))\b/g;
 const BOOKING = /\b(rendez vous|rdv|reserver|reservation|creneau|creneaux|disponibilites|prendre (un )?rdv)\b/;
 
 /* ---------- Conversation ---------- */
@@ -186,19 +218,24 @@ const nextSlot = (m: MayMemory): Slot | undefined =>
 function recommendation(m: MayMemory) {
   const answers: Answers = { task: [m.task!], time: [m.time!], tools: m.tools ?? [], process: [m.process!] };
   const r = buildResult(answers);
-  const agent = TEAM.find((t) => t.type === r.agent)!;
-  const duo = r.duo ? TEAM.find((t) => t.type === (r.duo as AgentType)) : null;
+  const agent = agentCard(r.agent);
+  const duo = r.duo ? agentCard(r.duo) : null;
   const hours = `${hoursSentence(r.hours)} (estimation indicative)`;
   const text =
     r.outcome === "custom"
       ? `Votre processus est propre à votre métier : je vous recommande un agent sur mesure, construit autour de vos règles (atelier de cadrage, prototype sur vos cas réels, puis mise en service). ${hours}.`
-      : `Je vous recommande ${agent.name}, ${lowerFirst(agent.role)} (${r.percent} % de compatibilité) : « ${agent.blurb} »${r.outcome === "adapted" ? ` ${FEMININE[r.agent] ? "Elle serait entraînée" : "Il serait entraîné"} à vos règles propres.` : ""} ${hours}.${duo ? ` ${duo.name} pourrait l’épauler.` : ""}`;
-  const need: NeedId = r.outcome === "custom" ? "custom" : r.agent;
+      : `Je vous recommande ${agent.name}, ${lowerFirst(agent.role)} (${r.percent} % de compatibilité) : « ${agent.blurb} »${r.outcome === "adapted" ? ` ${agent.feminine ? "Elle serait entraînée" : "Il serait entraîné"} à vos règles propres.` : ""} ${hours}.${duo ? ` ${duo.name}, ${lowerFirst(duo.role)}, pourrait l’épauler.` : ""}`;
+  const need: NeedId = resultNeed(r);
+  const named = r.outcome === "custom" ? undefined : `${agent.name}, ${lowerFirst(agent.role)}`;
   const line = r.outcome === "custom" ? `Recommandation de May : un agent sur mesure. ${hours}.` : `Recommandation de May : ${agent.name} (${agent.role}). ${hours}.`;
-  return { text, need, line };
+  return { text, need, line, agent: named };
 }
 
-const TASK_NEED: Record<string, NeedId> = { content: "content", support: "support", prospection: "prospection", hr: "automation", data: "data" };
+/** The form's need for a task named but not yet diagnosed: that of the agent whose job it is. */
+function taskNeed(task: string | undefined): NeedId | undefined {
+  const agent = taskOption(task)?.agent;
+  return agent ? agentCard(agent).need : undefined;
+}
 
 /** The request prepared from what the visitor said (their words, plus May's recommendation if any). */
 export function draftOf(m: MayMemory): MayDraft {
@@ -207,7 +244,8 @@ export function draftOf(m: MayMemory): MayDraft {
     .filter(Boolean)
     .join("\n\n")
     .slice(0, 3_800);
-  const draft: MayDraft = { need: m.recommended?.need ?? (m.task ? TASK_NEED[m.task] : undefined) ?? "unsure", message };
+  const draft: MayDraft = { need: m.recommended?.need ?? taskNeed(m.task) ?? "unsure", message };
+  if (m.recommended?.agent) draft.agent = m.recommended.agent;
   if (m.channel) draft.channel = m.channel;
   return draft;
 }
@@ -234,7 +272,7 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
     if (NO.test(t)) return { kind: "reply", text: "Pas de souci. Je reste là si vous avez une question sur nos agents ou notre méthode.", memory: { ...m, asked: undefined } };
   }
 
-  const tasks = TASKS.filter(([, re]) => has(t, re)).map(([id]) => id);
+  const tasks = readTasks(t);
   const tools = TOOLS.filter(([, re]) => has(t, re)).map(([id]) => id);
   const time = readTime(t);
   const process = readProcess(t);
@@ -251,7 +289,8 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
   const when = readWhen(input);
   const part = when?.part ?? readPart(t);
   const inBooking = m.asked === "slot-part" || m.asked === "slot-day" || m.asked === "slot";
-  const asksMeeting = has(t, BOOKING);
+  // « Décrocher des rendez-vous », « mes rendez-vous commerciaux » describe the visitor's work, not a meeting with D2S.
+  const asksMeeting = has(t.replace(SALES_MEETINGS, " "), BOOKING);
   const booking = (asksMeeting || (inBooking && (when !== null || part !== undefined))) && !callback;
   let meeting: SlotQuery | undefined;
   if (booking) {
@@ -266,7 +305,11 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
   const understood = tasks.length > 0 || tools.length > 0 || time || process || channel || callback || booking || intents.length > 0 || which;
 
   // Several priorities at once: ask which one matters most, still for free.
-  if (tasks.length > 1 && !m.task) return { kind: "reply", text: "Laquelle de ces tâches vous prend le plus de temps ? On commence par celle-là.", memory: { ...m, asked: "task" } };
+  if (tasks.length > 1 && !m.task) {
+    const named = tasks.slice(0, 3).map((id) => lowerFirst(taskOption(id)!.label));
+    const text = `Laquelle vous prend le plus de temps : ${named.slice(0, -1).join(", ")} ou ${named.at(-1)} ? On commence par celle-là.`;
+    return { kind: "reply", text, memory: { ...m, asked: "task" } };
+  }
 
   // An answer May expected but could not read: Claude takes over rather than guessing.
   let answered = false;
@@ -295,7 +338,7 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
   const slot = nextSlot(m);
   if (!slot && !m.recommended && m.task) {
     const reco = recommendation(m);
-    m.recommended = { need: reco.need, line: reco.line };
+    m.recommended = { need: reco.need, line: reco.line, agent: reco.agent };
     parts.push(reco.text, "Je prépare votre demande pour en parler avec l’équipe ?");
     return { kind: "reply", text: parts.join("\n\n"), memory: { ...m, asked: "confirm" } };
   }
@@ -316,7 +359,7 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
 export function memorySummary(m: MayMemory) {
   const label = (v: string | undefined, map: Record<string, string>) => (v ? (map[v] ?? v) : "inconnu");
   return [
-    `tâche : ${label(m.task, { content: "contenu", support: "support client", prospection: "prospection", hr: "RH / recrutement", data: "chiffres / données", other: "autre" })}`,
+    `tâche : ${m.task ? lowerFirst(taskOption(m.task)?.label ?? m.task) : "inconnue"}`,
     `temps par semaine : ${label(m.time, { low: "moins de 2 h", mid: "2 à 10 h", high: "plus de 10 h" })}`,
     `outils : ${m.tools?.length ? m.tools.join(", ") : "inconnus"}`,
     `processus : ${label(m.process, { standard: "classique", specific: "quelques règles propres", unique: "propre au métier" })}`,
