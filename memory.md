@@ -963,7 +963,7 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   150–500 €, revu à la baisse à cause de la liste d'attente Doctolib), étiqueté « estimation illustrative ».
   8 sources (ENP 2021, INSEE, arrêté 2018, Elsan, medcode, Diagnomi, DREES, Doctolib). Vérifié page par page (PDFKit), ~5 Mo.
 
-## Version anglaise du site (04/10, branche `feat/english`, NON commitée, EN COURS)
+## Version anglaise du site (04-05/10, branche `feat/english`, PR à ouvrir puis fusionner par l'utilisateur)
 - Choix utilisateur : FR à la racine, EN sous `/en` (+ hreflang) ; mobile traduit (textes + sélecteur seulement) ;
   hub ensuite (UI par utilisateur, agents dans la « langue de travail » du client).
 - Infra faite : groupes `app/(fr)` et `app/(en)/en` (2 layouts racine, `RootDocument`, `LocaleProvider`/`useLocale`),
@@ -981,10 +981,20 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   visiteur en anglais (`locale` envoyé par les formulaires), e-mails à l'équipe en français + ligne « Langue ».
 - PIÈGE (script d'édition) : insérer un dictionnaire PUIS remplacer un texte identique remplace la valeur du dictionnaire
   (arrivé sur AgentsSection, corrigé ; recherche faite, aucun autre cas).
-- Sélecteur : à droite du CTA, centré sur lui (CTA décalé de 40u à gauche sur la façade) — CSS fait, PAS ENCORE vérifié en capture.
-- RESTE : vérifier en capture l'en-tête (1280/1440/1920, FR+EN) et le panneau mission du lobby (titre non visible sur une
-  capture EN, à comparer au FR) ; mobile (MobileHome, MobileContact, MobileDiagnostic, MobileAgentDialog, menu mobile + sélecteur) ;
-  build Cloudflare + dry-run ; suite mobile ; puis hub.
+- Sélecteur desktop : à droite du CTA, centré sur lui, même marge droite façade / lobby (CTA `1250 + 12c` u, langue
+  `1543 − c` u). Mesuré 1280×720, 1440×900, 1920×1080, FR + EN : écart CTA→langue 23–35 px, décalage vertical ≤ 2 px,
+  marge droite 41–64 px, aucun chevauchement avec le menu.
+- MOBILE traduit (05/10, sur demande explicite) : MobileHome, MobileContact, MobileDiagnostic, MobileAgentDialog,
+  `mobileSectionsOf` ; sélecteur `components/i18n/LanguageLink.tsx` (« FR/EN » + globe dans l'en-tête, English /
+  Français dans le menu ; garde la section). Diagnostic mobile aligné sur `valueOf` (résultat chiffré). Le HTML
+  prérendu de /en est en anglais (vérifié sur le Worker).
+- Titre mission EN : « AI that works / for the people and / ideas that matter. » (3 lignes équilibrées).
+- QA headless : la caméra avance lentement (≈ 89 % du trajet après 8 s) → attendre `data-arrived="true"` avant de juger
+  le panneau mission (le titre se révèle à l'arrivée) ; `gl.info.render.calls` peut valoir 0 entre deux images →
+  lire `render.frame` deux fois.
+- Vérifié 05/10 : suite mobile 12/12 (FR), mobile EN 390/320 (0 débordement, 0 texte FR, formulaire, diagnostic, fiche,
+  menu), `npm run build` (OpenNext) OK, `wrangler deploy --dry-run` 1,86 Mo gzip, Worker local : routes FR/EN, 308, 404,
+  415, `<html lang>`, 3D + CSP sans violation, 0 erreur d'hydratation (desktop et mobile, FR et EN).
 
 ## May vend un résultat, pas des heures (04/10, branche `feat/english`, non commité)
 - Retour utilisateur : « gagner 2-3 h par mois, ce que je vends est inintéressant ; il faut des chiffres concrets,

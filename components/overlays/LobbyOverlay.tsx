@@ -30,7 +30,7 @@ const TEXTS = {
   },
   en: {
     kicker: "Our mission",
-    title: ["Putting AI to work", "for the people and ideas", "that matter."],
+    title: ["AI that works", "for the people and", "ideas that matter."],
     text: "At D2S AIgency, we design and deploy custom AI agents to automate your tasks, speed up your growth and free up what really matters: people, creativity and impact.",
     services: "Explore our services",
     meet: "Meet our agents",

@@ -21,28 +21,138 @@ import {
   People,
   Sparkle,
 } from "@/components/ui/Icons";
+import { LanguageLink } from "@/components/i18n/LanguageLink";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { MayChat } from "@/components/may/MayChat";
 import { ContactDialog } from "@/components/ui/ContactDialog";
 import { Logo } from "@/components/ui/Logo";
-import {
-  METHOD_PROMISES,
-  METHOD_STEPS,
-  SERVICES,
-  SERVICES_INTRO,
-} from "@/lib/services";
-import { FAQ } from "@/lib/site";
-import { TEAM, type AgentProfile } from "@/lib/team";
-import { MORE_BY_POLE, MORE_TEAM } from "@/lib/team-more";
-import { LEGAL_HREF, PRIVACY_HREF } from "@/lib/legal";
+import { servicesText } from "@/lib/services";
+import { siteText } from "@/lib/site";
+import { teamOf, type AgentProfile } from "@/lib/team";
+import { moreByPoleOf, moreTeamOf } from "@/lib/team-more";
+import { legalHrefOf, privacyHrefOf } from "@/lib/legal";
 import { MobileAgentDialog } from "./MobileAgentDialog";
 import { MobileContact } from "./MobileContact";
 import { MobileDiagnostic } from "./MobileDiagnostic";
 import {
-  MOBILE_SECTIONS,
+  mobileSectionsOf,
   scrollToMobileSection,
   type MobileContactIntent,
 } from "./mobile-navigation";
 import styles from "./MobileHome.module.css";
+
+const TEXTS = {
+  fr: {
+    skip: "Aller au contenu",
+    openMenu: "Ouvrir le menu",
+    closeMenu: "Fermer le menu",
+    nav: "Navigation mobile",
+    explore: "Explorez l’agence",
+    tagline: "L’IA, plus humaine, plus utile.",
+    badge: "L’IA, plus humaine, plus utile",
+    hero: ["L’agence IA", "qui transforme", "votre temps en", "performance."],
+    heroLead: "Des agents IA sur mesure pour automatiser vos tâches et libérer ce qui compte vraiment.",
+    start: "Démarrer un projet",
+    discover: "Découvrir nos agents",
+    heroRoles: { content: "Création de contenu", support: "Support client" } as Record<string, string>,
+    scroll: "Défilez pour découvrir",
+    mission: "Notre mission",
+    missionTitle: ["L’IA au service des gens et des", "idées qui comptent."],
+    missionLead: "L’humain, la créativité et l’impact au cœur de chaque projet.",
+    mayAlt: "May, votre commerciale IA",
+    hello: ["Bonjour,", "moi c’est", "May."],
+    helps: "Je vous aide à trouver le bon agent.",
+    benefits: [
+      ["Plus de temps", "Automatisez les tâches répétitives et concentrez-vous sur l’essentiel."],
+      ["Plus d’impact", "Des agents IA qui renforcent vos équipes au quotidien."],
+      ["Croissance durable", "Des agents qui évoluent avec vos besoins."],
+    ],
+    services: "Nos services",
+    servicesTitle: ["L’IA qui s’adapte", "à vous."],
+    servicesLead: "Connectée à vos outils. Pensée pour vos équipes.",
+    ready: "Des agents prêts à travailler",
+    tools: ["E-mail", "CRM", "Agenda"],
+    find: "Trouver mon agent",
+    specific: "Un besoin spécifique ?",
+    unique: "Un processus unique à votre métier ? Nous construisons votre agent sur mesure.",
+    talkNeed: "Parlons de votre besoin",
+    method: "Notre méthode",
+    methodTitle: "De l’idée à l’impact.",
+    result: "Le résultat",
+    role: "Votre rôle",
+    agents: "Nos agents IA",
+    agentsTitle: ["Une équipe IA.", "Vos ambitions."],
+    agentsLead: "Cinq agents phares, et toute une équipe derrière eux.",
+    discoverOne: (name: string, role: string) => `Découvrir ${name}, ${role}`,
+    discoverShort: "Découvrir",
+    experts: (n: number) => `+${n} experts dans l’équipe`,
+    expertsText: "Chacun a son métier précis, et ils se passent le relais.",
+    findAgent: "Trouver l’agent qu’il vous faut",
+    control: "Vous gardez le dernier mot.",
+    controlText: "Des agents IA à vos côtés, avec vos équipes aux commandes.",
+    faq: "Questions fréquentes",
+    faqTitle: ["Vos questions,", "nos réponses."],
+    legalNav: "Informations légales",
+    legal: "Mentions légales",
+    privacy: "Confidentialité",
+    top: "Retour en haut",
+  },
+  en: {
+    skip: "Skip to content",
+    openMenu: "Open the menu",
+    closeMenu: "Close the menu",
+    nav: "Mobile navigation",
+    explore: "Explore the agency",
+    tagline: "AI, more human, more useful.",
+    badge: "AI, more human, more useful",
+    hero: ["The AI agency", "that turns", "your time into", "performance."],
+    heroLead: "Custom AI agents to automate your tasks and free up what really matters.",
+    start: "Start a project",
+    discover: "Meet our agents",
+    heroRoles: { content: "Content creation", support: "Customer support" } as Record<string, string>,
+    scroll: "Scroll to discover",
+    mission: "Our mission",
+    missionTitle: ["AI working for the people and the", "ideas that matter."],
+    missionLead: "People, creativity and impact at the heart of every project.",
+    mayAlt: "May, your AI sales rep",
+    hello: ["Hello,", "I’m", "May."],
+    helps: "I help you find the right agent.",
+    benefits: [
+      ["More time", "Automate repetitive tasks and focus on what matters."],
+      ["More impact", "AI agents that strengthen your teams every day."],
+      ["Lasting growth", "Agents that grow with your needs."],
+    ],
+    services: "Our services",
+    servicesTitle: ["AI that adapts", "to you."],
+    servicesLead: "Connected to your tools. Designed for your teams.",
+    ready: "Agents ready to work",
+    tools: ["E-mail", "CRM", "Calendar"],
+    find: "Find my agent",
+    specific: "A specific need?",
+    unique: "A process unique to your trade? We build your custom agent.",
+    talkNeed: "Let’s talk about your need",
+    method: "Our method",
+    methodTitle: "From idea to impact.",
+    result: "The result",
+    role: "Your role",
+    agents: "Our AI agents",
+    agentsTitle: ["An AI team.", "Your ambitions."],
+    agentsLead: "Five flagship agents, and a whole team behind them.",
+    discoverOne: (name: string, role: string) => `Meet ${name}, ${role}`,
+    discoverShort: "Meet",
+    experts: (n: number) => `+${n} experts on the team`,
+    expertsText: "Each one has a precise trade, and they hand over to each other.",
+    findAgent: "Find the agent you need",
+    control: "You keep the final say.",
+    controlText: "AI agents by your side, with your teams in charge.",
+    faq: "Frequently asked questions",
+    faqTitle: ["Your questions,", "our answers."],
+    legalNav: "Legal information",
+    legal: "Legal notice",
+    privacy: "Privacy",
+    top: "Back to top",
+  },
+};
 
 /** Native anchors still work before hydration. Modified clicks retain their normal behaviour. */
 function anchorClick(event: MouseEvent<HTMLAnchorElement>, id: string) {
@@ -60,6 +170,14 @@ function anchorClick(event: MouseEvent<HTMLAnchorElement>, id: string) {
 }
 
 export default function MobileHome() {
+  const locale = useLocale();
+  const t = TEXTS[locale];
+  const TEAM = teamOf(locale);
+  const MORE_TEAM = moreTeamOf(locale);
+  const MORE_BY_POLE = moreByPoleOf(locale);
+  const MOBILE_SECTIONS = mobileSectionsOf(locale);
+  const { services: SERVICES, intro: SERVICES_INTRO, steps: METHOD_STEPS, promises: METHOD_PROMISES } = servicesText(locale);
+  const FAQ = siteText(locale).faq;
   const root = useRef<HTMLDivElement>(null);
   const progress = useRef<HTMLSpanElement>(null);
   const menu = useRef<HTMLDialogElement>(null);
@@ -153,15 +271,17 @@ export default function MobileHome() {
         className="skip-link"
         onClick={(e) => anchorClick(e, "nos-services")}
       >
-        Aller au contenu
+        {t.skip}
       </a>
       <header className={styles.header} data-mobile-header>
         <div className={styles.headerInner}>
           <Logo width={106} className={styles.logo} />
+          <div className={styles.headerEnd}>
+          <LanguageLink className={styles.lang} />
           <button
             type="button"
             className={styles.menuButton}
-            aria-label="Ouvrir le menu"
+            aria-label={t.openMenu}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
             onClick={() => setMenuOpen(true)}
@@ -170,6 +290,7 @@ export default function MobileHome() {
             <span />
             <span />
           </button>
+          </div>
         </div>
         <div className={styles.progress} aria-hidden="true">
           <span ref={progress} />
@@ -191,15 +312,15 @@ export default function MobileHome() {
           <button
             type="button"
             className={styles.iconButton}
-            aria-label="Fermer le menu"
+            aria-label={t.closeMenu}
             onClick={() => setMenuOpen(false)}
             autoFocus
           >
             <Close />
           </button>
         </div>
-        <p className={styles.eyebrow}>Explorez l’agence</p>
-        <nav aria-label="Navigation mobile">
+        <p className={styles.eyebrow}>{t.explore}</p>
+        <nav aria-label={t.nav}>
           {MOBILE_SECTIONS.map(({ id, label }, i) => (
             <a
               key={id}
@@ -230,7 +351,8 @@ export default function MobileHome() {
             <ArrowRight size={18} />
           </button>
         </nav>
-        <p className={styles.menuNote}>L’IA, plus humaine, plus utile.</p>
+        <LanguageLink variant="menu" className={styles.menuLang} />
+        <p className={styles.menuNote}>{t.tagline}</p>
       </dialog>
       <ContactDialog open={contactOpen} onClose={() => setContactOpen(false)} />
 
@@ -245,28 +367,25 @@ export default function MobileHome() {
           <div className={styles.inner}>
             <p className={styles.badge}>
               <Sparkle size={15} />
-              L’IA, plus humaine, plus utile
+              {t.badge}
             </p>
             <h1 id="mobile-hero-title" className={styles.heroTitle}>
-              L’agence IA
+              {t.hero[0]}
               <br />
-              qui transforme
+              {t.hero[1]}
               <br />
-              votre temps en
+              {t.hero[2]}
               <br />
-              <span>performance.</span>
+              <span>{t.hero[3]}</span>
             </h1>
-            <p className={styles.lead}>
-              Des agents IA sur mesure pour automatiser vos tâches et libérer ce
-              qui compte vraiment.
-            </p>
+            <p className={styles.lead}>{t.heroLead}</p>
             <div className={styles.heroActions}>
               <button
                 type="button"
                 className={styles.primary}
                 onClick={() => contact({ source: "mobile-hero" })}
               >
-                Démarrer un projet
+                {t.start}
                 <ArrowRight />
               </button>
               <a
@@ -274,7 +393,7 @@ export default function MobileHome() {
                 className={styles.secondary}
                 onClick={(e) => anchorClick(e, "nos-agents-ia")}
               >
-                Découvrir nos agents
+                {t.discover}
                 <ChevronRight />
               </a>
             </div>
@@ -292,9 +411,7 @@ export default function MobileHome() {
                   />
                   <span>
                     <strong>{person.name}</strong>
-                    {person.type === "content"
-                      ? "Création de contenu"
-                      : "Support client"}
+                    {t.heroRoles[person.type]}
                   </span>
                 </div>
               ))}
@@ -305,7 +422,7 @@ export default function MobileHome() {
               onClick={(e) => anchorClick(e, "mission")}
             >
               <ChevronDown size={22} />
-              <span>Défilez pour découvrir</span>
+              <span>{t.scroll}</span>
             </a>
           </div>
         </section>
@@ -319,31 +436,29 @@ export default function MobileHome() {
         >
           <div className={styles.inner}>
             <div data-reveal>
-              <p className={styles.eyebrow}>Notre mission</p>
+              <p className={styles.eyebrow}>{t.mission}</p>
               <h2 id="mobile-mission-title" className={styles.title}>
-                L’IA au service des gens et des <span>idées qui comptent.</span>
+                {t.missionTitle[0]} <span>{t.missionTitle[1]}</span>
               </h2>
-              <p className={styles.lead}>
-                L’humain, la créativité et l’impact au cœur de chaque projet.
-              </p>
+              <p className={styles.lead}>{t.missionLead}</p>
             </div>
             <div className={styles.welcome} data-reveal>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 className={styles.may}
                 src="/images/agents/prospection.webp"
-                alt="May, votre commerciale IA"
+                alt={t.mayAlt}
                 width={526}
                 height={1165}
                 loading="lazy"
               />
               <div className={styles.welcomeCopy}>
                 <h3>
-                  Bonjour,
+                  {t.hello[0]}
                   <br />
-                  moi c’est <span>May.</span>
+                  {t.hello[1]} <span>{t.hello[2]}</span>
                 </h3>
-                <p>Je vous aide à trouver le bon agent.</p>
+                <p>{t.helps}</p>
               </div>
               <div className={styles.welcomeChat}>
                 <MayChat
@@ -365,11 +480,8 @@ export default function MobileHome() {
                   <Clock />
                 </span>
                 <div>
-                  <strong>Plus de temps</strong>
-                  <p>
-                    Automatisez les tâches répétitives et concentrez-vous sur
-                    l’essentiel.
-                  </p>
+                  <strong>{t.benefits[0][0]}</strong>
+                  <p>{t.benefits[0][1]}</p>
                 </div>
               </li>
               <li>
@@ -377,8 +489,8 @@ export default function MobileHome() {
                   <Bars />
                 </span>
                 <div>
-                  <strong>Plus d’impact</strong>
-                  <p>Des agents IA qui renforcent vos équipes au quotidien.</p>
+                  <strong>{t.benefits[1][0]}</strong>
+                  <p>{t.benefits[1][1]}</p>
                 </div>
               </li>
               <li>
@@ -386,8 +498,8 @@ export default function MobileHome() {
                   <People />
                 </span>
                 <div>
-                  <strong>Croissance durable</strong>
-                  <p>Des agents qui évoluent avec vos besoins.</p>
+                  <strong>{t.benefits[2][0]}</strong>
+                  <p>{t.benefits[2][1]}</p>
                 </div>
               </li>
             </ul>
@@ -403,17 +515,15 @@ export default function MobileHome() {
         >
           <div className={styles.inner}>
             <div data-reveal>
-              <p className={styles.eyebrow}>Nos services</p>
+              <p className={styles.eyebrow}>{t.services}</p>
               <h2 id="mobile-services-title" className={styles.title}>
-                L’IA qui s’adapte <span>à vous.</span>
+                {t.servicesTitle[0]} <span>{t.servicesTitle[1]}</span>
               </h2>
-              <p className={styles.lead}>
-                Connectée à vos outils. Pensée pour vos équipes.
-              </p>
+              <p className={styles.lead}>{t.servicesLead}</p>
             </div>
             <article className={styles.serviceCard} data-reveal>
               <p className={styles.eyebrow}>01 · Plug & Play</p>
-              <h3>Des agents prêts à travailler</h3>
+              <h3>{t.ready}</h3>
               <p>{SERVICES[0].text}</p>
               <ul className={styles.checkList}>
                 {SERVICES[0].benefits.map((benefit) => (
@@ -429,15 +539,15 @@ export default function MobileHome() {
               <div className={styles.tools}>
                 <span>
                   <Mail />
-                  E-mail
+                  {t.tools[0]}
                 </span>
                 <span>
                   <ContactCard />
-                  CRM
+                  {t.tools[1]}
                 </span>
                 <span>
                   <Calendar />
-                  Agenda
+                  {t.tools[2]}
                 </span>
               </div>
               <a
@@ -445,16 +555,16 @@ export default function MobileHome() {
                 className={styles.primary}
                 onClick={(e) => anchorClick(e, "comment-choisir")}
               >
-                Trouver mon agent
+                {t.find}
                 <ArrowRight />
               </a>
               <details className={styles.serviceDetails}>
                 <summary>
-                  Un besoin spécifique ?<ChevronDown size={18} />
+                  {t.specific}
+                  <ChevronDown size={18} />
                 </summary>
                 <p>
-                  {SERVICES_INTRO.lead} Un processus unique à votre métier ?
-                  Nous construisons votre agent sur mesure.
+                  {SERVICES_INTRO.lead} {t.unique}
                 </p>
                 <button
                   type="button"
@@ -463,14 +573,14 @@ export default function MobileHome() {
                     contact({ source: "mobile-custom", need: "custom" })
                   }
                 >
-                  Parlons de votre besoin
+                  {t.talkNeed}
                   <ArrowRight size={17} />
                 </button>
               </details>
             </article>
             <div className={styles.method} data-reveal>
-              <p className={styles.eyebrow}>Notre méthode</p>
-              <h3>De l’idée à l’impact.</h3>
+              <p className={styles.eyebrow}>{t.method}</p>
+              <h3>{t.methodTitle}</h3>
               <ol>
                 {METHOD_STEPS.map((step, i) => (
                   <li key={step.title}>
@@ -488,11 +598,11 @@ export default function MobileHome() {
                       <div className={styles.stepDetail}>
                         <p>{step.detail}</p>
                         <p>
-                          <strong>Le résultat</strong>
+                          <strong>{t.result}</strong>
                           {step.outcome}
                         </p>
                         <p>
-                          <strong>Votre rôle</strong>
+                          <strong>{t.role}</strong>
                           {step.role}
                         </p>
                       </div>
@@ -521,15 +631,13 @@ export default function MobileHome() {
         >
           <div className={styles.inner}>
             <div data-reveal>
-              <p className={styles.eyebrow}>Nos agents IA</p>
+              <p className={styles.eyebrow}>{t.agents}</p>
               <h2 id="mobile-agents-title" className={styles.title}>
-                Une équipe IA.
+                {t.agentsTitle[0]}
                 <br />
-                <span>Vos ambitions.</span>
+                <span>{t.agentsTitle[1]}</span>
               </h2>
-              <p className={styles.lead}>
-                Cinq agents phares, et toute une équipe derrière eux.
-              </p>
+              <p className={styles.lead}>{t.agentsLead}</p>
             </div>
             <ul className={styles.agentList}>
               {TEAM.map((person) => (
@@ -538,7 +646,7 @@ export default function MobileHome() {
                     type="button"
                     className={styles.agentCard}
                     onClick={() => setAgent(person)}
-                    aria-label={`Découvrir ${person.name}, ${person.role}`}
+                    aria-label={t.discoverOne(person.name, person.role)}
                   >
                     <span
                       className={styles.agentPortrait}
@@ -558,7 +666,7 @@ export default function MobileHome() {
                     <span className={styles.agentInfo}>
                       <strong>{person.name}</strong>
                       <span>{person.role}</span>
-                      <small>Découvrir</small>
+                      <small>{t.discoverShort}</small>
                     </span>
                     <span className={styles.agentArrow}>
                       <ChevronRight />
@@ -578,8 +686,8 @@ export default function MobileHome() {
                   <b>+{MORE_TEAM.length - 5}</b>
                 </span>
                 <span>
-                  <strong>+{MORE_TEAM.length} experts dans l’équipe</strong>
-                  Chacun a son métier précis, et ils se passent le relais.
+                  <strong>{t.experts(MORE_TEAM.length)}</strong>
+                  {t.expertsText}
                 </span>
               </div>
               <ul className={styles.morePoles}>
@@ -599,15 +707,15 @@ export default function MobileHome() {
                 ))}
               </ul>
               <a href="#comment-choisir" className={styles.moreLink} onClick={(e) => anchorClick(e, "comment-choisir")}>
-                Trouver l’agent qu’il vous faut
+                {t.findAgent}
                 <ChevronRight />
               </a>
             </div>
             <p className={styles.control}>
               <People size={26} />
               <span>
-                <strong>Vous gardez le dernier mot.</strong>Des agents IA à vos
-                côtés, avec vos équipes aux commandes.
+                <strong>{t.control}</strong>
+                {t.controlText}
               </span>
             </p>
           </div>
@@ -624,11 +732,11 @@ export default function MobileHome() {
         >
           <div className={styles.inner}>
             <div data-reveal>
-              <p className={styles.eyebrow}>Questions fréquentes</p>
+              <p className={styles.eyebrow}>{t.faq}</p>
               <h2 id="mobile-faq-title" className={styles.title}>
-                Vos questions,
+                {t.faqTitle[0]}
                 <br />
-                <span>nos réponses.</span>
+                <span>{t.faqTitle[1]}</span>
               </h2>
             </div>
             <div className={styles.faq}>
@@ -657,10 +765,10 @@ export default function MobileHome() {
 
       <footer className={styles.footer}>
         <Logo width={110} animated={false} />
-        <p>L’IA, plus humaine, plus utile.</p>
-        <nav aria-label="Informations légales">
-          <a href={LEGAL_HREF}>Mentions légales</a>
-          <a href={PRIVACY_HREF}>Confidentialité</a>
+        <p>{t.tagline}</p>
+        <nav aria-label={t.legalNav}>
+          <a href={legalHrefOf(locale)}>{t.legal}</a>
+          <a href={privacyHrefOf(locale)}>{t.privacy}</a>
         </nav>
         <small>© {new Date().getFullYear()} D2S AIgency</small>
         <a
@@ -668,7 +776,7 @@ export default function MobileHome() {
           className={styles.backTop}
           onClick={(e) => anchorClick(e, "agence")}
         >
-          Retour en haut
+          {t.top}
           <ChevronDown size={16} />
         </a>
       </footer>

@@ -69,6 +69,62 @@
   display: flex;
   align-items: center;
 }
+/* Language switch, then the menu, on the right of the header (44 px tap targets). */
+.headerEnd {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: -10px;
+}
+.lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+.lang:active {
+  background: var(--blue-tint);
+}
+.lang:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+.menuLang {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 28px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+.menuLang span,
+.menuLang a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+.menuLang span {
+  background: var(--blue-tint);
+  color: var(--blue);
+}
+.menuLang a:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
 .menuButton {
   border: 0;
   background: transparent;
