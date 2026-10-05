@@ -1,9 +1,10 @@
 import { LOGO_SRC } from "@/lib/brand";
-import { CONTACT_INTRO } from "@/lib/contact-content";
+import { contactIntroOf } from "@/lib/contact-content";
+import type { Locale } from "@/lib/i18n";
 import { OFFICE, PUBLISHER, SIRET } from "@/lib/legal";
-import { SERVICES } from "@/lib/services";
-import { abs, FAQ, SITE_DESCRIPTION, SITE_NAME, SITE_SUMMARY, SITE_TITLE, SITE_URL } from "@/lib/site";
-import { TEAM } from "@/lib/team";
+import { servicesText } from "@/lib/services";
+import { abs, SITE_NAME, SITE_URL, siteText } from "@/lib/site";
+import { teamOf } from "@/lib/team";
 
 /*
  * Schema.org description of the agency, read by search engines and AI assistants: who (Organization),
@@ -12,28 +13,82 @@ import { TEAM } from "@/lib/team";
  */
 const ORG = `${SITE_URL}/#organization`;
 
-function graph() {
+const WORDS = {
+  fr: {
+    plugType: "Agents IA prêts à l’emploi",
+    customName: "Agent IA sur mesure",
+    customType: "Conception d’agents IA sur mesure",
+    customText:
+      "Un agent IA construit autour des règles, des validations et des cas particuliers de votre métier : atelier de cadrage, prototype testé sur vos cas réels, mise en service, mesure et amélioration continue.",
+    missions: "Missions",
+    colon: " : ",
+    slogan: "Votre équipe, augmentée par l’IA.",
+    knows: [
+      "Intelligence artificielle",
+      "Agents IA",
+      "Automatisation des processus",
+      "Support client automatisé",
+      "Prospection commerciale",
+      "Recrutement et RH",
+      "Création de contenu",
+      "Analyse de données",
+    ],
+    catalog: "Agents IA de D2S AIgency",
+    lang: "fr-FR",
+    home: "/",
+  },
+  en: {
+    plugType: "Ready-to-use AI agents",
+    customName: "Custom AI agent",
+    customType: "Custom AI agent design",
+    customText:
+      "An AI agent built around the rules, approvals and special cases of your business: scoping workshop, prototype tested on your real cases, go-live, measurement and continuous improvement.",
+    missions: "Tasks",
+    colon: ": ",
+    slogan: "Your team, augmented by AI.",
+    knows: [
+      "Artificial intelligence",
+      "AI agents",
+      "Process automation",
+      "Automated customer support",
+      "Sales prospecting",
+      "Recruiting and HR",
+      "Content creation",
+      "Data analysis",
+    ],
+    catalog: "D2S AIgency AI agents",
+    lang: "en",
+    home: "/en",
+  },
+};
+
+function graph(locale: Locale) {
+  const w = WORDS[locale];
+  const site = siteText(locale);
+  const { services: SERVICES } = servicesText(locale);
+  const TEAM = teamOf(locale);
+  // The organisation and the services are the same in both languages (same ids); the pages are not.
+  const page = abs(w.home);
   const services = [
     {
       "@type": "Service",
       "@id": `${SITE_URL}/#service-plug-and-play`,
       name: SERVICES[0].title,
-      serviceType: "Agents IA prêts à l’emploi",
-      description: `${SERVICES[0].text} ${SERVICES[0].benefits.map((b) => `${b.title} : ${b.text}`).join(" ")}`,
+      serviceType: w.plugType,
+      description: `${SERVICES[0].text} ${SERVICES[0].benefits.map((b) => `${b.title}${w.colon}${b.text}`).join(" ")}`,
       provider: { "@id": ORG },
       areaServed: { "@type": "Country", name: "France" },
-      availableLanguage: "fr",
+      availableLanguage: ["fr", "en"],
     },
     {
       "@type": "Service",
       "@id": `${SITE_URL}/#service-sur-mesure`,
-      name: "Agent IA sur mesure",
-      serviceType: "Conception d’agents IA sur mesure",
-      description:
-        "Un agent IA construit autour des règles, des validations et des cas particuliers de votre métier : atelier de cadrage, prototype testé sur vos cas réels, mise en service, mesure et amélioration continue.",
+      name: w.customName,
+      serviceType: w.customType,
+      description: w.customText,
       provider: { "@id": ORG },
       areaServed: { "@type": "Country", name: "France" },
-      availableLanguage: "fr",
+      availableLanguage: ["fr", "en"],
     },
     ...TEAM.map((agent) => ({
       "@type": "Service",
@@ -41,7 +96,7 @@ function graph() {
       name: `${agent.name}, ${agent.role}`,
       alternateName: agent.name,
       serviceType: agent.role,
-      description: `${agent.pitch} Missions : ${agent.missions.join(" ; ")}. ${agent.control}`,
+      description: `${agent.pitch} ${w.missions}${w.colon}${agent.missions.join(locale === "en" ? "; " : " ; ")}. ${agent.control}`,
       provider: { "@id": ORG },
       availableChannel: agent.channels.map((c) => ({ "@type": "ServiceChannel", name: c })),
     })),
@@ -69,22 +124,13 @@ function graph() {
         ...(PUBLISHER.email ? { email: PUBLISHER.email } : {}),
         ...(PUBLISHER.phone ? { telephone: PUBLISHER.phone } : {}),
         image: abs("/opengraph-image.jpg"),
-        description: SITE_SUMMARY,
-        slogan: "Votre équipe, augmentée par l’IA.",
-        knowsAbout: [
-          "Intelligence artificielle",
-          "Agents IA",
-          "Automatisation des processus",
-          "Support client automatisé",
-          "Prospection commerciale",
-          "Recrutement et RH",
-          "Création de contenu",
-          "Analyse de données",
-        ],
+        description: site.summary,
+        slogan: w.slogan,
+        knowsAbout: w.knows,
         areaServed: { "@type": "Country", name: "France" },
         hasOfferCatalog: {
           "@type": "OfferCatalog",
-          name: "Agents IA de D2S AIgency",
+          name: w.catalog,
           itemListElement: services.map((s) => ({ "@type": "Offer", itemOffered: { "@id": s["@id"] } })),
         },
       },
@@ -93,35 +139,35 @@ function graph() {
         "@id": `${SITE_URL}/#website`,
         url: SITE_URL,
         name: SITE_NAME,
-        description: SITE_DESCRIPTION,
-        inLanguage: "fr-FR",
+        description: site.description,
+        inLanguage: ["fr-FR", "en"],
         publisher: { "@id": ORG },
       },
       {
         "@type": "WebPage",
-        "@id": `${SITE_URL}/#webpage`,
-        url: SITE_URL,
-        name: SITE_TITLE,
-        description: SITE_DESCRIPTION,
-        inLanguage: "fr-FR",
+        "@id": `${page}#webpage`,
+        url: page,
+        name: site.title,
+        description: site.description,
+        inLanguage: w.lang,
         isPartOf: { "@id": `${SITE_URL}/#website` },
         about: { "@id": ORG },
         primaryImageOfPage: { "@type": "ImageObject", url: abs("/opengraph-image.jpg") },
-        potentialAction: { "@type": "CommunicateAction", name: CONTACT_INTRO.title.join(" "), target: abs("/#contact") },
+        potentialAction: { "@type": "CommunicateAction", name: contactIntroOf(locale).title.join(" "), target: `${page}#contact` },
       },
       ...services,
       {
         "@type": "FAQPage",
-        "@id": `${SITE_URL}/#faq`,
-        inLanguage: "fr-FR",
-        mainEntity: FAQ.map(({ q, a }) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
+        "@id": `${page}#faq`,
+        inLanguage: w.lang,
+        mainEntity: site.faq.map(({ q, a }) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
       },
     ],
   };
 }
 
-export function StructuredData() {
+export function StructuredData({ locale = "fr" }: { locale?: Locale }) {
   // "<" escaped so no text can ever close the script element.
-  const json = JSON.stringify(graph()).replace(/</g, "\\u003c");
+  const json = JSON.stringify(graph(locale)).replace(/</g, "\\u003c");
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: json }} />;
 }

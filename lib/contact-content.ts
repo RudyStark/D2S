@@ -105,3 +105,85 @@ export const DIRECT_TOPICS = [
 ] as const;
 
 export type DirectTopicId = (typeof DIRECT_TOPICS)[number]["id"];
+
+/* ——— English ——— */
+
+const CONTACT_INTRO_EN: typeof CONTACT_INTRO = {
+  kicker: "Contact",
+  title: ["Let’s talk about", "your project."],
+  lead: "A first 30-minute call, free and with no commitment. You leave with a clear idea of what an AI agent can do for your business.",
+};
+
+const CORE_LABELS_EN = { content: "Content", support: "Customer support", prospection: "Prospecting", automation: "HR", data: "Data" };
+const TEAM_LABELS_EN: Record<MoreSlug, string> = {
+  fireflies: "Meetings",
+  proposition: "Proposals",
+  strategiste: "Strategy",
+  designer: "Visuals",
+  veille: "Trend watch",
+  ecommerce: "Product videos",
+  gmail: "E-mails",
+  comptabilite: "Invoices",
+  presentateur: "Presentations",
+  cerveau: "Company memory",
+  orchestrateur: "Coordination",
+};
+
+const NEEDS_EN: Need[] = NEEDS.map((n) => ({
+  ...n,
+  label: n.id === "custom" ? "Custom agent" : n.id === "unsure" ? "Not sure yet" : n.team ? TEAM_LABELS_EN[n.id as MoreSlug] : CORE_LABELS_EN[n.id as keyof typeof CORE_LABELS_EN],
+}));
+
+const MESSAGE_HINTS_EN: Record<NeedId, string> = {
+  content: "E.g. we publish two LinkedIn posts a week and a monthly newsletter, we would like to…",
+  support: "E.g. we get about a hundred requests a week, mostly about order tracking…",
+  prospection: "E.g. we target construction SMEs and want more qualified meetings…",
+  automation: "E.g. we are hiring fifteen people this year and onboarding takes us a lot of time…",
+  data: "E.g. our figures are scattered between the CRM and spreadsheets, we want a clear update every Monday…",
+  custom: "E.g. the process to hand over to the agent, the tools you use and your specific rules…",
+  unsure: "E.g. your business and what takes you the most time today…",
+  fireflies: "E.g. we hold about ten sales meetings a week by video call, and the meeting notes take us…",
+  proposition: "E.g. each sales proposal takes us half a day, we would like to send it the day of the meeting…",
+  strategiste: "E.g. we are launching a new offer and still hesitate on the audience and the message…",
+  designer: "E.g. we publish several visuals a week on Instagram and LinkedIn, without a designer…",
+  veille: "E.g. we want to know which videos work in our industry before producing ours…",
+  ecommerce: "E.g. we sell about forty products online and would like a video for each one…",
+  gmail: "E.g. we receive a lot of e-mails every day and some stay unanswered…",
+  comptabilite: "E.g. we chase invoices by hand and late payments keep piling up…",
+  presentateur: "E.g. every week we prepare a client presentation or a team update…",
+  cerveau: "E.g. our information is scattered between Drive, e-mails and meeting notes, we waste time finding it…",
+  orchestrateur: "E.g. we want to hand several tasks to agents, with a single point of contact…",
+};
+
+const CHANNELS_EN: { id: ChannelId; label: string }[] = [
+  { id: "visio", label: "Video call, 30 min" },
+  { id: "phone", label: "Phone call" },
+  { id: "email", label: "E-mail" },
+];
+
+const NEXT_STEPS_EN: typeof NEXT_STEPS = [
+  { title: "We read your request", text: "A reply within one business day, from a human on the team." },
+  { title: "A discovery call", text: "30 minutes on your tasks, your tools and your priorities." },
+  { title: "Your proposal", text: "Recommended agent, timeline and budget, in black and white." },
+];
+
+const DIRECT_TOPICS_EN: { id: DirectTopicId; label: string }[] = [
+  { id: "project", label: "An AI agent project" },
+  { id: "quote", label: "A quote request" },
+  { id: "partnership", label: "A partnership" },
+  { id: "press", label: "Press and media" },
+  { id: "other", label: "Something else" },
+];
+
+type L = "fr" | "en";
+export const contactIntroOf = (locale: L) => (locale === "en" ? CONTACT_INTRO_EN : CONTACT_INTRO);
+export const needsOf = (locale: L) => (locale === "en" ? NEEDS_EN : NEEDS);
+export const messageHintsOf = (locale: L) => (locale === "en" ? MESSAGE_HINTS_EN : MESSAGE_HINTS);
+export const channelsOf = (locale: L): readonly { id: ChannelId; label: string }[] => (locale === "en" ? CHANNELS_EN : CHANNELS);
+export const nextStepsOf = (locale: L) => (locale === "en" ? NEXT_STEPS_EN : NEXT_STEPS);
+export const directTopicsOf = (locale: L): readonly { id: DirectTopicId; label: string }[] => (locale === "en" ? DIRECT_TOPICS_EN : DIRECT_TOPICS);
+/** « Victor · Proposals » in a language (the visitor's e-mails). */
+export const needLabelOf = (id: string, locale: L) => {
+  const need = needsOf(locale).find((n) => n.id === id);
+  return need ? (need.name ? `${need.name} · ${need.label}` : need.label) : "";
+};

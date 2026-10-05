@@ -772,6 +772,13 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   vraies données + actions réelles), decks en diapositives + tableau d’Inès + onglet Analytics. Migrations 0005 → 0009
   exécutées. Rien de commité. Détails dans `d2s-app/memory.md`.
 
+- 30/09 : « Orchestrateur commercial » + notifications animées « Agents au travail » dans le hub (branche
+  `feat/orchestrateur-notifications`, PR d2s-app #5 fusionnée et EN LIGNE le 01/10 ; correctif 404 des propositions = #4) : tâches qui continuent pendant la navigation, travail
+  externe suivi (Apify, Arcads, Higgsfield, Fireflies), enchaînement transcription → Jules → Victor, étape « envoyer la
+  proposition » ajoutée au parcours. Détails dans `d2s-app/memory.md`.
+- 02/10 : notifications remplacées par une barre « Agents au travail » en verre (îlot en haut, fiche au survol, historique),
+  PR d2s-app #6 fusionnée et EN LIGNE. Détails dans `d2s-app/memory.md`.
+
 ## En cours / à faire
 - Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
   NS IONOS → matt / wanda.ns.cloudflare.com. Zone : 5 CNAME DNS only (autodiscover, _dmarc, _domainconnect,
@@ -944,3 +951,60 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   Morgan (délais par type d'écho, occupation des plages) + « Sur mesure » (comptes rendus aux prescripteurs,
   téléphone, rendez-vous) ; au besoin Chloé, Diva, Déa. Calcul p. 4 : Loic 11–15 h + Inès 8–12 h = 19–27 h/mois,
   Clément « à mesurer ». Vérifié page par page (PDFKit), ~5 Mo.
+- 29/09 v6 (retour du frère : 4 vrais irritants = admin/compta, comptes rendus, rendez-vous/créneaux perdus, questions
+  récurrentes chat/e-mail/téléphone ; il n'a pas de chiffres → « à toi de donner des chiffres proches du réel ») :
+  brochure refaite autour de ces 4 tâches. P3 « Un secrétariat augmenté, tâche par tâche » : questions (Loic,
+  disponible), rendez-vous EN COMPLÉMENT DE DOCTOLIB (bonne période avant la prise de RDV, annulations recueillies et
+  transmises au secrétariat ; la liste d'attente Doctolib — 8 premiers patients prévenus, active par défaut — reprend
+  le créneau ; « nous ne modifions jamais votre agenda » ; API Doctolib réservée aux partenaires, pas de scraping),
+  comptes rendus = sur mesure HDS « avec nos cabinets pilotes », admin/compta (Inès, Chloé, Clément) ; accueil
+  téléphonique automatisé = pilote. P4 = cabinet type (1 échographiste, 1 secrétaire, 16 échos/j, 4,5 j, ~80 €) :
+  25–65 h/mois rendues, +1 350 à 2 900 €/mois (examens en plus 1 200–2 400 € via JQQM018 101,98 € ; RDV mieux tenus
+  150–500 €, revu à la baisse à cause de la liste d'attente Doctolib), étiqueté « estimation illustrative ».
+  8 sources (ENP 2021, INSEE, arrêté 2018, Elsan, medcode, Diagnomi, DREES, Doctolib). Vérifié page par page (PDFKit), ~5 Mo.
+
+## Version anglaise du site (04/10, branche `feat/english`, NON commitée, EN COURS)
+- Choix utilisateur : FR à la racine, EN sous `/en` (+ hreflang) ; mobile traduit (textes + sélecteur seulement) ;
+  hub ensuite (UI par utilisateur, agents dans la « langue de travail » du client).
+- Infra faite : groupes `app/(fr)` et `app/(en)/en` (2 layouts racine, `RootDocument`, `LocaleProvider`/`useLocale`),
+  `app/global-not-found.tsx` (404 bilingue, `experimental.globalNotFound`), `lib/i18n.ts` (localize, counterpart,
+  alternates ; /en/services, /en/ai-agents, /en/how-to-choose, /en/contact → 308 vers les ancres, /en/about,
+  /en/legal-notice, /en/privacy), `lib/seo.ts`, sitemap bilingue avec alternates, images OG copiées dans les deux groupes.
+- Contenus EN : `servicesText`, `teamOf`, `moreTeamOf/polesOf/moreByPoleOf`, `agentCardsOf/agentCard(key, locale)`,
+  `allAgentsOf`, `questionsOf/buildResult(…, locale)/diagnosticSummary(…, locale)`, `contactIntroOf/needsOf/…`,
+  `siteText(locale)` (titre, description, FAQ), JSON-LD par langue. Pages légales EN (« la version française prévaut »).
+- Bureau traduit : en-tête (vrai sélecteur FR/EN, garde la section), Hero, lobby + textes 3D (slogan, INFORMATION),
+  Services, schéma, méthode, agents, fiche, 5 démos (dictionnaires) + 11 démos (`t()` + table EN en fin de fichier),
+  diagnostic, FAQ, contact, SlotPicker, fenêtre Contact, loader, bandeau 3D, étiquettes de survol.
+- May EN : `lib/may-local-en.ts` (niveau gratuit réduit : salut, FAQ, rappel, rendez-vous pas à pas via `readWhenEn`),
+  le reste part à Claude avec une consigne de langue dans le contexte NON caché ; API meetings `lang=en`, e-mails au
+  visiteur en anglais (`locale` envoyé par les formulaires), e-mails à l'équipe en français + ligne « Langue ».
+- PIÈGE (script d'édition) : insérer un dictionnaire PUIS remplacer un texte identique remplace la valeur du dictionnaire
+  (arrivé sur AgentsSection, corrigé ; recherche faite, aucun autre cas).
+- Sélecteur : à droite du CTA, centré sur lui (CTA décalé de 40u à gauche sur la façade) — CSS fait, PAS ENCORE vérifié en capture.
+- RESTE : vérifier en capture l'en-tête (1280/1440/1920, FR+EN) et le panneau mission du lobby (titre non visible sur une
+  capture EN, à comparer au FR) ; mobile (MobileHome, MobileContact, MobileDiagnostic, MobileAgentDialog, menu mobile + sélecteur) ;
+  build Cloudflare + dry-run ; suite mobile ; puis hub.
+
+## May vend un résultat, pas des heures (04/10, branche `feat/english`, non commité)
+- Retour utilisateur : « gagner 2-3 h par mois, ce que je vends est inintéressant ; il faut des chiffres concrets,
+  réalistes mais VENDEURS ». Cause : seul argument = temps récupéré = temps déclaré × part × facteur processus → minuscule
+  pour qui prospecte peu (alors que c'est là que l'agent rapporte le plus).
+- `lib/value.ts` (pur, partagé) : `valueOf({task, time, dealValue, hours}, locale)` → headline (résultat chiffré),
+  capacity, money (si valeur d'un client), reframe (temps faible = opportunité), time (seulement si ≥ 8 h/mois), hook
+  (démonstration en 30 min sur LEUR cas), basis (hypothèses affichées), asksDealValue. HYPOTHÈSES (à valider par D2S,
+  toutes en tête de fichier) : prospection 250–400 prospects/mois, 1,5–3 % de rendez-vous → 4 à 12 rdv/mois, 20–30 %
+  signent ; rdv/propositions : 10–20 % d'affaires sauvées par une relance le jour même ; support 60–80 % des demandes
+  répétitives ; contenu 12–20 posts + 1–2 newsletters ; visuels 30–60 ; vidéos 10–30 ; etc.
+- May (Claude) : `recommend_agent` + `deal_value` (0 = inconnu) renvoie `value` ; consignes VENTE (résultat d'abord,
+  retournement d'argument, demander « combien vous rapporte un client ? » puis chiffrer en €, conclure sur le hook +
+  « je vous réserve ces 30 minutes ? »), 2 questions max avant de recommander, outils jamais demandés.
+  Vérifié en réel (EN) : « 4 to 12 extra qualified meetings… €5,000 to €18,000 of potential revenue… show you May
+  writing to 3 of your real prospects ».
+- May gratuit (FR) : même pitch, question tâche puis temps + façon de faire en une seule, question de valeur client
+  (`asked: "deal"`, `readDeal`), `readWeekly` (vrai nombre d'heures : « moins de 2h » = sous 2 h, « plus de 10 h » = au-dessus)
+  → jamais plus d'heures rendues que d'heures passées (`estimateHours(answers, weekly)`).
+- Diagnostic desktop : résultat chiffré en 1re ligne, heures seulement si ≥ 8 h/mois, sinon retournement ; note = base.
+  MobileDiagnostic NON modifié (zone protégée) : affiche encore les heures.
+- PIÈGE (encore) : python non raw → `\b` devient \x08, `\n` un vrai retour ligne dans une chaîne TS. Toujours r'''…'''
+  et vérifier `grep -c $'\x08'`.

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { useEnvironment } from "@/hooks/useEnvironment";
 import { useFrameUpdate } from "@/hooks/useFrameUpdate";
 import { refreshDirector, startDirector, stopDirector } from "@/lib/experience/director";
@@ -14,6 +15,7 @@ const DebugHud = dynamic(() => import("./debug/DebugHud").then((m) => m.DebugHud
 
 /** Client entry of the immersive sequence: environment, director loop, WebGL layer, veil, site loader. */
 export function ExperienceRoot({ trackId }: { trackId: string }) {
+  const locale = useLocale();
   useEnvironment();
   const profile = useExperience((s) => s.profile);
   const reducedMotion = useExperience((s) => s.reducedMotion);
@@ -47,9 +49,9 @@ export function ExperienceRoot({ trackId }: { trackId: string }) {
       <div ref={veil} className={styles.veil} aria-hidden="true" />
       {glLost && (
         <p className={styles.glLost} role="status">
-          Le décor 3D s’est interrompu.
+          {locale === "en" ? "The 3D setting stopped." : "Le décor 3D s’est interrompu."}
           <button type="button" onClick={() => window.location.reload()}>
-            Relancer
+            {locale === "en" ? "Restart" : "Relancer"}
           </button>
         </p>
       )}

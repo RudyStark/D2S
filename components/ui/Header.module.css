@@ -126,9 +126,10 @@
   opacity: 1;
 }
 
+/* CTA then the language switch, on one row: the CTA moves 40u left on the façade to make room (same place inside). */
 .inner .cta {
   position: absolute;
-  left: calc(var(--ox) + (1320 - 58 * var(--c)) * var(--u));
+  left: calc(var(--ox) + (1280 - 18 * var(--c)) * var(--u));
   top: calc((26 - 6 * var(--c)) * var(--u));
   width: calc((263 - 13 * var(--c)) * var(--u));
   height: calc(48 * var(--u));
@@ -142,10 +143,11 @@
   height: calc(22 * var(--u));
 }
 
+/* Right of the CTA, centred on it (CTA right edge + 30u). */
 .lang {
   position: absolute;
-  left: calc(var(--ox) + (1516 + 36 * var(--c)) * var(--u));
-  top: calc((123 - 89 * var(--c)) * var(--u));
+  left: calc(var(--ox) + (1573 - 31 * var(--c)) * var(--u));
+  top: calc((40 - 6 * var(--c)) * var(--u));
 }
 
 .langButton {
@@ -205,10 +207,33 @@
   font-size: 14px;
 }
 
-.langMenu span {
-  display: block;
+.langMenu span,
+.langMenu a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding: 8px 10px;
   border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.langMenu a:hover {
+  background: var(--blue-tint);
+  color: var(--blue);
+}
+
+.langMenu a:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+.langMenu small {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-soft);
 }
 
 .langMenu [aria-current="true"] {

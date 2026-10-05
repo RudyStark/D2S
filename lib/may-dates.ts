@@ -179,3 +179,86 @@ export function spreadByDay<T extends { startTime: string }>(slots: T[], count: 
   });
   return [...new Set(picked)].sort((a, b) => a.startTime.localeCompare(b.startTime));
 }
+
+/* ---------- English ("next week", "Tuesday afternoon", "on the 30th", "1 October"…) ---------- */
+
+const WEEKDAYS_EN = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const MONTHS_EN = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+const MONTH_SHORT_EN = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const NUMBERS_EN: Record<string, number> = { one: 1, a: 1, two: 2, three: 3, four: 4 };
+const dayLabelEn = (day: Day) => {
+  const d = new Date(day);
+  const label = WEEKDAYS_EN[d.getUTCDay()];
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)} ${d.getUTCDate()} ${MONTHS_EN[d.getUTCMonth()].replace(/^./, (c) => c.toUpperCase())}`;
+};
+
+/** readWhen for English messages (same windows; labels in English: "for next week", "for Tuesday 30 September"). */
+export function readWhenEn(text: string, today: Date = new Date()): SlotWindow | null {
+  const t = norm(text);
+  const now = dayOf(today);
+  // "am"/"pm" only after an hour ("I am free" is not a morning).
+  const part: DayPart | undefined = /\bafternoon\b|\b\d{1,2} ?pm\b/.test(t) ? "afternoon" : /\bmorning\b|\b\d{1,2} ?am\b/.test(t) ? "morning" : undefined;
+  const partLabel = part === "morning" ? ", in the morning" : part === "afternoon" ? ", in the afternoon" : "";
+  const range = (from: Day, to: Day, label: string): SlotWindow => ({ from: isoDay(from), to: isoDay(to), part, label: label + partLabel, period: label, dated: true });
+  const single = (day: Day, label = `for ${dayLabelEn(day)}`): SlotWindow => range(day, day, label);
+
+  const nextWeek = monday(now) + 7 * DAY;
+  const inWeeks = t.match(/\bin (\d|one|a|two|three|four) weeks?\b/);
+  const weekOffset = inWeeks ? Number(inWeeks[1]) || NUMBERS_EN[inWeeks[1]] : /\bin (a fortnight|two weeks|2 weeks)\b/.test(t) ? 2 : 0;
+  const nextWeekAsked = /\b(next|following) week\b|\bweek after\b/.test(t);
+
+  // An explicit date: "30/09", "30 September", "September 30", "the 30th", "Tuesday 6 October".
+  const numeric = t.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+  const monthNames = [...MONTHS_EN, ...MONTH_SHORT_EN].join("|");
+  const dayFirst = t.match(new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)? (?:of )?(${monthNames})\\b`));
+  const monthFirst = t.match(new RegExp(`\\b(${monthNames}) (\\d{1,2})(?:st|nd|rd|th)?\\b`));
+  const bare = t.match(/\bthe (\d{1,2})(?:st|nd|rd|th)\b/);
+  const monthIndex = (name: string) => (MONTHS_EN.indexOf(name) >= 0 ? MONTHS_EN.indexOf(name) : MONTH_SHORT_EN.indexOf(name));
+  if (numeric || dayFirst || monthFirst || bare) {
+    const dayNumber = Number(numeric ? numeric[1] : dayFirst ? dayFirst[1] : monthFirst ? monthFirst[2] : bare![1]);
+    const month = numeric ? Number(numeric[2]) - 1 : dayFirst ? monthIndex(dayFirst[2]) : monthFirst ? monthIndex(monthFirst[1]) : new Date(now).getUTCMonth();
+    if (dayNumber >= 1 && dayNumber <= 31 && month >= 0 && month <= 11) {
+      const year = new Date(now).getUTCFullYear();
+      let day = Date.UTC(year, month, dayNumber);
+      if (day < now) day = bare ? Date.UTC(year, month + 1, dayNumber) : Date.UTC(year + 1, month, dayNumber);
+      if (new Date(day).getUTCDate() === dayNumber) return single(day);
+    }
+  }
+
+  const named = WEEKDAYS_EN.findIndex((name) => new RegExp(`\\b${name}\\b`).test(t));
+  if (named >= 0) {
+    const offset = (named + 6) % 7;
+    let day: Day;
+    if (nextWeekAsked) day = nextWeek + offset * DAY;
+    else if (weekOffset) day = monday(now) + weekOffset * 7 * DAY + offset * DAY;
+    else {
+      day = monday(now) + offset * DAY;
+      if (day <= now) day += 7 * DAY;
+    }
+    return single(day);
+  }
+
+  if (/\bday after tomorrow\b/.test(t)) return single(now + 2 * DAY, "for the day after tomorrow");
+  if (/\btomorrow\b/.test(t)) return single(now + DAY, "for tomorrow");
+  if (/\btoday\b|\bthis (morning|afternoon|evening)\b/.test(t)) return single(now, "for today");
+
+  if (/\b(early|beginning of|start of) next week\b/.test(t)) return range(nextWeek, nextWeek + DAY, "early next week");
+  if (/\b(late|end of) next week\b/.test(t)) return range(nextWeek + 3 * DAY, nextWeek + 4 * DAY, "late next week");
+  if (nextWeekAsked) return range(nextWeek, nextWeek + 6 * DAY, "for next week");
+  if (weekOffset) {
+    const start = monday(now) + weekOffset * 7 * DAY;
+    return range(start, start + 6 * DAY, `in ${weekOffset} weeks`);
+  }
+  if (/\b(end of (the|this) week|later this week)\b/.test(t)) {
+    const thursday = monday(now) + 3 * DAY;
+    return thursday + DAY >= now ? range(Math.max(thursday, now), thursday + DAY, "later this week") : range(nextWeek + 3 * DAY, nextWeek + 4 * DAY, "late next week");
+  }
+  if (/\bthis week\b/.test(t)) return range(now, monday(now) + 6 * DAY, "for this week");
+  if (/\bnext month\b/.test(t)) {
+    const d = new Date(now);
+    const first = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+    return range(first, first + 13 * DAY, "for early next month");
+  }
+  if (part) return { from: isoDay(now), to: isoDay(now + 13 * DAY), part, label: part === "morning" ? "in the morning" : "in the afternoon", period: "", dated: false };
+  return null;
+}

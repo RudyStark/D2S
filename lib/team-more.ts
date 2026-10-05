@@ -291,3 +291,203 @@ export const MORE_BY_POLE: { pole: PoleId; label: string; agents: string[]; text
   { pole: "operations", label: "Opérations & finance", agents: ["gmail", "comptabilite", "presentateur"], text: "Inès trie vos e-mails, Chloé suit et relance vos factures, Hugo monte vos présentations." },
   { pole: "pilotage", label: "Pilotage", agents: ["cerveau", "orchestrateur"], text: "Clément retrouve toute l’information de l’entreprise, Noam coordonne l’équipe." },
 ];
+
+/* ——— English (same agents, same faces: only the words change) ——— */
+
+const POLES_EN: typeof POLES = [
+  { id: "commercial", label: "Sales" },
+  { id: "marketing", label: "Content & marketing" },
+  { id: "operations", label: "Operations & finance" },
+  { id: "pilotage", label: "Management" },
+];
+
+const MORE_INTRO_EN: typeof MORE_INTRO = {
+  kicker: "The whole team",
+  title: ["Eleven more experts,", "ready to join yours."],
+  lead: "Beyond our five flagship agents, a full team covers sales, marketing, operations and management. Each one knows its trade and works with the others.",
+};
+
+type MoreWords = Pick<MoreAgent, "role" | "blurb" | "pitch" | "missions" | "channels" | "control" | "demo">;
+
+const MORE_WORDS_EN: Record<MoreSlug, MoreWords> = {
+  fireflies: {
+    role: "Meeting analyst",
+    blurb: "Every sales meeting becomes an action plan, without taking a single note.",
+    pitch: "Jules listens to your sales meetings for you. He pulls out the needs, the objections and the chances of closing, then prepares the follow-up: you stay focused on your prospect.",
+    missions: [
+      "Joins your video calls to record and transcribe them",
+      "Sums up the meeting: needs, budget, decision-maker, timing",
+      "Lists every objection and the answer to give",
+      "Estimates the prospect’s chances of signing",
+      "Prepares the action plan and the follow-up e-mail",
+    ],
+    channels: ["Google Meet", "Zoom", "Teams", "Transcripts", "Follow-up e-mail"],
+    control: "The prospect is told about the recording. Without a recording, you paste your notes and Jules analyses them the same way.",
+    demo: "From meeting to action plan",
+  },
+  proposition: {
+    role: "Sales proposals",
+    blurb: "A solid proposal, sent the same day as the meeting.",
+    pitch: "Victor turns a meeting into a structured, convincing sales proposal, ready to send. He sells the outcome, not a list of features, and tells you when the prospect opens it.",
+    missions: [
+      "Writes the proposal from the meeting analysis",
+      "Lays out the client’s situation, the solution and several options",
+      "Answers in advance the objections heard in the meeting",
+      "Formats a professional PDF, ready to send",
+      "Tracks when each proposal is opened by the prospect",
+    ],
+    channels: ["PDF", "Tracking link", "E-mail", "Proposal tracking"],
+    control: "Every amount and every commitment needs your approval before it is sent.",
+    demo: "From meeting to proposal",
+  },
+  strategiste: {
+    role: "Marketing strategist",
+    blurb: "Clear decisions on your audience, your message and your campaigns.",
+    pitch: "Antoine turns a vague intention into clear decisions: who to talk to, with which message, through which channels. He relies on proven methods and hands you briefs ready for the rest of the team.",
+    missions: [
+      "Makes the diagnosis and restates your goal",
+      "Analyses your competitors and what sets you apart",
+      "Defines your ideal customer and their buying triggers",
+      "Builds your positioning and your message",
+      "Writes the campaign briefs for Déa, Mia and May",
+    ],
+    channels: ["Strategy", "Positioning", "Campaign briefs", "Action plan"],
+    control: "Antoine proposes and argues every choice: the decision stays yours.",
+    demo: "From idea to campaign plan",
+  },
+  designer: {
+    role: "Art director",
+    blurb: "Visuals and thumbnails in your colours, with no designer or photo shoot.",
+    pitch: "Mia is your art director: she starts from your brand guidelines, suggests concepts, then produces the visuals and thumbnails that make people click, in every format.",
+    missions: [
+      "Creates brand visuals from your guidelines",
+      "Designs YouTube thumbnails with your face",
+      "Suggests several concepts before producing",
+      "Adapts each creation to every format: post, story, banner",
+      "Keeps a consistent visual identity everywhere",
+    ],
+    channels: ["Instagram", "LinkedIn", "YouTube", "Banners", "Brand guidelines"],
+    control: "Your reference photo stays private, and you choose every visual before it is used.",
+    demo: "A thumbnail that makes people click",
+  },
+  veille: {
+    role: "Trend watch",
+    blurb: "Know what works in your industry before you write a line.",
+    pitch: "Nina spots what really grabs attention in your niche: the videos that perform, their hooks, their formats. She breaks down why they work and turns that into your next ideas.",
+    missions: [
+      "Finds the most-viewed videos on your topic",
+      "Follows your competitors and the accounts that inspire you",
+      "Transcribes the spoken words of each video",
+      "Explains why a video outperforms",
+      "Turns her findings into ideas for Déa",
+    ],
+    channels: ["Instagram", "Reels", "Trends", "Competitive watch"],
+    control: "Nina draws inspiration from public content, she never copies.",
+    demo: "Ideas that have proven themselves",
+  },
+  ecommerce: {
+    role: "E-commerce expert",
+    blurb: "Product videos that sell, with no shoot and no actor.",
+    pitch: "Emma produces the videos that sell your products: an avatar presenting them like a content creator, or a polished product showcase. The script and the hook are written to convert.",
+    missions: [
+      "Creates product videos presented by an avatar",
+      "Stages your products, with no studio or equipment",
+      "Writes the script and the hook of the first seconds",
+      "Picks the sales angle: problem, demo, objection",
+      "Files your videos by product, ready to publish",
+    ],
+    channels: ["Product pages", "Instagram", "TikTok", "Ads"],
+    control: "You approve the script and the avatar before each video.",
+    demo: "A product launch on video",
+  },
+  gmail: {
+    role: "E-mail assistant",
+    blurb: "An inbox sorted every day, with the replies already drafted.",
+    pitch: "Inès gives you back the time your inbox takes: she sorts it, tells you what to handle first and prepares clear replies, ready to send.",
+    missions: [
+      "Files each e-mail: customer, prospect, supplier, admin",
+      "Draws up the day’s priority list",
+      "Drafts short, clear replies",
+      "Spots messages left unanswered",
+      "Prepares follow-ups at the right time",
+    ],
+    channels: ["Gmail", "Outlook", "Any mailbox", "Today’s to-do"],
+    control: "Inès only sees what you share with her, and never replies on her own.",
+    demo: "Forty e-mails, ten minutes",
+  },
+  comptabilite: {
+    role: "AI accountant",
+    blurb: "Your figures made readable, your invoices tracked and chased at the right time.",
+    pitch: "Chloé makes your finances readable for a manager who is not an accountant: what has been paid, what is late, what to chase, and where your margin goes.",
+    missions: [
+      "Tracks your invoices: paid, pending, overdue",
+      "Chases in stages, from a polite reminder to a firm one",
+      "Prepares your invoices as PDFs, ready to send",
+      "Shows your revenue, your expenses and your margin",
+      "Alerts you to what needs your attention",
+    ],
+    channels: ["Airtable", "PDF invoices", "E-mail reminders", "Dashboard"],
+    control: "Every reminder and every invoice needs your approval.",
+    demo: "Invoices that finally get paid",
+  },
+  presentateur: {
+    role: "Presentation maker",
+    blurb: "Clear presentations in your colours, in minutes.",
+    pitch: "Hugo turns a brief or a report into a slide-by-slide presentation, laid out automatically: key figures, comparisons and steps become readable diagrams.",
+    missions: [
+      "Builds a full deck from a brief",
+      "Lays out every slide automatically",
+      "Turns your figures into readable diagrams",
+      "Prepares a full-screen presenter mode",
+      "Exports it all as a PDF to send",
+    ],
+    channels: ["Presentations", "PDF", "Client meetings", "Board meetings"],
+    control: "You review and adjust the content before presenting.",
+    demo: "A client presentation, ready on time",
+  },
+  cerveau: {
+    role: "The company’s memory",
+    blurb: "Your whole company’s memory, one question away.",
+    pitch: "Clément knows everything your company knows: documents, meetings, proposals, prospects. Ask him a question, he answers and says where the information comes from.",
+    missions: [
+      "Links all the company’s knowledge automatically",
+      "Answers questions and cites his sources",
+      "Gives an overview of the team’s activity",
+      "Welcomes new hires with what they need to know",
+      "Flags what is missing or out of date",
+    ],
+    channels: ["Documents", "Meetings", "Proposals", "The whole agent team"],
+    control: "Clément only answers from your data, and says when he does not know.",
+    demo: "The right answer, with its source",
+  },
+  orchestrateur: {
+    role: "Conductor",
+    blurb: "A single point of contact for your whole agent team.",
+    pitch: "Noam is your team’s front door: you write to him, he hands each request to the agent whose job it is and suggests the right sequence to reach your goals.",
+    missions: [
+      "Hands each request to the right agent, automatically",
+      "Answers “who does what?” and “where do I start?”",
+      "Suggests the chain of agents for each goal",
+      "Passes work from one agent to the next",
+      "Saves you from wondering who to ask",
+    ],
+    channels: ["The whole agent team", "Single point of contact"],
+    control: "Noam directs: you always approve the agents’ work.",
+    demo: "One goal, a whole team",
+  },
+};
+
+const MORE_TEAM_EN: MoreAgent[] = MORE_TEAM.map((a) => ({ ...a, ...MORE_WORDS_EN[a.slug] }));
+
+const MORE_BY_POLE_EN: typeof MORE_BY_POLE = [
+  { pole: "commercial", label: "Sales", agents: ["fireflies", "proposition"], text: "Jules analyses your meetings, Victor writes your sales proposals." },
+  { pole: "marketing", label: "Content & marketing", agents: ["strategiste", "designer", "veille", "ecommerce"], text: "Antoine sets your strategy, Mia creates your visuals, Nina spots the trends, Emma produces your product videos." },
+  { pole: "operations", label: "Operations & finance", agents: ["gmail", "comptabilite", "presentateur"], text: "Inès sorts your e-mails, Chloé tracks and chases your invoices, Hugo builds your presentations." },
+  { pole: "pilotage", label: "Management", agents: ["cerveau", "orchestrateur"], text: "Clément finds any information in the company, Noam coordinates the team." },
+];
+
+/** The eleven in a language. */
+export const moreTeamOf = (locale: "fr" | "en") => (locale === "en" ? MORE_TEAM_EN : MORE_TEAM);
+export const moreIntroOf = (locale: "fr" | "en") => (locale === "en" ? MORE_INTRO_EN : MORE_INTRO);
+export const polesOf = (locale: "fr" | "en") => (locale === "en" ? POLES_EN : POLES);
+export const moreByPoleOf = (locale: "fr" | "en") => (locale === "en" ? MORE_BY_POLE_EN : MORE_BY_POLE);

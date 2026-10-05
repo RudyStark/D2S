@@ -6,8 +6,9 @@ import { ArrowRight, ChevronLeft, ChevronRight, Close, Replay, Shield } from "@/
 import { useReducedMotion } from "@/hooks/useInView";
 import { setScrollLocked } from "@/lib/experience/director";
 import { goToContact, type ContactIntent } from "@/lib/contact";
-import { ALL_AGENTS, type DialogAgent } from "@/lib/team-all";
-import { CONTACT_HREF } from "@/lib/navigation";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { allAgentsOf, type DialogAgent } from "@/lib/team-all";
+import { contactHrefOf } from "@/lib/navigation";
 import { AgentDemo } from "./AgentDemos";
 import { MoreAgentDemo } from "./AgentDemosMore";
 import styles from "./AgentDialog.module.css";
@@ -55,7 +56,43 @@ interface AgentDialogProps {
  * demo of the agent at work on the right. Native <dialog> (top layer, page inert, focus kept inside);
  * opens out of the clicked card; ← / → browse the team; Échap or a click outside closes.
  */
+const TEXTS = {
+  fr: {
+    online: "En ligne · 24h/24",
+    channels: (n: string) => `Là où ${n} travaille`,
+    missions: (n: string) => `Ce que ${n} fait pour vous`,
+    control: "Vous gardez la main.",
+    demo: "Démonstration",
+    action: (n: string) => `${n} en action`,
+    note: "Démonstration illustrative, données fictives.",
+    replay: "Rejouer",
+    browse: "Parcourir l’équipe",
+    prev: "Agent précédent",
+    next: "Agent suivant",
+    hire: (n: string) => `Recruter ${n}`,
+    close: "Fermer la fiche",
+  },
+  en: {
+    online: "Online · 24/7",
+    channels: (n: string) => `Where ${n} works`,
+    missions: (n: string) => `What ${n} does for you`,
+    control: "You stay in control.",
+    demo: "Demo",
+    action: (n: string) => `${n} at work`,
+    note: "Illustrative demo, fictitious data.",
+    replay: "Replay",
+    browse: "Browse the team",
+    prev: "Previous agent",
+    next: "Next agent",
+    hire: (n: string) => `Hire ${n}`,
+    close: "Close the profile",
+  },
+};
+
 export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogProps) {
+  const locale = useLocale();
+  const t = TEXTS[locale];
+  const ALL_AGENTS = allAgentsOf(locale);
   const dialog = useRef<HTMLDialogElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const [closing, setClosing] = useState(false);
@@ -98,7 +135,7 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
       onClose();
       const intent = pendingContact.current;
       pendingContact.current = null;
-      if (intent && !goToContact(intent)) window.location.assign(CONTACT_HREF);
+      if (intent && !goToContact(intent)) window.location.assign(contactHrefOf(locale));
     };
     const onCancel = (e: Event) => {
       e.preventDefault();
@@ -176,7 +213,7 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
                   <div className={styles.identity}>
                     <p className={styles.status}>
                       <span className={styles.dot} aria-hidden="true" />
-                      En ligne · 24h/24
+                      {t.online}
                     </p>
                     <h2 id="agent-dialog-name" className={styles.name}>
                       {agent.name}
@@ -187,7 +224,7 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
                 <p id="agent-dialog-pitch" className={styles.pitch}>
                   {agent.pitch}
                 </p>
-                <ul className={styles.channels} aria-label={`Là où ${agent.name} travaille`}>
+                <ul className={styles.channels} aria-label={t.channels(agent.name)}>
                   {agent.channels.map((c) => (
                     <li key={c}>{c}</li>
                   ))}
@@ -196,7 +233,7 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
 
               <section className={styles.missions} aria-labelledby="agent-dialog-missions">
                 <h3 id="agent-dialog-missions" className={styles.heading}>
-                  Ce que {agent.name} fait pour vous
+                  {t.missions(agent.name)}
                 </h3>
                 <ol>
                   {agent.missions.map((m, i) => (
@@ -211,30 +248,30 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
                 <p className={styles.control}>
                   <Shield size={18} />
                   <span>
-                    <strong>Vous gardez la main.</strong> {agent.control}
+                    <strong>{t.control}</strong> {agent.control}
                   </span>
                 </p>
               </section>
 
-              <section className={styles.demo} aria-label={`Démonstration : ${agent.demo.title}`}>
+              <section className={styles.demo} aria-label={`${t.demo}${locale === "en" ? ":" : " :"} ${agent.demo.title}`}>
                 <h3 className={styles.demoTitle}>
-                  <span>{agent.name} en action</span>
+                  <span>{t.action(agent.name)}</span>
                   {agent.demo.title}
                 </h3>
                 <DemoStage demo={agent.demo} run={run} reduced={reduced} />
                 <div className={styles.demoFoot}>
-                  <p className={styles.demoNote}>Démonstration illustrative, données fictives.</p>
+                  <p className={styles.demoNote}>{t.note}</p>
                   <button type="button" className={styles.replay} onClick={() => setRun((r) => r + 1)}>
                     <Replay size={15} />
-                    Rejouer
+                    {t.replay}
                   </button>
                 </div>
               </section>
             </div>
 
             <footer className={styles.footer}>
-              <nav className={styles.browse} aria-label="Parcourir l’équipe">
-                <button type="button" className={styles.arrow} onClick={() => go(-1)} aria-label={`Agent précédent : ${prev?.name}`}>
+              <nav className={styles.browse} aria-label={t.browse}>
+                <button type="button" className={styles.arrow} onClick={() => go(-1)} aria-label={`${t.prev}${locale === "en" ? ":" : " :"} ${prev?.name}`}>
                   <ChevronLeft size={18} />
                 </button>
                 <ul className={styles.team}>
@@ -257,12 +294,12 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
                     </li>
                   ))}
                 </ul>
-                <button type="button" className={styles.arrow} onClick={() => go(1)} aria-label={`Agent suivant : ${next?.name}`}>
+                <button type="button" className={styles.arrow} onClick={() => go(1)} aria-label={`${t.next}${locale === "en" ? ":" : " :"} ${next?.name}`}>
                   <ChevronRight size={18} />
                 </button>
               </nav>
               <Link
-                href={CONTACT_HREF}
+                href={contactHrefOf(locale)}
                 className={styles.cta}
                 onClick={(e) => {
                   e.preventDefault();
@@ -270,14 +307,14 @@ export function AgentDialog({ index, origin, onChange, onClose }: AgentDialogPro
                   requestClose();
                 }}
               >
-                Recruter {agent.name}
+                {t.hire(agent.name)}
                 <ArrowRight size={18} />
               </Link>
             </footer>
           </div>
         )}
 
-        <button type="button" className={styles.close} onClick={requestClose} aria-label="Fermer la fiche" autoFocus>
+        <button type="button" className={styles.close} onClick={requestClose} aria-label={t.close} autoFocus>
           <Close size={20} />
         </button>
       </div>

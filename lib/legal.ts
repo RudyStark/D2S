@@ -62,3 +62,5 @@ export const PRIVACY_CONTACT = "rudy.saksik@d2saigency.com" as string | null;
 
 export const PRIVACY_HREF = "/confidentialite";
 export const LEGAL_HREF = "/mentions-legales";
+export const privacyHrefOf = (locale: "fr" | "en") => (locale === "en" ? "/en/privacy" : PRIVACY_HREF);
+export const legalHrefOf = (locale: "fr" | "en") => (locale === "en" ? "/en/legal-notice" : LEGAL_HREF);

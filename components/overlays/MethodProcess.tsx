@@ -15,8 +15,9 @@ import { useInView, useReducedMotion } from "@/hooks/useInView";
 import { contactClick } from "@/lib/contact";
 import { scrollToY } from "@/lib/experience/director";
 import { clamp, smoothstep } from "@/lib/math";
-import { CONTACT_HREF } from "@/lib/navigation";
-import { METHOD_PROMISES, METHOD_STEPS } from "@/lib/services";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { contactHrefOf } from "@/lib/navigation";
+import { servicesText } from "@/lib/services";
 import glass from "./Glass.module.css";
 import styles from "./MethodProcess.module.css";
 
@@ -53,7 +54,35 @@ function useScrollMode() {
  * moment, then the line travels to the next one; a click on a step scrolls to it.
  * Below 1025 px: it plays by itself once in view (hover / focus pauses, any interaction stops it).
  */
+const TEXTS = {
+  fr: {
+    kicker: "Notre méthode",
+    title: ["Un processus simple,", "des", "résultats rapides."],
+    text: "De l’idée à l’impact, nous vous accompagnons à chaque étape. Vous savez toujours où en est votre projet.",
+    cta: "Démarrer par un brief",
+    tabs: "Les étapes de notre méthode",
+    step: "Étape",
+    outcome: "Ce que vous obtenez",
+    role: "Votre rôle",
+    hint: "Continuez à scroller : le processus avance avec vous",
+  },
+  en: {
+    kicker: "Our method",
+    title: ["A simple process,", "", "fast results."],
+    text: "From idea to impact, we are with you at every step. You always know where your project stands.",
+    cta: "Start with a brief",
+    tabs: "The steps of our method",
+    step: "Step",
+    outcome: "What you get",
+    role: "Your role",
+    hint: "Keep scrolling: the process moves with you",
+  },
+};
+
 export function MethodProcess() {
+  const locale = useLocale();
+  const t = TEXTS[locale];
+  const { steps: METHOD_STEPS, promises: METHOD_PROMISES } = servicesText(locale);
   const scroller = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
   const scrollMode = useScrollMode();
@@ -180,16 +209,14 @@ export function MethodProcess() {
         onBlur={() => setPaused(false)}
       >
         <div className={styles.intro}>
-          <p className={styles.kicker}>Notre méthode</p>
+          <p className={styles.kicker}>{t.kicker}</p>
           <h3 className={styles.title}>
-            Un processus simple,
+            {t.title[0]}
             <br />
-            des <span className={styles.accent}>résultats rapides.</span>
+            {t.title[1] && `${t.title[1]} `}
+            <span className={styles.accent}>{t.title[2]}</span>
           </h3>
-          <p className={styles.text}>
-            De l’idée à l’impact, nous vous accompagnons à chaque étape. Vous
-            savez toujours où en est votre projet.
-          </p>
+          <p className={styles.text}>{t.text}</p>
           <ul className={styles.promises}>
             {METHOD_PROMISES.map((p) => (
               <li key={p}>
@@ -201,11 +228,11 @@ export function MethodProcess() {
             ))}
           </ul>
           <Link
-            href={CONTACT_HREF}
+            href={contactHrefOf(locale)}
             className={styles.cta}
             onClick={contactClick({ source: "method" })}
           >
-            Démarrer par un brief
+            {t.cta}
             <ArrowRight size={18} />
           </Link>
         </div>
@@ -217,7 +244,7 @@ export function MethodProcess() {
           <div
             className={styles.tabs}
             role="tablist"
-            aria-label="Les étapes de notre méthode"
+            aria-label={t.tabs}
             onKeyDown={onKey}
           >
             {METHOD_STEPS.map((s, i) => {
@@ -272,7 +299,7 @@ export function MethodProcess() {
             >
               <div className={styles.panelMain}>
                 <p className={styles.panelStep}>
-                  Étape {String(active + 1).padStart(2, "0")}{" "}
+                  {t.step} {String(active + 1).padStart(2, "0")}{" "}
                   <span aria-hidden="true">/</span>{" "}
                   {String(METHOD_STEPS.length).padStart(2, "0")}
                 </p>
@@ -281,11 +308,11 @@ export function MethodProcess() {
               </div>
               <dl className={styles.panelFacts}>
                 <div className={styles.fact}>
-                  <dt>Ce que vous obtenez</dt>
+                  <dt>{t.outcome}</dt>
                   <dd>{step.outcome}</dd>
                 </div>
                 <div className={styles.fact}>
-                  <dt>Votre rôle</dt>
+                  <dt>{t.role}</dt>
                   <dd>{step.role}</dd>
                 </div>
               </dl>
@@ -294,7 +321,7 @@ export function MethodProcess() {
           {scrollMode && (
             <p className={styles.scrollHint} aria-hidden="true">
               <span className={styles.scrollMouse} />
-              Continuez à scroller : le processus avance avec vous
+              {t.hint}
             </p>
           )}
         </div>

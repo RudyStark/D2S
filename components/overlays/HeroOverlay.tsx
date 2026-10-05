@@ -11,32 +11,56 @@ import { frame } from "@/lib/experience/store";
 import { beat, beatEased } from "@/lib/experience/timeline";
 import { easeOutCubic } from "@/lib/math";
 import { contactClick } from "@/lib/contact";
-import { CONTACT_HREF } from "@/lib/navigation";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { contactHrefOf, homeOf } from "@/lib/navigation";
 import { AGENTS_ID } from "./AgentsSection";
 import styles from "./HeroOverlay.module.css";
 import { ScrollCue } from "./ScrollCue";
 
 const TEAM = [AGENTS.automation, AGENTS.support, AGENTS.data];
 
+const TEXTS = {
+  fr: {
+    badge: "L’IA, plus humaine, plus utile",
+    title: ["L’agence IA", "qui transforme votre", "temps en", "performance."],
+    lead: "Nous concevons et déployons des agents IA sur mesure pour automatiser vos tâches, accélérer votre croissance et libérer ce qui compte vraiment.",
+    start: "Démarrer un projet",
+    discover: "Découvrir nos agents",
+    cue: ["Scrollez pour entrer", "dans notre univers"],
+    team: ["Une équipe d’agents IA", "à vos côtés"],
+  },
+  en: {
+    badge: "AI, more human, more useful",
+    title: ["The AI agency", "that turns your", "time into", "performance."],
+    lead: "We design and deploy custom AI agents to automate your tasks, speed up your growth and free up what really matters.",
+    start: "Start a project",
+    discover: "Meet our agents",
+    cue: ["Scroll to step into", "our world"],
+    team: ["A team of AI agents", "by your side"],
+  },
+};
+
 /**
  * Façade copy, positioned on design/references/01-home-final.png (1672×861).
  * Real DOM (SEO, a11y, crisp text), lifted and faded by the "heroFade" beat.
  */
 export function HeroOverlay() {
+  const locale = useLocale();
+  const t = TEXTS[locale];
   const section = useRef<HTMLElement>(null);
   const copy = useRef<HTMLDivElement>(null);
   const aside = useRef<HTMLDivElement>(null);
   const cue = useRef<HTMLDivElement>(null);
   const haze = useRef<HTMLDivElement>(null);
   useFrameUpdate(({ progress }) => {
-    const t = beatEased(progress, "heroFade");
-    const visible = 1 - t;
+    const fade = beatEased(progress, "heroFade");
+    const visible = 1 - fade;
     if (section.current) {
       section.current.style.setProperty("--hero", visible.toFixed(3));
       setInteractive(section.current, visible > 0.2);
     }
-    if (copy.current) copy.current.style.transform = `translate3d(0, ${(-t * 46).toFixed(2)}px, 0)`;
-    if (aside.current) aside.current.style.transform = `translate3d(${(t * 30).toFixed(2)}px, ${(t * 12).toFixed(2)}px, 0)`;
+    if (copy.current) copy.current.style.transform = `translate3d(0, ${(-fade * 46).toFixed(2)}px, 0)`;
+    if (aside.current) aside.current.style.transform = `translate3d(${(fade * 30).toFixed(2)}px, ${(fade * 12).toFixed(2)}px, 0)`;
     if (cue.current) cue.current.style.opacity = (1 - easeOutCubic(beat(progress, "scrollHint"))).toFixed(3);
     // Cut the veil around the black planter block (published by the 3D scene each frame).
     const planter = frame.rects.heroPlanter;
@@ -56,22 +80,19 @@ export function HeroOverlay() {
       <div ref={copy} className={styles.copy}>
         <p className={styles.badge}>
           <Sparkle className={styles.badgeIcon} />
-          L’IA, plus humaine, plus utile
+          {t.badge}
         </p>
         <h1 id="hero-title" className={styles.title}>
-          <span className={styles.line}>L’agence IA</span>{" "}
-          <span className={styles.line}>qui transforme votre</span>{" "}
+          <span className={styles.line}>{t.title[0]}</span>{" "}
+          <span className={styles.line}>{t.title[1]}</span>{" "}
           <span className={styles.line}>
-            temps en <span className={styles.accent}>performance.</span>
+            {t.title[2]} <span className={styles.accent}>{t.title[3]}</span>
           </span>
         </h1>
-        <p className={styles.lead}>
-          Nous concevons et déployons des agents IA sur mesure pour automatiser vos tâches, accélérer votre croissance
-          et libérer ce qui compte vraiment.
-        </p>
+        <p className={styles.lead}>{t.lead}</p>
         <div className={styles.actions}>
-          <Button href={CONTACT_HREF} icon={<ArrowRight />} className={styles.primary} onClick={contactClick({ source: "hero" })}>
-            Démarrer un projet
+          <Button href={contactHrefOf(locale)} icon={<ArrowRight />} className={styles.primary} onClick={contactClick({ source: "hero" })}>
+            {t.start}
           </Button>
           <Button
             variant="secondary"
@@ -82,18 +103,18 @@ export function HeroOverlay() {
               scrollToProgress(1);
             }}
           >
-            Découvrir nos agents
+            {t.discover}
           </Button>
         </div>
       </div>
 
       <div ref={cue} className={styles.cue}>
-        <ScrollCue lines={["Scrollez pour entrer", "dans notre univers"]} />
+        <ScrollCue lines={t.cue} />
       </div>
 
       <div ref={aside} className={styles.aside}>
         <Link
-          href={`/#${AGENTS_ID}`}
+          href={`${homeOf(locale)}#${AGENTS_ID}`}
           className={styles.team}
           onClick={(e) => {
             // Same page: scroll instead of navigating (the redirect would remount the 3D world).
@@ -111,8 +132,9 @@ export function HeroOverlay() {
           </span>
           <span className={styles.teamDot} aria-hidden="true" />
           <span className={styles.teamLabel}>
-            Une équipe d’agents IA
-            <br />à vos côtés
+            {t.team[0]}
+            <br />
+            {t.team[1]}
           </span>
           <ChevronRight className={styles.teamChevron} />
         </Link>

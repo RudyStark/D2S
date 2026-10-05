@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { ArrowRight, Check, Close } from "@/components/ui/Icons";
-import { DIRECT_TOPICS, type DirectTopicId } from "@/lib/contact-content";
-import { PRIVACY_HREF } from "@/lib/legal";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { directTopicsOf, type DirectTopicId } from "@/lib/contact-content";
+import type { Locale } from "@/lib/i18n";
+import { privacyHrefOf } from "@/lib/legal";
 import styles from "./ContactDialog.module.css";
 
 /*
@@ -29,16 +31,78 @@ const INITIAL: Values = { topic: "project", name: "", email: "", company: "", ph
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const ORDER: Field[] = ["name", "email", "message", "consent"];
 
-function validate(v: Values): Partial<Record<Field, string>> {
+const TEXTS = {
+  fr: {
+    errors: {
+      name: "Indiquez votre prénom et votre nom.",
+      email: "Cette adresse e-mail ne semble pas complète.",
+      message: "Quelques mots de plus, s’il vous plaît (10 caractères minimum).",
+      consent: "Votre accord est nécessaire pour vous répondre.",
+    },
+    tooMany: "Trop de messages rapprochés : réessayez dans quelques minutes.",
+    failed: "L’envoi n’a pas abouti. Votre message est conservé : réessayez dans un instant.",
+    offline: "Connexion impossible. Votre message est conservé : réessayez.",
+    close: "Fermer",
+    thanks: (n: string) => `Merci${n ? ` ${n}` : ""} !`,
+    sent: "Votre message est bien arrivé. L’équipe vous répond sous 24 h ouvrées à",
+    kicker: "Contact direct",
+    title: ["Écrivez-", "nous."],
+    lead: "Une question, un partenariat, la presse… Votre message arrive directement à l’équipe.",
+    topic: "Votre sujet",
+    name: "Prénom et nom",
+    email: "E-mail",
+    company: "Entreprise",
+    phone: "Téléphone",
+    optional: "· facultatif",
+    message: "Votre message",
+    consent: "J’accepte que D2S AIgency utilise ces informations pour répondre à mon message.",
+    privacy: "Confidentialité",
+    sending: "Envoi en cours…",
+    send: "Envoyer le message",
+  },
+  en: {
+    errors: {
+      name: "Please enter your first and last name.",
+      email: "This e-mail address does not look complete.",
+      message: "A few more words, please (10 characters minimum).",
+      consent: "We need your consent to reply to you.",
+    },
+    tooMany: "Too many messages in a row: try again in a few minutes.",
+    failed: "Sending failed. Your message is kept: try again in a moment.",
+    offline: "No connection. Your message is kept: try again.",
+    close: "Close",
+    thanks: (n: string) => `Thank you${n ? ` ${n}` : ""}!`,
+    sent: "Your message has arrived. The team will reply within one business day at",
+    kicker: "Direct contact",
+    title: ["Write to ", "us."],
+    lead: "A question, a partnership, the press… Your message goes straight to the team.",
+    topic: "Your topic",
+    name: "First and last name",
+    email: "E-mail",
+    company: "Company",
+    phone: "Phone",
+    optional: "· optional",
+    message: "Your message",
+    consent: "I agree that D2S AIgency may use this information to reply to my message.",
+    privacy: "Privacy",
+    sending: "Sending…",
+    send: "Send the message",
+  },
+};
+
+function validate(v: Values, locale: Locale): Partial<Record<Field, string>> {
   const e: Partial<Record<Field, string>> = {};
-  if (v.name.trim().length < 2) e.name = "Indiquez votre prénom et votre nom.";
-  if (!EMAIL.test(v.email.trim())) e.email = "Cette adresse e-mail ne semble pas complète.";
-  if (v.message.trim().length < 10) e.message = "Quelques mots de plus, s’il vous plaît (10 caractères minimum).";
-  if (!v.consent) e.consent = "Votre accord est nécessaire pour vous répondre.";
+  const m = TEXTS[locale].errors;
+  if (v.name.trim().length < 2) e.name = m.name;
+  if (!EMAIL.test(v.email.trim())) e.email = m.email;
+  if (v.message.trim().length < 10) e.message = m.message;
+  if (!v.consent) e.consent = m.consent;
   return e;
 }
 
 export function ContactDialog({ open, onClose, onLock }: { open: boolean; onClose: () => void; onLock?: (locked: boolean) => void }) {
+  const locale = useLocale();
+  const t = TEXTS[locale];
   const uid = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const honeypot = useRef<HTMLInputElement>(null);
@@ -93,7 +157,7 @@ export function ContactDialog({ open, onClose, onLock }: { open: boolean; onClos
     if (status === "sent") successTitle.current?.focus({ preventScroll: true });
   }, [status]);
 
-  const errors = validate(values);
+  const errors = validate(values, locale);
   const shown = (k: Field) => ((submitted || touched[k]) && errors[k]) || undefined;
   const set = <K extends keyof Values>(k: K, v: Values[K]) => setValues((s) => ({ ...s, [k]: v }));
   const blur = (k: Field) => () => setTouched((t) => ({ ...t, [k]: true }));
@@ -115,14 +179,14 @@ export function ContactDialog({ open, onClose, onLock }: { open: boolean; onClos
       const res = await fetch("/api/message", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...values, website: honeypot.current?.value ?? "", elapsed: Date.now() - shownAt.current }),
+        body: JSON.stringify({ ...values, locale, website: honeypot.current?.value ?? "", elapsed: Date.now() - shownAt.current }),
       });
       await new Promise((r) => setTimeout(r, Math.max(0, 600 - (performance.now() - started))));
-      if (!res.ok) throw new Error(res.status === 429 ? "Trop de messages rapprochés : réessayez dans quelques minutes." : "L’envoi n’a pas abouti. Votre message est conservé : réessayez dans un instant.");
+      if (!res.ok) throw new Error(res.status === 429 ? t.tooMany : t.failed);
       setStatus("sent");
     } catch (error) {
       setStatus("error");
-      setFailure(error instanceof Error && error.message && !(error instanceof TypeError) ? error.message : "Connexion impossible. Votre message est conservé : réessayez.");
+      setFailure(error instanceof Error && error.message && !(error instanceof TypeError) ? error.message : t.offline);
     }
   };
 
@@ -138,7 +202,7 @@ export function ContactDialog({ open, onClose, onLock }: { open: boolean; onClos
       }}
     >
       <div className={styles.panel} data-lenis-prevent>
-        <button type="button" className={styles.close} aria-label="Fermer" onClick={() => dialog.current?.close()}>
+        <button type="button" className={styles.close} aria-label={t.close} onClick={() => dialog.current?.close()}>
           <Close size={18} />
         </button>
 
@@ -149,32 +213,33 @@ export function ContactDialog({ open, onClose, onLock }: { open: boolean; onClos
               <path d="M20 33.5 28.5 42 45 24" pathLength={1} />
             </svg>
             <h2 ref={successTitle} tabIndex={-1} className={styles.successTitle}>
-              Merci{firstName ? ` ${firstName}` : ""} !
+              {t.thanks(firstName)}
             </h2>
             <p className={styles.successText}>
-              Votre message est bien arrivé. L’équipe vous répond sous 24 h ouvrées à <strong>{values.email.trim()}</strong>.
+              {t.sent} <strong>{values.email.trim()}</strong>.
             </p>
             <button type="button" className={styles.submit} onClick={() => dialog.current?.close()}>
-              Fermer
+              {t.close}
             </button>
           </div>
         ) : (
           <form className={styles.form} noValidate onSubmit={submit}>
             <header className={styles.head}>
-              <p className={styles.kicker}>Contact direct</p>
+              <p className={styles.kicker}>{t.kicker}</p>
               <h2 id={id("title")} className={styles.title}>
-                Écrivez-<span>nous.</span>
+                {t.title[0]}
+                <span>{t.title[1]}</span>
               </h2>
-              <p className={styles.lead}>Une question, un partenariat, la presse… Votre message arrive directement à l’équipe.</p>
+              <p className={styles.lead}>{t.lead}</p>
             </header>
 
             <fieldset className={styles.topics}>
-              <legend className={styles.label}>Votre sujet</legend>
+              <legend className={styles.label}>{t.topic}</legend>
               <div className={styles.topicList}>
-                {DIRECT_TOPICS.map((t) => (
-                  <label key={t.id} className={styles.topic} data-checked={values.topic === t.id}>
-                    <input className={styles.hidden} type="radio" name="topic" value={t.id} checked={values.topic === t.id} onChange={() => set("topic", t.id)} />
-                    {t.label}
+                {directTopicsOf(locale).map((tp) => (
+                  <label key={tp.id} className={styles.topic} data-checked={values.topic === tp.id}>
+                    <input className={styles.hidden} type="radio" name="topic" value={tp.id} checked={values.topic === tp.id} onChange={() => set("topic", tp.id)} />
+                    {tp.label}
                   </label>
                 ))}
               </div>
@@ -182,7 +247,7 @@ export function ContactDialog({ open, onClose, onLock }: { open: boolean; onClos
 
             <div className={styles.grid}>
               <div className={styles.field} data-invalid={!!shown("name")}>
-                <label htmlFor={id("name")}>Prénom et nom</label>
+                <label htmlFor={id("name")}>{t.name}</label>
                 <input
                   id={id("name")}
                   autoComplete="name"
@@ -198,7 +263,7 @@ export function ContactDialog({ open, onClose, onLock }: { open: boolean; onClos
                 </p>
               </div>
               <div className={styles.field} data-invalid={!!shown("email")}>
-                <label htmlFor={id("email")}>E-mail</label>
+                <label htmlFor={id("email")}>{t.email}</label>
                 <input
                   id={id("email")}
                   type="email"
@@ -217,18 +282,18 @@ export function ContactDialog({ open, onClose, onLock }: { open: boolean; onClos
               </div>
               <div className={styles.field}>
                 <label htmlFor={id("company")}>
-                  Entreprise <span>· facultatif</span>
+                  {t.company} <span>{t.optional}</span>
                 </label>
                 <input id={id("company")} autoComplete="organization" value={values.company} onChange={(e) => set("company", e.target.value)} maxLength={160} />
               </div>
               <div className={styles.field}>
                 <label htmlFor={id("phone")}>
-                  Téléphone <span>· facultatif</span>
+                  {t.phone} <span>{t.optional}</span>
                 </label>
                 <input id={id("phone")} type="tel" autoComplete="tel" inputMode="tel" value={values.phone} onChange={(e) => set("phone", e.target.value)} maxLength={40} />
               </div>
               <div className={`${styles.field} ${styles.wide}`} data-invalid={!!shown("message")}>
-                <label htmlFor={id("message")}>Votre message</label>
+                <label htmlFor={id("message")}>{t.message}</label>
                 <textarea
                   id={id("message")}
                   rows={5}
@@ -262,7 +327,7 @@ export function ContactDialog({ open, onClose, onLock }: { open: boolean; onClos
                   <Check size={12} />
                 </span>
                 <span>
-                  J’accepte que D2S AIgency utilise ces informations pour répondre à mon message. <Link href={PRIVACY_HREF}>Confidentialité</Link>
+                  {t.consent} <Link href={privacyHrefOf(locale)}>{t.privacy}</Link>
                 </span>
               </label>
               <p id={`${id("consent")}-error`} className={styles.error}>
@@ -280,7 +345,7 @@ export function ContactDialog({ open, onClose, onLock }: { open: boolean; onClos
                 </p>
               )}
               <button type="submit" className={styles.submit} disabled={status === "sending"} data-sending={status === "sending"}>
-                <span>{status === "sending" ? "Envoi en cours…" : "Envoyer le message"}</span>
+                <span>{status === "sending" ? t.sending : t.send}</span>
                 {status === "sending" ? <span className={styles.spinner} aria-hidden="true" /> : <ArrowRight size={18} />}
               </button>
             </div>

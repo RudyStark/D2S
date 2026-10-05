@@ -1,5 +1,5 @@
 import "server-only";
-import { CHANNELS, DIRECT_TOPICS, needLabel, type ChannelId } from "@/lib/contact-content";
+import { CHANNELS, DIRECT_TOPICS, directTopicsOf, needLabel, type ChannelId } from "@/lib/contact-content";
 
 const RESEND_API = "https://api.resend.com/emails";
 const DEFAULT_MAY_EMAIL = "may@d2saigency.com";
@@ -19,6 +19,8 @@ export interface ContactLead {
   diagnostic: string[];
   consent: boolean;
   receivedAt: string;
+  /** The visitor's language (their e-mails are written in it; the team's stay in French). */
+  locale?: "fr" | "en";
   /** Visio slot picked in the form, booked directly or to be confirmed by the visitor on Calendly. */
   slot?: {
     /** Paris time, for the team. */
@@ -77,13 +79,83 @@ async function sendEmail(payload: Record<string, unknown>) {
   }
 }
 
-function shell(content: string) {
-  return `<!doctype html><html lang="fr"><body style="margin:0;background:#f4f7fb;color:#111936;font-family:Arial,sans-serif"><div style="max-width:640px;margin:0 auto;padding:32px 18px"><div style="background:#fff;border:1px solid #dfe7f1;border-radius:20px;padding:30px"><p style="margin:0 0 24px;color:#1570f0;font-weight:700">D2S AIgency · May</p>${content}<p style="margin:28px 0 0;padding-top:20px;border-top:1px solid #e8edf4;color:#667085;font-size:13px">D2S AIgency · L’IA, plus humaine, plus utile.</p></div></div></body></html>`;
+function shell(content: string, lang: "fr" | "en" = "fr") {
+  return `<!doctype html><html lang="${lang}"><body style="margin:0;background:#f4f7fb;color:#111936;font-family:Arial,sans-serif"><div style="max-width:640px;margin:0 auto;padding:32px 18px"><div style="background:#fff;border:1px solid #dfe7f1;border-radius:20px;padding:30px"><p style="margin:0 0 24px;color:#1570f0;font-weight:700">D2S AIgency · May</p>${content}<p style="margin:28px 0 0;padding-top:20px;border-top:1px solid #e8edf4;color:#667085;font-size:13px">D2S AIgency · ${lang === "en" ? "AI, more human, more useful." : "L’IA, plus humaine, plus utile."}</p></div></div></body></html>`;
 }
 
 const button = (href: string, label: string) =>
   `<a href="${escapeHtml(href)}" style="display:inline-block;margin:6px 0 4px;padding:13px 22px;border-radius:999px;background:#1570f0;color:#fff;font-weight:700;text-decoration:none">${escapeHtml(label)}</a>`;
 const SIGNATURE = `<p style="margin:24px 0 0;line-height:1.65">À très vite,<br /><strong>May</strong><br />Commerciale IA · D2S AIgency</p>`;
+const SIGNATURE_EN = `<p style="margin:24px 0 0;line-height:1.65">Speak soon,<br /><strong>May</strong><br />AI sales rep · D2S AIgency</p>`;
+
+/** The visitor's e-mail in English (same three cases as visitorConfirmation). */
+function visitorConfirmationEn(lead: ContactLead) {
+  const first = lead.name.split(/\s+/)[0] || lead.name;
+  const hello = `<p style="line-height:1.65">Hello ${escapeHtml(first)},</p>`;
+  const slot = lead.slot;
+  if (slot?.booked) {
+    const manage = [slot.rescheduleUrl && `<a href="${escapeHtml(slot.rescheduleUrl)}">reschedule</a>`, slot.cancelUrl && `<a href="${escapeHtml(slot.cancelUrl)}">cancel</a>`]
+      .filter(Boolean)
+      .join(" or ");
+    return {
+      subject: `Your video call with D2S AIgency is confirmed · ${slot.visitorLabel}`,
+      text: [
+        `Hello ${first},`,
+        "",
+        `Your video call with the D2S AIgency team is confirmed for ${slot.visitorLabel} (30 minutes).`,
+        slot.joinUrl ? `Joining link: ${slot.joinUrl}` : "The joining link is in the invitation added to your calendar.",
+        slot.rescheduleUrl ? `To reschedule: ${slot.rescheduleUrl}` : "",
+        slot.cancelUrl ? `To cancel: ${slot.cancelUrl}` : "",
+        "",
+        "Speak soon,",
+        "May",
+        "D2S AIgency",
+      ]
+        .filter((line, i, all) => line || all[i - 1])
+        .join("\n"),
+      html: shell(
+        `
+        <h1 style="margin:0 0 14px;font-size:25px">Your video call is confirmed.</h1>
+        ${hello}
+        <p style="line-height:1.65">See you on <strong>${escapeHtml(slot.visitorLabel)}</strong> with the D2S AIgency team, for 30 minutes. We will have read your request before the call.</p>
+        ${slot.joinUrl ? button(slot.joinUrl, "Join the video call") : `<p style="line-height:1.65">The joining link is in the invitation added to your calendar.</p>`}
+        ${manage ? `<p style="margin:14px 0 0;color:#667085;font-size:13px;line-height:1.6">Can’t make it? You can ${manage} this meeting.</p>` : ""}
+        ${SIGNATURE_EN}
+      `,
+        "en",
+      ),
+    };
+  }
+  if (slot?.confirmUrl) {
+    return {
+      subject: "One last step: confirm your video call · D2S AIgency",
+      text: `Hello ${first},\n\nI have passed your request on to the team. To book your video call on ${slot.visitorLabel}, confirm it here (your details are already filled in): ${slot.confirmUrl}\n\nSpeak soon,\nMay\nD2S AIgency`,
+      html: shell(
+        `
+        <h1 style="margin:0 0 14px;font-size:25px">One click left for your video call.</h1>
+        ${hello}
+        <p style="line-height:1.65">I have passed your request on to the team. To book your video call on <strong>${escapeHtml(slot.visitorLabel)}</strong>, confirm it in our calendar: your details are already filled in.</p>
+        ${button(slot.confirmUrl, "Confirm my video call")}
+        ${SIGNATURE_EN}
+      `,
+        "en",
+      ),
+    };
+  }
+  return {
+    subject: "We have received your request · D2S AIgency",
+    text: `Hello ${first},\n\nI have passed your request on to the D2S AIgency team. We will get back to you within one business day.\n\nSpeak soon,\nMay\nD2S AIgency`,
+    html: shell(
+      `
+      <h1 style="margin:0 0 14px;font-size:25px">Your request has arrived.</h1>
+      ${hello}
+      <p style="line-height:1.65">I have passed your request on to the D2S AIgency team. A human will get back to you within <strong>one business day</strong>.</p>
+      ${SIGNATURE_EN}
+    `,
+      "en",
+    ),
+  };
+}
 
 /**
  * The visitor's email, signed by May (sent from may@d2saigency.com): a booked visio (date, video link, move or
@@ -185,6 +257,7 @@ export async function sendContactEmails(lead: ContactLead) {
       ...(lead.slot ? [`Créneau choisi : ${lead.slot.label} (${lead.slot.booked ? "réservé dans Calendly" : "à confirmer par le visiteur sur Calendly"})`] : []),
       ...(lead.slot?.joinUrl ? [`Lien de la visio : ${lead.slot.joinUrl}`] : []),
       `Source : ${lead.source || "direct"}`,
+      `Langue du visiteur : ${lead.locale === "en" ? "anglais (répondre en anglais)" : "français"}`,
       "",
       lead.message,
       ...(lead.diagnostic.length ? ["", "Diagnostic :", ...lead.diagnostic] : []),
@@ -200,6 +273,7 @@ export async function sendContactEmails(lead: ContactLead) {
         <tr><td style="padding:6px 0;color:#667085">Canal</td><td style="padding:6px 0">${escapeHtml(labelForChannel(lead.channel))}</td></tr>
         ${lead.slot ? `<tr><td style="padding:6px 0;color:#667085">Créneau</td><td style="padding:6px 0;font-weight:700">${escapeHtml(lead.slot.label)} · ${lead.slot.booked ? "réservé dans Calendly" : "à confirmer par le visiteur sur Calendly"}${lead.slot.joinUrl ? ` · <a href="${escapeHtml(lead.slot.joinUrl)}">lien de la visio</a>` : ""}</td></tr>` : ""}
         <tr><td style="padding:6px 0;color:#667085">Source</td><td style="padding:6px 0">${escapeHtml(lead.source || "direct")}</td></tr>
+        <tr><td style="padding:6px 0;color:#667085">Langue</td><td style="padding:6px 0">${lead.locale === "en" ? "<strong>Anglais</strong> · répondre en anglais" : "Français"}</td></tr>
       </table>
       <h3 style="margin:24px 0 8px;font-size:16px">Message</h3>
       <p style="margin:0;line-height:1.65">${paragraphs(lead.message)}</p>
@@ -209,7 +283,7 @@ export async function sendContactEmails(lead: ContactLead) {
 
   let confirmed = true;
   try {
-    await sendEmail({ from, to: [lead.email], reply_to: mayEmail, ...visitorConfirmation(lead) });
+    await sendEmail({ from, to: [lead.email], reply_to: mayEmail, ...(lead.locale === "en" ? visitorConfirmationEn(lead) : visitorConfirmation(lead)) });
   } catch (error) {
     confirmed = false;
     console.error("[contact] confirmation email failed:", error instanceof Error ? error.message : "unknown error");
@@ -228,6 +302,7 @@ export interface DirectMessage {
   phone: string;
   message: string;
   receivedAt: string;
+  locale?: "fr" | "en";
 }
 
 /** Sends a direct message to the team (Reply-To = the visitor), then May's acknowledgement to the visitor. */
@@ -255,6 +330,7 @@ export async function sendDirectMessage(msg: DirectMessage) {
       `E-mail : ${msg.email}`,
       `Entreprise : ${msg.company || "Non renseignée"}`,
       `Téléphone : ${msg.phone || "Non renseigné"}`,
+      `Langue du visiteur : ${msg.locale === "en" ? "anglais (répondre en anglais)" : "français"}`,
       "",
       msg.message,
     ].join("\n"),
@@ -265,6 +341,7 @@ export async function sendDirectMessage(msg: DirectMessage) {
         ${row("E-mail", `<a href="mailto:${escapeHtml(msg.email)}">${escapeHtml(msg.email)}</a>`)}
         ${row("Entreprise", escapeHtml(msg.company || "Non renseignée"))}
         ${row("Téléphone", escapeHtml(msg.phone || "Non renseigné"))}
+        ${row("Langue", msg.locale === "en" ? "<strong>Anglais</strong> · répondre en anglais" : "Français")}
       </table>
       <h3 style="margin:24px 0 8px;font-size:16px">Message</h3>
       <p style="margin:0;line-height:1.65">${paragraphs(msg.message)}</p>
@@ -273,6 +350,26 @@ export async function sendDirectMessage(msg: DirectMessage) {
 
   try {
     const first = msg.name.split(/\s+/)[0] || msg.name;
+    const topicEn = directTopicsOf("en").find((t) => t.id === msg.topic)?.label ?? "Something else";
+    if (msg.locale === "en") {
+      await sendEmail({
+        from,
+        to: [msg.email],
+        reply_to: mayEmail,
+        subject: "We have received your message · D2S AIgency",
+        text: `Hello ${first},\n\nYour message (“${topicEn}”) has arrived: I have passed it on to the D2S AIgency team, who will reply within one business day.\n\nSpeak soon,\nMay\nD2S AIgency`,
+        html: shell(
+          `
+        <h1 style="margin:0 0 14px;font-size:25px">Your message has arrived.</h1>
+        <p style="line-height:1.65">Hello ${escapeHtml(first)},</p>
+        <p style="line-height:1.65">I have passed it on to the D2S AIgency team (topic: <strong>${escapeHtml(topicEn)}</strong>). A human will reply within <strong>one business day</strong>.</p>
+        ${SIGNATURE_EN}
+      `,
+          "en",
+        ),
+      });
+      return;
+    }
     await sendEmail({
       from,
       to: [msg.email],

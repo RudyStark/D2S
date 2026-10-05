@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, ToFill, type LegalSection } from "@/components/pages/LegalPage";
 import { HOST, PRIVACY_HREF, PUBLISHER } from "@/lib/legal";
+import { pageAlternates } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Mentions légales",
   description: "Éditeur, hébergeur, propriété intellectuelle et crédits du site D2S AIgency.",
-  alternates: { canonical: "/mentions-legales" },
+  alternates: pageAlternates("/mentions-legales", "fr"),
 };
 
 const SECTIONS: LegalSection[] = [

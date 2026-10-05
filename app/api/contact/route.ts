@@ -62,8 +62,8 @@ function zone(value: unknown) {
   }
 }
 
-const slotLabel = (iso: string, timeZone: string) =>
-  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone }).format(new Date(iso));
+const slotLabel = (iso: string, timeZone: string, lang = "fr-FR") =>
+  new Intl.DateTimeFormat(lang, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone }).format(new Date(iso));
 
 async function forwardToWebhook(lead: ContactLead) {
   const hook = process.env.CONTACT_WEBHOOK_URL?.trim();
@@ -127,6 +127,7 @@ export async function POST(request: Request) {
     diagnostic: Array.isArray(body.diagnostic) ? body.diagnostic.slice(0, 8).map((line) => text(line, 200)) : [],
     consent: body.consent === true,
     receivedAt: new Date().toISOString(),
+    locale: body.locale === "en" ? "en" : "fr",
   };
   const slot = readSlot(body.slot);
   const timeZone = zone(body.timezone);
@@ -143,7 +144,7 @@ export async function POST(request: Request) {
   // by the visitor on the slot's own Calendly page (name and e-mail pre-filled).
   let booking: { booked: boolean; confirmUrl?: string; label?: string } | undefined;
   if (slot) {
-    const label = slotLabel(slot.start, timeZone);
+    const label = slotLabel(slot.start, timeZone, lead.locale === "en" ? "en-GB" : "fr-FR");
     const result = await bookSlot({ eventTypeId: slot.meetingId, startTime: slot.start, name: lead.name, email: lead.email, timezone: timeZone });
     if (result.booked) booking = { booked: true, label };
     else {

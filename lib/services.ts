@@ -122,3 +122,92 @@ export const METHOD_PROMISES = [
   "Rien n’est mis en service sans votre feu vert",
   "Vos résultats mesurés et partagés chaque mois",
 ];
+
+/* ——— English ——— */
+
+const SERVICES_INTRO_EN: typeof SERVICES_INTRO = {
+  kicker: "Our services",
+  title: ["AI that adapts to you,", "not the other way round."],
+  lead: "We design, connect and keep improving AI agents that take the repetitive work off your teams’ hands, without changing any of your tools.",
+};
+
+const SERVICES_EN: Service[] = [
+  {
+    index: "01",
+    tag: "Plug & Play",
+    title: "Plug & Play AI agents",
+    text: "Specialised AI agents for your key functions. We adapt them to your business and connect them to your tools: they are ready to work from the day they go live.",
+    functions: ["Content", "Sales", "HR", "Support"],
+    benefits: [
+      { icon: "sparkle", title: "Pre-trained", text: "Trained for your trade, tuned to your processes." },
+      { icon: "bolt", title: "Fast and cost-effective", text: "24/7, for a fraction of the cost of a hire." },
+      { icon: "plug", title: "Connected", text: "To your messaging, CRM, calendar, documents…" },
+      { icon: "nocode", title: "Zero code", text: "We handle the tech. You get the results." },
+      { icon: "trend", title: "Scalable", text: "They grow with your needs." },
+    ],
+  },
+];
+
+const PLUG_TOOLS_EN: typeof PLUG_TOOLS = [
+  { id: "chat", label: "Messaging", icon: "chat" },
+  { id: "mail", label: "E-mail", icon: "mail" },
+  { id: "crm", label: "CRM", icon: "crm" },
+  { id: "calendar", label: "Calendar", icon: "calendar" },
+  { id: "doc", label: "Documents", icon: "doc" },
+  { id: "web", label: "Website", icon: "web" },
+];
+
+const PLUG_ACTIVITY_EN: typeof PLUG_ACTIVITY = [
+  { agent: "support", role: "Support", text: "Customer request solved", tools: ["chat", "crm"] },
+  { agent: "prospection", role: "Sales", text: "Follow-up sent to a prospect", tools: ["mail", "crm"] },
+  { agent: "content", role: "Content", text: "Blog post published", tools: ["doc", "web"] },
+  { agent: "automation", role: "HR", text: "Interview scheduled", tools: ["mail", "calendar"] },
+  { agent: "data", role: "Data", text: "Weekly report ready", tools: ["crm", "doc"] },
+];
+
+const METHOD_STEPS_EN: MethodStep[] = [
+  {
+    title: "Brief",
+    summary: "We analyse your needs and your goals.",
+    detail: "A conversation to understand your business: your recurring tasks, your tools, your priorities. Together, we find where an AI agent will save you the most.",
+    outcome: "A clear roadmap: the agents to build and the expected gains.",
+    role: "Walk us through your day. That’s all.",
+    icon: "doc",
+  },
+  {
+    title: "Design & deployment",
+    summary: "We build and integrate your tailor-made AI agents.",
+    detail: "We set up each agent for your business, connect it to your tools and test it on real cases before it goes live.",
+    outcome: "Working agents, built into your tools.",
+    role: "Approve the tests before launch.",
+    icon: "gear",
+  },
+  {
+    title: "Analysis",
+    summary: "We measure performance and impact.",
+    detail: "Once live, we track your agents’ work: time saved, quality of answers, volumes handled.",
+    outcome: "Concrete metrics, shared with you.",
+    role: "Tell us how it goes on the ground.",
+    icon: "bars",
+  },
+  {
+    title: "Optimisation",
+    summary: "We keep improving to go further.",
+    detail: "We fine-tune your agents from the results and your feedback, then extend them to new tasks when you are ready.",
+    outcome: "Agents that progress with your company.",
+    role: "Choose the next step.",
+    icon: "rocket",
+  },
+];
+
+const METHOD_PROMISES_EN = [
+  "One dedicated contact, from the first call to the follow-up",
+  "Nothing goes live without your go-ahead",
+  "Your results measured and shared every month",
+];
+
+/** The sections' content in a language (the French constants above stay the reference). */
+export const servicesText = (locale: "fr" | "en") =>
+  locale === "en"
+    ? { intro: SERVICES_INTRO_EN, services: SERVICES_EN, tools: PLUG_TOOLS_EN, activity: PLUG_ACTIVITY_EN, steps: METHOD_STEPS_EN, promises: METHOD_PROMISES_EN }
+    : { intro: SERVICES_INTRO, services: SERVICES, tools: PLUG_TOOLS, activity: PLUG_ACTIVITY, steps: METHOD_STEPS, promises: METHOD_PROMISES };

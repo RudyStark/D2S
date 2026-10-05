@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Header } from "@/components/ui/Header";
-import { LEGAL_HREF, LEGAL_UPDATED, PRIVACY_HREF } from "@/lib/legal";
+import type { Locale } from "@/lib/i18n";
+import { LEGAL_UPDATED, legalHrefOf, privacyHrefOf } from "@/lib/legal";
+import { homeOf } from "@/lib/navigation";
 import styles from "./LegalPage.module.css";
 
 export interface LegalSection {
@@ -16,11 +18,29 @@ export function ToFill({ value, label }: { value: string | null; label: string }
   return <mark className={styles.toFill}>{label} · à compléter</mark>;
 }
 
+const TEXTS = {
+  fr: { updated: "Dernière mise à jour :", toc: "Sommaire", home: "Retour à l’accueil", legal: "Mentions légales", privacy: "Politique de confidentialité", date: LEGAL_UPDATED },
+  en: { updated: "Last updated:", toc: "Contents", home: "Back to home", legal: "Legal notice", privacy: "Privacy policy", date: "23 September 2026" },
+};
+
 /**
  * Shared layout of the legal pages: readable column, table of contents, last update, and the links
  * between the two pages. Plain, fast, no 3D.
  */
-export function LegalPage({ kicker, title, intro, sections }: { kicker: string; title: string; intro: ReactNode; sections: LegalSection[] }) {
+export function LegalPage({
+  kicker,
+  title,
+  intro,
+  sections,
+  locale = "fr",
+}: {
+  kicker: string;
+  title: string;
+  intro: ReactNode;
+  sections: LegalSection[];
+  locale?: Locale;
+}) {
+  const t = TEXTS[locale];
   return (
     <>
       <Header />
@@ -30,11 +50,13 @@ export function LegalPage({ kicker, title, intro, sections }: { kicker: string; 
             <p className={styles.kicker}>{kicker}</p>
             <h1 className={styles.title}>{title}</h1>
             <div className={styles.intro}>{intro}</div>
-            <p className={styles.updated}>Dernière mise à jour : {LEGAL_UPDATED}</p>
+            <p className={styles.updated}>
+              {t.updated} {t.date}
+            </p>
           </header>
 
-          <nav className={styles.toc} aria-label="Sommaire">
-            <p className={styles.tocTitle}>Sommaire</p>
+          <nav className={styles.toc} aria-label={t.toc}>
+            <p className={styles.tocTitle}>{t.toc}</p>
             <ol>
               {sections.map((s) => (
                 <li key={s.id}>
@@ -55,9 +77,9 @@ export function LegalPage({ kicker, title, intro, sections }: { kicker: string; 
           ))}
 
           <footer className={styles.footer}>
-            <Link href="/">Retour à l’accueil</Link>
-            <Link href={LEGAL_HREF}>Mentions légales</Link>
-            <Link href={PRIVACY_HREF}>Politique de confidentialité</Link>
+            <Link href={homeOf(locale)}>{t.home}</Link>
+            <Link href={legalHrefOf(locale)}>{t.legal}</Link>
+            <Link href={privacyHrefOf(locale)}>{t.privacy}</Link>
           </footer>
         </article>
       </main>
