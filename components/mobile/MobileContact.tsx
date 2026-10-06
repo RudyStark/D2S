@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { ArrowRight, Check, Close } from "@/components/ui/Icons";
 import {
-  CHANNELS,
-  CONTACT_INTRO,
-  MESSAGE_HINTS,
-  NEEDS,
-  NEXT_STEPS,
+  channelsOf,
+  contactIntroOf,
+  messageHintsOf,
+  needsOf,
+  nextStepsOf,
   type ChannelId,
   type NeedId,
 } from "@/lib/contact-content";
-import { PRIVACY_HREF } from "@/lib/legal";
+import type { Locale } from "@/lib/i18n";
+import { privacyHrefOf } from "@/lib/legal";
 import { SlotPicker, type PickedSlot } from "@/components/overlays/SlotPicker";
 import type { MobileContactIntent } from "./mobile-navigation";
 import styles from "./MobileHome.module.css";
@@ -38,18 +40,113 @@ const INITIAL: Values = {
   consent: false,
 };
 const ORDER: Field[] = ["name", "email", "company", "message", "consent"];
-function validate(values: Values): Partial<Record<Field, string>> {
+const TEXTS = {
+  fr: {
+    errors: {
+      name: "Indiquez votre prénom et votre nom.",
+      email: "Indiquez une adresse e-mail complète.",
+      company: "Indiquez le nom de votre entreprise.",
+      message: "Décrivez votre besoin en 10 caractères minimum.",
+      consent: "Votre accord est nécessaire pour vous recontacter.",
+    },
+    tooMany: "Trop de demandes rapprochées. Réessayez dans quelques minutes.",
+    failed: "Votre demande n’a pas pu être transmise. Vos informations sont conservées ici : réessayez dans un instant.",
+    slow: "La connexion a pris trop de temps. Vos informations sont conservées ici : réessayez.",
+    kicker: "Parlons de votre projet",
+    title: ["Faisons avancer", "votre projet."],
+    thanks: (n: string) => `Merci ${n}, votre demande est envoyée.`,
+    booked: (label: string) => (
+      <>
+        Votre visio est réservée le <strong>{label}</strong>. Vous recevez l’invitation et le lien de connexion par e-mail.
+      </>
+    ),
+    toConfirm: (label: string) => (
+      <>
+        Dernière étape : confirmez votre visio du <strong>{label}</strong>, vos informations sont déjà remplies.
+      </>
+    ),
+    confirm: "Confirmer mon créneau",
+    received: "Notre équipe revient vers vous sous 24 h ouvrées.",
+    another: "Une autre demande",
+    attached: "Votre diagnostic est joint",
+    detach: "Retirer le diagnostic de la demande",
+    summary: "Voir le résumé",
+    need: "Votre besoin",
+    team: "Toute l’équipe",
+    name: "Nom et prénom",
+    email: "E-mail professionnel",
+    company: "Entreprise",
+    project: "Votre projet",
+    channel: "Comment préférez-vous échanger ?",
+    phone: "Téléphone",
+    optional: "· facultatif",
+    website: "Site web",
+    consent: "J’accepte que D2S AIgency me recontacte pour répondre à ma demande.",
+    sending: "Envoi en cours…",
+    send: "Envoyer ma demande",
+    privacy: "Vos données servent à traiter votre demande.",
+    more: "En savoir plus sur leur utilisation.",
+    human: "Un échange humain,",
+    free: "gratuit et sans engagement.",
+  },
+  en: {
+    errors: {
+      name: "Please enter your first and last name.",
+      email: "Please enter a complete e-mail address.",
+      company: "Please enter your company name.",
+      message: "Describe your need in 10 characters minimum.",
+      consent: "We need your consent to get back to you.",
+    },
+    tooMany: "Too many requests in a row. Try again in a few minutes.",
+    failed: "Your request could not be sent. Your details are kept here: try again in a moment.",
+    slow: "The connection took too long. Your details are kept here: try again.",
+    kicker: "Let’s talk about your project",
+    title: ["Let’s move", "your project forward."],
+    thanks: (n: string) => `Thank you ${n}, your request has been sent.`,
+    booked: (label: string) => (
+      <>
+        Your video call is booked for <strong>{label}</strong>. You will receive the invitation and the joining link by e-mail.
+      </>
+    ),
+    toConfirm: (label: string) => (
+      <>
+        One last step: confirm your video call on <strong>{label}</strong>, your details are already filled in.
+      </>
+    ),
+    confirm: "Confirm my slot",
+    received: "Our team will get back to you within one business day.",
+    another: "Another request",
+    attached: "Your diagnostic is attached",
+    detach: "Remove the diagnostic from the request",
+    summary: "See the summary",
+    need: "Your need",
+    team: "The whole team",
+    name: "Full name",
+    email: "Work e-mail",
+    company: "Company",
+    project: "Your project",
+    channel: "How do you prefer to talk?",
+    phone: "Phone",
+    optional: "· optional",
+    website: "Website",
+    consent: "I agree that D2S AIgency may contact me to reply to my request.",
+    sending: "Sending…",
+    send: "Send my request",
+    privacy: "Your data is used to handle your request.",
+    more: "Learn more about how it is used.",
+    human: "A human conversation,",
+    free: "free and with no commitment.",
+  },
+};
+
+function validate(values: Values, locale: Locale): Partial<Record<Field, string>> {
   const errors: Partial<Record<Field, string>> = {};
-  if (values.name.trim().length < 2)
-    errors.name = "Indiquez votre prénom et votre nom.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(values.email.trim()))
-    errors.email = "Indiquez une adresse e-mail complète.";
-  if (values.company.trim().length < 2)
-    errors.company = "Indiquez le nom de votre entreprise.";
-  if (values.message.trim().length < 10)
-    errors.message = "Décrivez votre besoin en 10 caractères minimum.";
-  if (!values.consent)
-    errors.consent = "Votre accord est nécessaire pour vous recontacter.";
+  const m = TEXTS[locale].errors;
+  if (values.name.trim().length < 2) errors.name = m.name;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(values.email.trim())) errors.email = m.email;
+  if (values.company.trim().length < 2) errors.company = m.company;
+  if (values.message.trim().length < 10) errors.message = m.message;
+  if (!values.consent) errors.consent = m.consent;
   return errors;
 }
 
@@ -60,6 +157,13 @@ export function MobileContact({
   intent: MobileContactIntent | null;
   onClearDiagnostic: () => void;
 }) {
+  const locale = useLocale();
+  const t = TEXTS[locale];
+  const NEEDS = needsOf(locale);
+  const CHANNELS = channelsOf(locale);
+  const MESSAGE_HINTS = messageHintsOf(locale);
+  const NEXT_STEPS = nextStepsOf(locale);
+  const CONTACT_INTRO = contactIntroOf(locale);
   const [values, setValues] = useState<Values>(INITIAL);
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -74,7 +178,7 @@ export function MobileContact({
   const honeypot = useRef<HTMLInputElement>(null);
   const success = useRef<HTMLHeadingElement>(null);
   const pending = useRef<AbortController | null>(null);
-  const errors = validate(values);
+  const errors = validate(values, locale);
   const update = <K extends keyof Values>(key: K, value: Values[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
   const error = (key: Field) =>
@@ -132,6 +236,7 @@ export function MobileContact({
           diagnostic: intent?.diagnostic ?? [],
           slot: values.channel === "visio" && slot ? { start: slot.start, url: slot.url, meetingId: slot.meetingId } : undefined,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          locale,
           website: honeypot.current?.value ?? "",
           elapsed: Date.now() - started.current,
         }),
@@ -139,8 +244,8 @@ export function MobileContact({
       if (!response.ok)
         throw new Error(
           response.status === 429
-            ? "Trop de demandes rapprochées. Réessayez dans quelques minutes."
-            : "Votre demande n’a pas pu être transmise. Vos informations sont conservées ici : réessayez dans un instant.",
+            ? t.tooMany
+            : t.failed,
         );
       const payload = (await response.json().catch(() => null)) as { booking?: { booked: boolean; confirmUrl?: string; label?: string } } | null;
       setBooking(payload?.booking ?? null);
@@ -150,7 +255,7 @@ export function MobileContact({
       setFailure(
         caught instanceof Error && caught.name !== "AbortError"
           ? caught.message
-          : "La connexion a pris trop de temps. Vos informations sont conservées ici : réessayez.",
+          : t.slow,
       );
     } finally {
       window.clearTimeout(timeout);
@@ -168,11 +273,11 @@ export function MobileContact({
     >
       <div className={styles.inner}>
         <div data-reveal>
-          <p className={styles.eyebrow}>Parlons de votre projet</p>
+          <p className={styles.eyebrow}>{t.kicker}</p>
           <h2 id="mobile-contact-title" className={styles.title}>
-            Faisons avancer
+            {t.title[0]}
             <br />
-            <span>votre projet.</span>
+            <span>{t.title[1]}</span>
           </h2>
           <p className={styles.lead}>{CONTACT_INTRO.lead}</p>
         </div>
@@ -182,25 +287,20 @@ export function MobileContact({
               <Check size={30} />
             </span>
             <h3 ref={success} tabIndex={-1}>
-              Merci {values.name.trim().split(/\s+/)[0]}, votre demande est
-              envoyée.
+              {t.thanks(values.name.trim().split(/\s+/)[0])}
             </h3>
             {booking?.booked ? (
-              <p>
-                Votre visio est réservée le <strong>{booking.label}</strong>. Vous recevez l’invitation et le lien de connexion par e-mail.
-              </p>
+              <p>{t.booked(booking.label ?? "")}</p>
             ) : booking?.confirmUrl ? (
               <>
-                <p>
-                  Dernière étape : confirmez votre visio du <strong>{booking.label}</strong>, vos informations sont déjà remplies.
-                </p>
+                <p>{t.toConfirm(booking.label ?? "")}</p>
                 <a className={styles.primary} href={booking.confirmUrl} target="_blank" rel="noopener noreferrer">
-                  Confirmer mon créneau
+                  {t.confirm}
                   <ArrowRight size={18} />
                 </a>
               </>
             ) : (
-              <p>Notre équipe revient vers vous sous 24 h ouvrées.</p>
+              <p>{t.received}</p>
             )}
             <ol>
               {NEXT_STEPS.map((step) => (
@@ -224,7 +324,7 @@ export function MobileContact({
                 started.current = Date.now();
               }}
             >
-              Une autre demande
+              {t.another}
             </button>
           </div>
         ) : (
@@ -237,10 +337,10 @@ export function MobileContact({
             {intent?.diagnostic?.length ? (
               <div className={styles.diagnosticAttachment}>
                 <div>
-                  <strong>Votre diagnostic est joint</strong>
+                  <strong>{t.attached}</strong>
                   <button
                     type="button"
-                    aria-label="Retirer le diagnostic de la demande"
+                    aria-label={t.detach}
                     className={styles.iconButton}
                     onClick={onClearDiagnostic}
                   >
@@ -248,7 +348,7 @@ export function MobileContact({
                   </button>
                 </div>
                 <details>
-                  <summary>Voir le résumé</summary>
+                  <summary>{t.summary}</summary>
                   <ul>
                     {intent.diagnostic.map((line) => (
                       <li key={line}>{line}</li>
@@ -258,7 +358,7 @@ export function MobileContact({
               </div>
             ) : null}
             <div className={styles.field}>
-              <label htmlFor="mobile-contact-need">Votre besoin</label>
+              <label htmlFor="mobile-contact-need">{t.need}</label>
               <select
                 id="mobile-contact-need"
                 name="need"
@@ -271,7 +371,7 @@ export function MobileContact({
                     {need.name ? ` · ${need.name}` : ""}
                   </option>
                 ))}
-                <optgroup label="Toute l’équipe">
+                <optgroup label={t.team}>
                   {NEEDS.filter((need) => need.team).map((need) => (
                     <option key={need.id} value={need.id}>
                       {need.label} · {need.name}
@@ -281,7 +381,7 @@ export function MobileContact({
               </select>
             </div>
             <div className={styles.field}>
-              <label htmlFor="mobile-contact-name">Nom et prénom</label>
+              <label htmlFor="mobile-contact-name">{t.name}</label>
               <input
                 {...fieldProps("name")}
                 name="name"
@@ -298,7 +398,7 @@ export function MobileContact({
               )}
             </div>
             <div className={styles.field}>
-              <label htmlFor="mobile-contact-email">E-mail professionnel</label>
+              <label htmlFor="mobile-contact-email">{t.email}</label>
               <input
                 {...fieldProps("email")}
                 name="email"
@@ -317,7 +417,7 @@ export function MobileContact({
               )}
             </div>
             <div className={styles.field}>
-              <label htmlFor="mobile-contact-company">Entreprise</label>
+              <label htmlFor="mobile-contact-company">{t.company}</label>
               <input
                 {...fieldProps("company")}
                 name="company"
@@ -334,7 +434,7 @@ export function MobileContact({
               )}
             </div>
             <div className={styles.field}>
-              <label htmlFor="mobile-contact-message">Votre projet</label>
+              <label htmlFor="mobile-contact-message">{t.project}</label>
               <textarea
                 {...fieldProps("message")}
                 name="message"
@@ -352,7 +452,7 @@ export function MobileContact({
               )}
             </div>
             <fieldset className={styles.channelField}>
-              <legend>Comment préférez-vous échanger ?</legend>
+              <legend>{t.channel}</legend>
               <div>
                 {CHANNELS.map((channel) => (
                   <label
@@ -374,7 +474,7 @@ export function MobileContact({
             <SlotPicker variant="mobile" active={values.channel === "visio"} value={slot} onChange={setSlot} />
             <div className={styles.field}>
               <label htmlFor="mobile-contact-phone">
-                Téléphone <span>· facultatif</span>
+                {t.phone} <span>{t.optional}</span>
               </label>
               <input
                 id="mobile-contact-phone"
@@ -389,7 +489,7 @@ export function MobileContact({
             </div>
             <div className={styles.honeypot} aria-hidden="true">
               <label htmlFor="mobile-contact-website">
-                Site web
+                {t.website}
                 <input
                   ref={honeypot}
                   id="mobile-contact-website"
@@ -409,10 +509,7 @@ export function MobileContact({
                   checked={values.consent}
                   onChange={(e) => update("consent", e.target.checked)}
                 />
-                <span>
-                  J’accepte que D2S AIgency me recontacte pour répondre à ma
-                  demande.
-                </span>
+                <span>{t.consent}</span>
               </label>
               {error("consent") && (
                 <p id="mobile-contact-consent-error" className={styles.error}>
@@ -430,12 +527,11 @@ export function MobileContact({
               className={styles.primary}
               disabled={status === "sending"}
             >
-              {status === "sending" ? "Envoi en cours…" : "Envoyer ma demande"}
+              {status === "sending" ? t.sending : t.send}
               <ArrowRight size={18} />
             </button>
             <p className={styles.privacyNote}>
-              Vos données servent à traiter votre demande.{" "}
-              <a href={PRIVACY_HREF}>En savoir plus sur leur utilisation.</a>
+              {t.privacy} <a href={privacyHrefOf(locale)}>{t.more}</a>
             </p>
           </form>
         )}
@@ -449,7 +545,7 @@ export function MobileContact({
             loading="lazy"
           />
           <p>
-            <strong>Un échange humain,</strong>gratuit et sans engagement.
+            <strong>{t.human}</strong> {t.free}
           </p>
         </div>
       </div>

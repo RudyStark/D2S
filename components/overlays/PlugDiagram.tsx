@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { AGENTS } from "@/components/experience/agents/agents.config";
 import { Calendar, ChatDots, Check, ContactCard, Doc, Globe, Mail } from "@/components/ui/Icons";
 import { useInView, useReducedMotion } from "@/hooks/useInView";
-import { PLUG_ACTIVITY, PLUG_TOOLS, type ToolIcon } from "@/lib/services";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { servicesText, type ToolIcon } from "@/lib/services";
 import styles from "./PlugDiagram.module.css";
 
 const TOOL_ICONS: Record<ToolIcon, typeof Mail> = {
@@ -47,6 +48,8 @@ function connector(i: number) {
  * each example task lights the tools it uses. Reduced motion: connected, static.
  */
 export function PlugDiagram() {
+  const locale = useLocale();
+  const { tools: PLUG_TOOLS, activity: PLUG_ACTIVITY } = servicesText(locale);
   const root = useRef<HTMLDivElement>(null);
   const inView = useInView(root, 0.4);
   const reduced = useReducedMotion();
@@ -99,7 +102,7 @@ export function PlugDiagram() {
         <span className={styles.switchTrack}>
           <span className={styles.switchKnob} />
         </span>
-        <span className={styles.switchLabel}>{connected ? "Connecté" : "Connexion…"}</span>
+        <span className={styles.switchLabel}>{connected ? (locale === "en" ? "Connected" : "Connecté") : locale === "en" ? "Connecting…" : "Connexion…"}</span>
       </div>
 
       {PLUG_TOOLS.map((tool, i) => {

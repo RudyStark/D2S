@@ -36,6 +36,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Two root layouts (French at the root, English under /en): one 404 for both (app/global-not-found.tsx).
+  experimental: { globalNotFound: true },
   poweredByHeader: false,
   transpilePackages: ["three"],
   images: { formats: ["image/avif", "image/webp"] },

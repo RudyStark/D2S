@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, ToFill, type LegalSection } from "@/components/pages/LegalPage";
 import { LEGAL_HREF, PRIVACY_CONTACT, PROCESSORS, PUBLISHER } from "@/lib/legal";
+import { pageAlternates } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
   description: "Comment D2S AIgency traite les messages adressés à May, les demandes de contact et les prises de rendez-vous.",
-  alternates: { canonical: "/confidentialite" },
+  alternates: pageAlternates("/confidentialite", "fr"),
 };
 
 /*

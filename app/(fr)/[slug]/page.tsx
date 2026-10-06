@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { PlaceholderRoom } from "@/components/pages/PlaceholderRoom";
 import { PLACEHOLDER_PAGES } from "@/lib/navigation";
+import { pageAlternates } from "@/lib/seo";
 
 export const dynamicParams = false;
 
@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const page = PLACEHOLDER_PAGES[slug];
   // Rooms still under construction: reachable, but kept out of search results until they have content. Their
   // canonical is their own URL (the home page's would contradict the noindex).
-  return page ? { title: page.kicker, robots: { index: false, follow: true }, alternates: { canonical: `/${slug}` } } : {};
+  return page ? { title: page.kicker, robots: { index: false, follow: true }, alternates: pageAlternates(`/${slug}`, "fr") } : {};
 }
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {

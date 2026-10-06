@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ArrowRight, Calendar, ChatDots } from "@/components/ui/Icons";
-import { needLabel } from "@/lib/contact-content";
-import { PRIVACY_HREF } from "@/lib/legal";
-import { MAY_LIMITS, MAY_STARTERS, type MayAction, type MayChoice, type MayDraft, type MayEvent, type MayRole } from "@/lib/may";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { needLabelOf } from "@/lib/contact-content";
+import type { Locale } from "@/lib/i18n";
+import { privacyHrefOf } from "@/lib/legal";
+import { MAY_LIMITS, mayStartersOf, type MayAction, type MayChoice, type MayDraft, type MayEvent, type MayRole } from "@/lib/may";
 import { draftOf, emptyMemory, mayLocal, memorySummary, type BookingStep, type MayMemory, type SlotQuery } from "@/lib/may-local";
+import { draftOfEn, mayLocalEn } from "@/lib/may-local-en";
 import styles from "./MayChat.module.css";
 
 interface UiMessage {
@@ -20,24 +23,124 @@ interface UiMessage {
   draft?: MayDraft;
 }
 
+/* ---------- Words of the chat ---------- */
+
+const WORDS = {
+  fr: {
+    lang: "fr-FR",
+    parts: [
+      { label: "Le matin", value: "Le matin" },
+      { label: "L’après-midi", value: "L’après-midi" },
+      { label: "Peu importe", value: "Peu importe" },
+    ] as MayChoice[],
+    morning: ", le matin",
+    afternoon: ", l’après-midi",
+    askPart: (period?: string) => (period ? `Très bien, ${period}. Vous préférez le matin ou l’après-midi ?` : "Avec plaisir ! Vous préférez le matin ou l’après-midi ?"),
+    full: (when: string) => `L’agenda est complet sur les deux prochaines semaines${when}. Je prépare votre demande pour que l’équipe vous propose une date ?`,
+    noMore: (period: string, when: string) => `Plus de disponibilité ${period}${when}. Voici les jours suivants où l’équipe est libre :`,
+    days: (period: string, when: string) => `Voici les jours où l’équipe est disponible${period ? ` ${period}` : ""}${when.replace(",", "")}. Lequel vous arrange ?`,
+    dayFull: (day: string, when: string) => `L’agenda est complet ${day}${when}. Dites-moi un autre jour, ou je prépare votre demande ?`,
+    nothingThatDay: (day: string, when: string, next: string) => `Plus rien de libre ${day}${when}. Le plus proche : ${next}.`,
+    times: (day: string, when: string) => `Voici les horaires libres pour ${day}${when}.`,
+    pick: "Choisissez celui qui vous convient, vous confirmerez sur Calendly.",
+    initial: "Dites-moi ce qui vous prend du temps aujourd’hui : je vous oriente vers le bon agent, puis je prépare votre demande ou un rendez-vous.",
+    closed: "La réservation en ligne n’est pas encore ouverte. Je prépare votre demande pour que l’équipe vous propose un créneau ?",
+    limit: "Nous avons fait le tour de ce que je peux faire ici : le mieux est maintenant d’échanger avec l’équipe. Votre demande est prête juste en dessous.",
+    agenda: "May consulte l’agenda…",
+    unavailable: "May est momentanément indisponible.",
+    interrupted: "La réponse a été interrompue. Vous pouvez réessayer.",
+    slow: "Ma réponse prend trop de temps. L’équipe peut reprendre votre demande via le formulaire.",
+    offline: "Je n’arrive pas à joindre le serveur. Vérifiez votre connexion et réessayez, ou laissez votre demande à l’équipe.",
+    trouble: "Je rencontre un problème temporaire. L’équipe peut reprendre votre demande.",
+    me: "Moi",
+    exchange: "Échange avec May :",
+    callback: "Je souhaite être recontacté pour préciser mon besoin.",
+    available: "Assistante IA disponible",
+    hello: "Bonjour !",
+    iam: "Je suis May.",
+    badge: "Assistante D2S",
+    log: "Conversation avec May",
+    freeTimes: "Horaires libres",
+    proposed: "Rendez-vous proposés",
+    quick: "Réponses rapides",
+    ready: "Votre demande est prête",
+    review: "Relire et envoyer ma demande",
+    preparing: "May prépare sa réponse",
+    suggested: "Questions suggérées",
+    yourMessage: "Votre message à May",
+    placeholder: "Écrivez à May…",
+    send: "Envoyer à May",
+    handoff: "Être recontacté par l’équipe",
+    disclaimer: "Assistante IA : vérifiez les informations importantes.",
+    privacy: "Confidentialité",
+  },
+  en: {
+    lang: "en-GB",
+    parts: [
+      { label: "Morning", value: "In the morning" },
+      { label: "Afternoon", value: "In the afternoon" },
+      { label: "No preference", value: "No preference" },
+    ] as MayChoice[],
+    morning: ", in the morning",
+    afternoon: ", in the afternoon",
+    askPart: (period?: string) => (period ? `Great, ${period}. Do you prefer the morning or the afternoon?` : "With pleasure! Do you prefer the morning or the afternoon?"),
+    full: (when: string) => `The calendar is full for the next two weeks${when}. Shall I prepare your request so the team suggests a date?`,
+    noMore: (period: string, when: string) => `Nothing left ${period}${when}. Here are the next days the team is free:`,
+    days: (period: string, when: string) => `Here are the days the team is available${period ? ` ${period}` : ""}${when.replace(",", "")}. Which one suits you?`,
+    dayFull: (day: string, when: string) => `The calendar is full on ${day}${when}. Tell me another day, or shall I prepare your request?`,
+    nothingThatDay: (day: string, when: string, next: string) => `Nothing left on ${day}${when}. The closest: ${next}.`,
+    times: (day: string, when: string) => `Here are the free times on ${day}${when}.`,
+    pick: "Pick the one that suits you, you will confirm on Calendly.",
+    initial: "Tell me what takes up your time today: I’ll point you to the right agent, then prepare your request or a meeting.",
+    closed: "Online booking is not open yet. Shall I prepare your request so the team suggests a time?",
+    limit: "We have covered what I can do here: the best next step is to talk with the team. Your request is ready just below.",
+    agenda: "May is checking the calendar…",
+    unavailable: "May is unavailable for a moment.",
+    interrupted: "The answer was interrupted. You can try again.",
+    slow: "My answer is taking too long. The team can pick up your request through the form.",
+    offline: "I can’t reach the server. Check your connection and try again, or leave your request with the team.",
+    trouble: "I’m having a temporary problem. The team can pick up your request.",
+    me: "Me",
+    exchange: "Conversation with May:",
+    callback: "I would like to be contacted to clarify my need.",
+    available: "AI assistant available",
+    hello: "Hello!",
+    iam: "I’m May.",
+    badge: "D2S assistant",
+    log: "Conversation with May",
+    freeTimes: "Free times",
+    proposed: "Suggested meetings",
+    quick: "Quick answers",
+    ready: "Your request is ready",
+    review: "Review and send my request",
+    preparing: "May is preparing her answer",
+    suggested: "Suggested questions",
+    yourMessage: "Your message to May",
+    placeholder: "Write to May…",
+    send: "Send to May",
+    handoff: "Get a call back from the team",
+    disclaimer: "AI assistant: check important information.",
+    privacy: "Privacy",
+  },
+};
+
 /* ---------- Booking, step by step (free level): part of the day → day → times ---------- */
 
-const PART_CHOICES: MayChoice[] = [
-  { label: "Le matin", value: "Le matin" },
-  { label: "L’après-midi", value: "L’après-midi" },
-  { label: "Peu importe", value: "Peu importe" },
-];
-const partWords = (part?: SlotQuery["part"]) => (part === "morning" ? ", le matin" : part === "afternoon" ? ", l’après-midi" : "");
 const localDay = (iso: string) => {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d);
 };
-/** "mardi 29 septembre" / "Mar. 29 sept." */
-const dayName = (iso: string) => new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(localDay(iso)).replace(/ 1 (?=\p{L})/u, " 1er ");
-const dayChip = (iso: string) =>
-  new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short" })
+/** "mardi 29 septembre" / "Mar. 29 sept." ("Tuesday 29 September" / "Tue 29 Sept") */
+const dayName = (iso: string, lang: string) =>
+  new Intl.DateTimeFormat(lang, { weekday: "long", day: "numeric", month: "long" })
     .format(localDay(iso))
-    .replace(/ 1 (?=\p{L})/u, " 1er ")
+    .replace(/ 1 (?=\p{L})/u, lang === "fr-FR" ? " 1er " : " 1 ")
+    .replace(",", "");
+const dayChip = (iso: string, lang: string) =>
+  new Intl.DateTimeFormat(lang, { weekday: "short", day: "numeric", month: "short" })
+    .format(localDay(iso))
+    .replace(/ 1 (?=\p{L})/u, lang === "fr-FR" ? " 1er " : " 1 ")
+    .replace(",", "")
     .replace(/^\p{L}/u, (c) => c.toUpperCase());
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -53,16 +156,18 @@ interface StepData {
  * The next booking step for what the visitor gave so far: no part of the day → "le matin ou l'après-midi ?";
  * no single day → the days that still have free times (in the asked period); one day → its free times.
  */
-async function bookingStep(q: SlotQuery): Promise<{ text: string; extra: Partial<UiMessage>; asked: BookingStep | "confirm" }> {
+async function bookingStep(q: SlotQuery, locale: Locale): Promise<{ text: string; extra: Partial<UiMessage>; asked: BookingStep | "confirm" }> {
+  const w = WORDS[locale];
+  const day = (iso: string) => dayName(iso, w.lang);
   if (!q.part) {
     return {
-      text: q.period ? `Très bien, ${q.period}. Vous préférez le matin ou l’après-midi ?` : "Avec plaisir ! Vous préférez le matin ou l’après-midi ?",
-      extra: { choices: PART_CHOICES },
+      text: w.askPart(q.period),
+      extra: { choices: w.parts },
       asked: "slot-part",
     };
   }
   const single = !!q.from && q.from === q.to;
-  const query = new URLSearchParams({ tz: Intl.DateTimeFormat().resolvedOptions().timeZone, mode: single ? "times" : "days" });
+  const query = new URLSearchParams({ tz: Intl.DateTimeFormat().resolvedOptions().timeZone, mode: single ? "times" : "days", lang: locale });
   if (q.from && q.to) {
     query.set("from", q.from);
     query.set("to", q.to);
@@ -71,26 +176,20 @@ async function bookingStep(q: SlotQuery): Promise<{ text: string; extra: Partial
   const data = (await fetch(`/api/may/meetings?${query}`)
     .then((r) => r.json())
     .catch(() => null)) as StepData | null;
-  if (!data?.configured) return { text: BOOKING_CLOSED, extra: data?.actions?.length ? { actions: data.actions } : {}, asked: "confirm" };
-  const when = partWords(q.part);
+  if (!data?.configured) return { text: w.closed, extra: data?.actions?.length ? { actions: data.actions } : {}, asked: "confirm" };
+  const when = q.part === "morning" ? w.morning : q.part === "afternoon" ? w.afternoon : "";
 
   if (!single) {
     const days = data.days ?? [];
-    if (!days.length) return { text: `L’agenda est complet sur les deux prochaines semaines${when}. Je prépare votre demande pour que l’équipe vous propose une date ?`, extra: {}, asked: "confirm" };
-    const intro =
-      data.inWindow === false
-        ? `Plus de disponibilité ${q.period ?? ""}${when}. Voici les jours suivants où l’équipe est libre :`
-        : `Voici les jours où l’équipe est disponible${q.period ? ` ${q.period}` : ""}${when.replace(",", "")}. Lequel vous arrange ?`;
-    return { text: intro.replace(/\s+/g, " "), extra: { choices: days.map((d) => ({ label: dayChip(d.date), value: capital(dayName(d.date)) })) }, asked: "slot-day" };
+    if (!days.length) return { text: w.full(when), extra: {}, asked: "confirm" };
+    const intro = data.inWindow === false ? w.noMore(q.period ?? "", when) : w.days(q.period ?? "", when);
+    return { text: intro.replace(/\s+/g, " "), extra: { choices: days.map((d) => ({ label: dayChip(d.date, w.lang), value: capital(day(d.date)) })) }, asked: "slot-day" };
   }
 
   const actions = data.actions ?? [];
-  if (!actions.length || !data.day) return { text: `L’agenda est complet ${dayName(q.from!)}${when}. Dites-moi un autre jour, ou je prépare votre demande ?`, extra: {}, asked: "slot" };
-  const intro =
-    data.inWindow === false || data.day !== q.from
-      ? `Plus rien de libre ${dayName(q.from!)}${when}. Le plus proche : ${dayName(data.day)}.`
-      : `Voici les horaires libres pour ${dayName(data.day)}${when}.`;
-  return { text: `${intro} Choisissez celui qui vous convient, vous confirmerez sur Calendly.`, extra: { actions, compact: true }, asked: "slot" };
+  if (!actions.length || !data.day) return { text: w.dayFull(day(q.from!), when), extra: {}, asked: "slot" };
+  const intro = data.inWindow === false || data.day !== q.from ? w.nothingThatDay(day(q.from!), when, day(data.day)) : w.times(day(data.day), when);
+  return { text: `${intro} ${w.pick}`, extra: { actions, compact: true }, asked: "slot" };
 }
 
 interface MayChatProps {
@@ -102,10 +201,6 @@ interface MayChatProps {
   onDraft?: (draft: MayDraft) => void;
 }
 
-const INITIAL_MESSAGE = "Dites-moi ce qui vous prend du temps aujourd’hui : je vous oriente vers le bon agent, puis je prépare votre demande ou un rendez-vous.";
-
-const BOOKING_CLOSED = "La réservation en ligne n’est pas encore ouverte. Je prépare votre demande pour que l’équipe vous propose un créneau ?";
-const LIMIT_REACHED = "Nous avons fait le tour de ce que je peux faire ici : le mieux est maintenant d’échanger avec l’équipe. Votre demande est prête juste en dessous.";
 const pause = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 /**
@@ -114,11 +209,14 @@ const pause = (ms: number) => new Promise((resolve) => window.setTimeout(resolve
  * over (/api/may/chat, streamed NDJSON events) and keeps the conversation. Booking goes straight to Calendly.
  */
 export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayChatProps) {
+  const locale = useLocale();
+  const w = WORDS[locale];
+  const en = locale === "en";
   const sequence = useRef(1);
   const pending = useRef<AbortController | null>(null);
   const log = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
-  const [messages, setMessages] = useState<UiMessage[]>([{ id: 0, role: "assistant", content: INITIAL_MESSAGE }]);
+  const [messages, setMessages] = useState<UiMessage[]>([{ id: 0, role: "assistant", content: w.initial }]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState("");
@@ -155,14 +253,15 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
     // Past the limit: the form takes over (and the API bill stays bounded).
     if (history.filter((m) => m.role === "user").length > MAY_LIMITS.visitorMessages) {
       await pause(350);
-      reply(LIMIT_REACHED, { draft: draftOf({ ...memory.current, said: [...memory.current.said, content] }) });
+      const final = { ...memory.current, said: [...memory.current.said, content] };
+      reply(w.limit, { draft: en ? draftOfEn(final) : draftOf(final) });
       setSending(false);
       return;
     }
 
     // First level: free, instant, from the site's content.
     if (!claude.current) {
-      const local = mayLocal(content, memory.current);
+      const local = en ? mayLocalEn(content, memory.current) : mayLocal(content, memory.current);
       memory.current = local.memory;
       if (local.kind === "reply") {
         await pause(450);
@@ -171,8 +270,8 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
           setSending(false);
           return;
         }
-        setStatus("May consulte l’agenda…");
-        const step = await bookingStep(local.booking);
+        setStatus(w.agenda);
+        const step = await bookingStep(local.booking, locale);
         setStatus("");
         memory.current = { ...memory.current, asked: step.asked };
         reply([local.text, step.text].filter(Boolean).join("\n\n"), step.extra);
@@ -203,11 +302,12 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
           messages: history.filter((m) => m.id !== 0 && m.content).map(({ role, content: text }) => ({ role, content: text })),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           known: memorySummary(memory.current),
+          locale,
         }),
       });
       if (!response.ok || !response.body) {
         const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(payload?.message || "May est momentanément indisponible.");
+        throw new Error(payload?.message || w.unavailable);
       }
 
       const reader = response.body.getReader();
@@ -239,19 +339,19 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
         }
         if (done) break;
       }
-      if (!finished) fail("La réponse a été interrompue. Vous pouvez réessayer.");
+      if (!finished) fail(w.interrupted);
     } catch (error) {
       const aborted = error instanceof Error && error.name === "AbortError";
       // fetch() rejects with a TypeError when the network or the server is unreachable: never show its raw text.
       const offline = error instanceof TypeError;
       fail(
         aborted
-          ? "Ma réponse prend trop de temps. L’équipe peut reprendre votre demande via le formulaire."
+          ? w.slow
           : offline
-            ? "Je n’arrive pas à joindre le serveur. Vérifiez votre connexion et réessayez, ou laissez votre demande à l’équipe."
+            ? w.offline
             : error instanceof Error && error.message
               ? error.message
-              : "Je rencontre un problème temporaire. L’équipe peut reprendre votre demande.",
+              : w.trouble,
       );
     } finally {
       window.clearTimeout(timeout);
@@ -280,12 +380,12 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
     // A question typed but not sent yet counts too: the visitor expects it to reach the team.
     const unsent = draft.trim();
     const transcript = [
-      ...messages.filter((message) => message.id !== 0 && message.content).map((message) => `${message.role === "user" ? "Moi" : "May"} : ${message.content}`),
-      ...(unsent ? [`Moi : ${unsent}`] : []),
+      ...messages.filter((message) => message.id !== 0 && message.content).map((message) => `${message.role === "user" ? w.me : "May"}${en ? ":" : " :"} ${message.content}`),
+      ...(unsent ? [`${w.me}${en ? ":" : " :"} ${unsent}`] : []),
     ]
       .join("\n\n")
       .slice(0, 3_850);
-    onContact(transcript ? `Échange avec May :\n\n${transcript}` : "Je souhaite être recontacté pour préciser mon besoin.");
+    onContact(transcript ? `${w.exchange}\n\n${transcript}` : w.callback);
   };
 
   const last = messages.at(-1);
@@ -296,19 +396,19 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
       {showIntro ? (
         <header className={styles.header}>
           <div>
-            <span className={styles.status} aria-label="Assistante IA disponible" />
+            <span className={styles.status} aria-label={w.available} />
             <p className={styles.title}>
-              Bonjour ! <span aria-hidden="true">👋</span>
+              {w.hello} <span aria-hidden="true">👋</span>
               <br />
-              Je suis May.
+              {w.iam}
             </p>
           </div>
-          <span className={styles.badge}>Assistante D2S</span>
+          <span className={styles.badge}>{w.badge}</span>
         </header>
       ) : null}
 
       {/* data-lenis-prevent: the site's smooth scroll (Lenis) captures the wheel page-wide; the log scrolls itself. */}
-      <div ref={log} className={styles.log} role="log" aria-live="polite" aria-busy={sending} aria-label="Conversation avec May" data-lenis-prevent>
+      <div ref={log} className={styles.log} role="log" aria-live="polite" aria-busy={sending} aria-label={w.log} data-lenis-prevent>
         {messages.map((message) =>
           message.content || message.actions?.length || message.draft || message.choices?.length ? (
             <div key={message.id} className={styles.messageRow} data-role={message.role}>
@@ -320,7 +420,7 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
               <div className={styles.messageBody}>
                 {message.content ? <p className={styles.message}>{message.content}</p> : null}
                 {message.actions?.length ? (
-                  <div className={styles.actions} data-compact={message.compact ? "true" : undefined} aria-label={message.compact ? "Horaires libres" : "Rendez-vous proposés"}>
+                  <div className={styles.actions} data-compact={message.compact ? "true" : undefined} aria-label={message.compact ? w.freeTimes : w.proposed}>
                     {message.actions.map((action) => (
                       <a key={`${message.id}-${action.href}`} href={action.href} target="_blank" rel="noopener noreferrer" className={styles.meeting}>
                         {message.compact ? null : <Calendar size={16} />}
@@ -334,7 +434,7 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
                 ) : null}
                 {/* Quick answers of a booking step: only while it is the latest message. */}
                 {message.choices?.length && message.id === messages.at(-1)?.id ? (
-                  <div className={styles.choices} role="group" aria-label="Réponses rapides">
+                  <div className={styles.choices} role="group" aria-label={w.quick}>
                     {message.choices.map((choice) => (
                       <button key={choice.value} type="button" onClick={() => void send(choice.value)} disabled={sending}>
                         {choice.label}
@@ -344,15 +444,15 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
                 ) : null}
                 {message.draft ? (
                   <div className={styles.draft}>
-                    <p className={styles.draftTitle}>Votre demande est prête</p>
+                    <p className={styles.draftTitle}>{w.ready}</p>
                     <p className={styles.draftMeta}>
-                      {[message.draft.agent ?? (message.draft.need !== "unsure" ? needLabel(message.draft.need) : ""), message.draft.company, message.draft.name]
+                      {[message.draft.agent ?? (message.draft.need !== "unsure" ? needLabelOf(message.draft.need, locale) : ""), message.draft.company, message.draft.name]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
                     <p className={styles.draftText}>{message.draft.message}</p>
                     <button type="button" className={styles.draftButton} onClick={() => openDraft(message.draft!)}>
-                      Relire et envoyer ma demande
+                      {w.review}
                       <ArrowRight size={15} />
                     </button>
                   </div>
@@ -362,7 +462,7 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
           ) : null,
         )}
         {waiting || (sending && status) ? (
-          <div className={styles.messageRow} data-role="assistant" aria-label={status || "May prépare sa réponse"}>
+          <div className={styles.messageRow} data-role="assistant" aria-label={status || w.preparing}>
             <span className={styles.avatar} aria-hidden="true">
               M
             </span>
@@ -380,8 +480,8 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
       </div>
 
       {!active ? (
-        <div className={styles.starters} aria-label="Questions suggérées">
-          {MAY_STARTERS.map((starter) => (
+        <div className={styles.starters} aria-label={w.suggested}>
+          {mayStartersOf(locale).map((starter) => (
             <button key={starter} type="button" onClick={() => void send(starter)} disabled={sending}>
               {starter}
             </button>
@@ -391,7 +491,7 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
 
       <form className={styles.form} onSubmit={submit}>
         <label className="visually-hidden" htmlFor={`may-question-${variant}`}>
-          Votre message à May
+          {w.yourMessage}
         </label>
         <ChatDots size={18} />
         <textarea
@@ -402,21 +502,21 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={keyDown}
-          placeholder="Écrivez à May…"
+          placeholder={w.placeholder}
           autoComplete="off"
           disabled={sending}
         />
-        <button type="submit" className={styles.send} disabled={sending || !draft.trim()} aria-label="Envoyer à May">
+        <button type="submit" className={styles.send} disabled={sending || !draft.trim()} aria-label={w.send}>
           <ArrowRight size={18} />
         </button>
       </form>
 
       <div className={styles.footer}>
         <button type="button" className={styles.handoff} onClick={handoff}>
-          Être recontacté par l’équipe
+          {w.handoff}
         </button>
         <p>
-          Assistante IA : vérifiez les informations importantes. <a href={PRIVACY_HREF}>Confidentialité</a>
+          {w.disclaimer} <a href={privacyHrefOf(locale)}>{w.privacy}</a>
         </p>
       </div>
     </div>

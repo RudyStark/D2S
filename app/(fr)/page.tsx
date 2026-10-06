@@ -5,7 +5,7 @@ import { StructuredData } from "@/components/seo/StructuredData";
 export default function Home() {
   return (
     <>
-      <StructuredData />
+      <StructuredData locale="fr" />
       <AdaptiveHome />
     </>
   );

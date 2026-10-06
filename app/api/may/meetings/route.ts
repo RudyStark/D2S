@@ -55,8 +55,8 @@ function zone(value: string | null) {
   }
 }
 
-const label = (iso: string, timeZone: string) =>
-  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone }).format(new Date(iso)).replace(/ 1 (?=\p{L})/u, " 1er ");
+const label = (iso: string, timeZone: string, en = false) =>
+  new Intl.DateTimeFormat(en ? "en-GB" : "fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone }).format(new Date(iso)).replace(/ 1 (?=\p{L})/u, en ? " 1 " : " 1er ");
 
 const DAY_MS = 86_400_000;
 
@@ -65,7 +65,7 @@ const DAY_MS = 86_400_000;
  * - `mode=days`: the days that still have free times in the window (and part of the day), for "which day?";
  * - `mode=times`: every free time of one day (and part of the day), as Calendly buttons.
  */
-async function bookingStep(mode: "days" | "times", window: ReturnType<typeof readWindow>, part: "morning" | "afternoon" | undefined, timeZone: string) {
+async function bookingStep(mode: "days" | "times", window: ReturnType<typeof readWindow>, part: "morning" | "afternoon" | undefined, timeZone: string, en: boolean) {
   const type = (await listMeetingTypes())[0];
   if (!type) throw new CalendlyConfigurationError();
   const today = dayIn(new Date().toISOString(), timeZone);
@@ -93,7 +93,7 @@ async function bookingStep(mode: "days" | "times", window: ReturnType<typeof rea
     .slice(0, 16)
     .map((slot) => ({
       kind: "meeting" as const,
-      label: new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone }).format(new Date(slot.startTime)),
+      label: new Intl.DateTimeFormat(en ? "en-GB" : "fr-FR", { hour: "2-digit", minute: "2-digit", timeZone }).format(new Date(slot.startTime)),
       href: safeLink(slot.schedulingUrl),
       detail: `${meeting.name} · ${meeting.duration} min`,
     }))
@@ -109,17 +109,18 @@ export async function GET(request: Request) {
   const window = readWindow(params);
   const noStore = { headers: { "cache-control": "no-store" } };
   const mode = params.get("mode");
+  const en = params.get("lang") === "en";
 
   if (mode === "days" || mode === "times") {
     try {
       const partParam = params.get("part");
       const part = partParam === "morning" || partParam === "afternoon" ? partParam : undefined;
-      const step = await bookingStep(mode, window, part, timeZone);
+      const step = await bookingStep(mode, window, part, timeZone, en);
       return NextResponse.json({ ok: true, configured: true, ...step }, noStore);
     } catch (error) {
       if (!(error instanceof CalendlyConfigurationError)) console.error("[may] booking step:", error instanceof Error ? error.message : "unknown");
       const href = safeLink(calendlyFallbackUrl());
-      return NextResponse.json({ ok: true, configured: false, days: [], actions: href ? [{ kind: "meeting", label: "Voir l’agenda de D2S", href }] : [] }, noStore);
+      return NextResponse.json({ ok: true, configured: false, days: [], actions: href ? [{ kind: "meeting", label: en ? "See D2S’s calendar" : "Voir l’agenda de D2S", href }] : [] }, noStore);
     }
   }
 
@@ -133,16 +134,16 @@ export async function GET(request: Request) {
       const detail = `${type.name} · ${type.duration} min`;
       for (const slot of found.slots) {
         const href = safeLink(slot.schedulingUrl);
-        if (href) actions.push({ kind: "meeting", label: label(slot.startTime, timeZone), href, detail });
+        if (href) actions.push({ kind: "meeting", label: label(slot.startTime, timeZone, en), href, detail });
       }
-      if (!found.slots.length && safeLink(type.schedulingUrl)) actions.push({ kind: "meeting", label: detail, href: safeLink(type.schedulingUrl), detail: "Voir l’agenda" });
+      if (!found.slots.length && safeLink(type.schedulingUrl)) actions.push({ kind: "meeting", label: detail, href: safeLink(type.schedulingUrl), detail: en ? "See the calendar" : "Voir l’agenda" });
     }
     return NextResponse.json({ ok: true, configured: true, inWindow: !window || inWindow, actions: actions.slice(0, 6) }, noStore);
   } catch (error) {
     if (!(error instanceof CalendlyConfigurationError)) console.error("[may] meetings:", error instanceof Error ? error.message : "unknown");
     const href = safeLink(calendlyFallbackUrl());
     return NextResponse.json(
-      { ok: true, configured: false, actions: href ? [{ kind: "meeting", label: "Voir l’agenda de D2S", href }] : [] },
+      { ok: true, configured: false, actions: href ? [{ kind: "meeting", label: en ? "See D2S’s calendar" : "Voir l’agenda de D2S", href }] : [] },
       noStore,
     );
   }

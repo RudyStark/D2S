@@ -6,20 +6,18 @@ import { AGENTS } from "@/components/experience/agents/agents.config";
 import { ArrowRight, Check, ChevronDown, Close, Doc, Replay, Sparkle } from "@/components/ui/Icons";
 import { Logo } from "@/components/ui/Logo";
 import { useInView } from "@/hooks/useInView";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { channelsOf, contactIntroOf, messageHintsOf, needsOf, nextStepsOf } from "@/lib/contact-content";
+import type { Locale } from "@/lib/i18n";
 import {
-  CHANNELS,
   CONTACT_ID,
-  CONTACT_INTRO,
-  MESSAGE_HINTS,
-  NEEDS,
-  NEXT_STEPS,
   useContactIntent,
   type ChannelId,
   type Need,
   type NeedId,
 } from "@/lib/contact";
 import { scrollToElement } from "@/lib/experience/director";
-import { LEGAL_HREF, PRIVACY_HREF } from "@/lib/legal";
+import { legalHrefOf, privacyHrefOf } from "@/lib/legal";
 import { AGENTS_ID } from "./AgentsSection";
 import { SlotPicker, type PickedSlot } from "./SlotPicker";
 import styles from "./ContactSection.module.css";
@@ -43,13 +41,132 @@ const INITIAL: Values = { name: "", email: "", company: "", phone: "", message: 
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-function validate(v: Values): Partial<Record<FieldKey, string>> {
+const ERRORS = {
+  fr: {
+    name: "Indiquez votre prénom et votre nom.",
+    email: "Cette adresse e-mail ne semble pas complète.",
+    company: "Indiquez le nom de votre entreprise.",
+    message: "Quelques mots sur votre projet (10 caractères minimum).",
+    consent: "Nous avons besoin de votre accord pour vous recontacter.",
+  },
+  en: {
+    name: "Please enter your first and last name.",
+    email: "This e-mail address does not look complete.",
+    company: "Please enter your company name.",
+    message: "A few words about your project (10 characters minimum).",
+    consent: "We need your consent to get back to you.",
+  },
+};
+
+const TEXTS = {
+  fr: {
+    optional: " · facultatif",
+    next: "Ce qui se passe ensuite",
+    host: "May, à l’accueil",
+    hostSent: "C’est noté dans notre CRM ! L’équipe revient vers vous très vite.",
+    hostIdle: "Je transmets votre demande à l’équipe et je vous propose un créneau.",
+    thanks: (n: string) => `Merci${n ? ` ${n}` : ""} !`,
+    booked: (label: ReactNode, email: ReactNode) => (
+      <>
+        Votre visio est réservée le <strong>{label}</strong>. Calendly vous envoie l’invitation et le lien de connexion à <strong>{email}</strong>.
+      </>
+    ),
+    toConfirm: (label: ReactNode) => (
+      <>
+        Votre demande est bien arrivée. Dernière étape : confirmez votre visio du <strong>{label}</strong> sur Calendly, vos informations sont déjà remplies.
+      </>
+    ),
+    confirm: "Confirmer mon créneau",
+    received: (email: ReactNode, channel: string) => (
+      <>
+        Votre demande est bien arrivée. Nous vous répondons sous 24 h ouvrées à <strong>{email}</strong>
+        {channel === "visio" ? " pour caler notre visio." : channel === "phone" ? " pour convenir d’un appel." : "."}
+      </>
+    ),
+    agents: "Revoir nos agents",
+    another: "Envoyer une autre demande",
+    project: "Votre projet",
+    team: "Toute l’équipe",
+    teamLabel: "Toute l’équipe · un expert par métier",
+    attached: "Votre diagnostic est joint à la demande",
+    detach: "Retirer le diagnostic de la demande",
+    name: "Prénom et nom",
+    email: "E-mail professionnel",
+    company: "Entreprise",
+    phone: "Téléphone",
+    message: "Parlez-nous de votre projet",
+    channel: "Pour échanger, vous préférez",
+    consent: "J’accepte que D2S AIgency utilise ces informations pour répondre à ma demande.",
+    reassure: "Gratuit · Sans engagement. Vos données servent uniquement à vous répondre et sont conservées 3 ans au plus.",
+    rights: "Vos droits et notre politique de confidentialité",
+    failed: "L’envoi n’a pas abouti. Vérifiez votre connexion et réessayez.",
+    sending: "Envoi en cours…",
+    retry: "Réessayer",
+    send: "Envoyer ma demande",
+    legalNav: "Informations légales",
+    legal: "Mentions légales",
+    privacy: "Confidentialité",
+    tagline: "Agence d’agents IA",
+  },
+  en: {
+    optional: " · optional",
+    next: "What happens next",
+    host: "May, at the reception",
+    hostSent: "Logged in our CRM! The team will get back to you very soon.",
+    hostIdle: "I pass your request on to the team and suggest a time slot.",
+    thanks: (n: string) => `Thank you${n ? ` ${n}` : ""}!`,
+    booked: (label: ReactNode, email: ReactNode) => (
+      <>
+        Your video call is booked for <strong>{label}</strong>. Calendly is sending the invitation and the joining link to <strong>{email}</strong>.
+      </>
+    ),
+    toConfirm: (label: ReactNode) => (
+      <>
+        Your request has arrived. One last step: confirm your video call on <strong>{label}</strong> on Calendly, your details are already filled in.
+      </>
+    ),
+    confirm: "Confirm my slot",
+    received: (email: ReactNode, channel: string) => (
+      <>
+        Your request has arrived. We will reply within one business day at <strong>{email}</strong>
+        {channel === "visio" ? " to set up our video call." : channel === "phone" ? " to arrange a call." : "."}
+      </>
+    ),
+    agents: "See our agents again",
+    another: "Send another request",
+    project: "Your project",
+    team: "The whole team",
+    teamLabel: "The whole team · one expert per trade",
+    attached: "Your diagnostic is attached to the request",
+    detach: "Remove the diagnostic from the request",
+    name: "First and last name",
+    email: "Work e-mail",
+    company: "Company",
+    phone: "Phone",
+    message: "Tell us about your project",
+    channel: "To talk, you prefer",
+    consent: "I agree that D2S AIgency may use this information to reply to my request.",
+    reassure: "Free · No commitment. Your data is only used to reply to you and is kept for 3 years at most.",
+    rights: "Your rights and our privacy policy",
+    failed: "Sending failed. Check your connection and try again.",
+    sending: "Sending…",
+    retry: "Try again",
+    send: "Send my request",
+    legalNav: "Legal information",
+    legal: "Legal notice",
+    privacy: "Privacy",
+    tagline: "The AI agents agency",
+  },
+};
+
+function validate(v: Values, locale: Locale): Partial<Record<FieldKey, string>> {
   const e: Partial<Record<FieldKey, string>> = {};
-  if (v.name.trim().length < 2) e.name = "Indiquez votre prénom et votre nom.";
-  if (!EMAIL.test(v.email.trim())) e.email = "Cette adresse e-mail ne semble pas complète.";
-  if (v.company.trim().length < 2) e.company = "Indiquez le nom de votre entreprise.";
-  if (v.message.trim().length < 10) e.message = "Quelques mots sur votre projet (10 caractères minimum).";
-  if (!v.consent) e.consent = "Nous avons besoin de votre accord pour vous recontacter.";
+  const m = ERRORS[locale];
+  if (v.name.trim().length < 2) e.name = m.name;
+  if (!EMAIL.test(v.email.trim())) e.email = m.email;
+  if (v.company.trim().length < 2) e.company = m.company;
+  if (v.message.trim().length < 10) e.message = m.message;
+  if (!v.consent) e.consent = m.consent;
   return e;
 }
 
@@ -70,12 +187,13 @@ function Field({
   multiline?: boolean;
   children: ReactNode;
 }) {
+  const t = TEXTS[useLocale()];
   return (
     <div className={styles.field} data-invalid={!!error} data-multiline={multiline}>
       {children}
       <label htmlFor={id} className={styles.label}>
         {label}
-        {optional && <span className={styles.optional}> · facultatif</span>}
+        {optional && <span className={styles.optional}>{t.optional}</span>}
       </label>
       <p id={`${id}-error`} className={styles.error} aria-live="polite">
         {error}
@@ -90,7 +208,6 @@ function Field({
  * labels, errors on blur and on submit (focus moves to the first one), honeypot + fill time against bots,
  * then an animated confirmation with what happens next.
  */
-const TEAM_NEEDS = NEEDS.filter((n) => n.team);
 
 /** One need of the form: an agent (avatar, first name, domain), the custom agent, or « not sure yet ». */
 function NeedChip({ need, checked, onChange }: { need: Need; checked: boolean; onChange: () => void }) {
@@ -114,6 +231,15 @@ function NeedChip({ need, checked, onChange }: { need: Need; checked: boolean; o
 }
 
 export function ContactSection() {
+  const locale = useLocale();
+  const t = TEXTS[locale];
+  const CONTACT_INTRO = contactIntroOf(locale);
+  const NEEDS = needsOf(locale);
+  const TEAM_NEEDS = NEEDS.filter((n) => n.team);
+  const NEXT_STEPS = nextStepsOf(locale);
+  const CHANNELS = channelsOf(locale);
+  const MESSAGE_HINTS = messageHintsOf(locale);
+  const PRIVACY_HREF = privacyHrefOf(locale);
   const uid = useId();
   const section = useRef<HTMLElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -154,8 +280,8 @@ export function ContactSection() {
     setSubmitted(false);
     setTouched({});
     setFlash(true);
-    const t = window.setTimeout(() => setFlash(false), 1800);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setFlash(false), 1800);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a new call to action = a new stamp
   }, [stamp]);
 
@@ -181,7 +307,7 @@ export function ContactSection() {
     if (status === "sent") successTitle.current?.focus({ preventScroll: true });
   }, [status]);
 
-  const errors = validate(values);
+  const errors = validate(values, locale);
   const shown = (k: FieldKey) => ((submitted || touched[k]) && errors[k]) || undefined;
   const set = <K extends keyof Values>(k: K, v: Values[K]) => setValues((s) => ({ ...s, [k]: v }));
   const blur = (k: FieldKey) => () => setTouched((t) => ({ ...t, [k]: true }));
@@ -207,6 +333,7 @@ export function ContactSection() {
           diagnostic: intent?.diagnostic ?? [],
           slot: values.channel === "visio" && slot ? { start: slot.start, url: slot.url, meetingId: slot.meetingId } : undefined,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          locale,
           website: honeypot.current?.value ?? "",
           elapsed: Date.now() - shownAt.current,
         }),
@@ -251,7 +378,7 @@ export function ContactSection() {
           {/* ——— Left: what happens next ——— */}
           <aside className={styles.aside} aria-labelledby={id("next")}>
             <p id={id("next")} className={styles.asideKicker}>
-              Ce qui se passe ensuite
+              {t.next}
             </p>
             <ol className={styles.timeline} data-sent={status === "sent"}>
               {NEXT_STEPS.map((s, i) => (
@@ -270,10 +397,8 @@ export function ContactSection() {
               {/* eslint-disable-next-line @next/next/no-img-element -- avatar */}
               <img src={host.avatar} alt="" width={46} height={46} />
               <p>
-                <strong>May, à l’accueil</strong>
-                {status === "sent"
-                  ? "C’est noté dans notre CRM ! L’équipe revient vers vous très vite."
-                  : "Je transmets votre demande à l’équipe et je vous propose un créneau."}
+                <strong>{t.host}</strong>
+                {status === "sent" ? t.hostSent : t.hostIdle}
               </p>
             </div>
           </aside>
@@ -287,29 +412,20 @@ export function ContactSection() {
                   <path d="M20 33.5 28.5 42 45 24" pathLength={1} />
                 </svg>
                 <h3 ref={successTitle} tabIndex={-1} className={styles.successTitle}>
-                  Merci{firstName ? ` ${firstName}` : ""} !
+                  {t.thanks(firstName)}
                 </h3>
                 {booking?.booked ? (
-                  <p className={styles.successText}>
-                    Votre visio est réservée le <strong>{booking.label}</strong>. Calendly vous envoie l’invitation et le lien de connexion à{" "}
-                    <strong>{values.email.trim()}</strong>.
-                  </p>
+                  <p className={styles.successText}>{t.booked(booking.label, values.email.trim())}</p>
                 ) : booking?.confirmUrl ? (
                   <>
-                    <p className={styles.successText}>
-                      Votre demande est bien arrivée. Dernière étape : confirmez votre visio du <strong>{booking.label}</strong> sur Calendly, vos
-                      informations sont déjà remplies.
-                    </p>
+                    <p className={styles.successText}>{t.toConfirm(booking.label)}</p>
                     <a className={styles.confirmSlot} href={booking.confirmUrl} target="_blank" rel="noopener noreferrer">
-                      Confirmer mon créneau
+                      {t.confirm}
                       <ArrowRight size={17} />
                     </a>
                   </>
                 ) : (
-                  <p className={styles.successText}>
-                    Votre demande est bien arrivée. Nous vous répondons sous 24 h ouvrées à <strong>{values.email.trim()}</strong>
-                    {values.channel === "visio" ? " pour caler notre visio." : values.channel === "phone" ? " pour convenir d’un appel." : "."}
-                  </p>
+                  <p className={styles.successText}>{t.received(values.email.trim(), values.channel)}</p>
                 )}
                 <div className={styles.successActions}>
                   <button
@@ -320,18 +436,18 @@ export function ContactSection() {
                       if (agents) scrollToElement(agents);
                     }}
                   >
-                    Revoir nos agents
+                    {t.agents}
                   </button>
                   <button type="button" className={styles.linkButton} onClick={reset}>
                     <Replay size={15} />
-                    Envoyer une autre demande
+                    {t.another}
                   </button>
                 </div>
               </div>
             ) : (
               <form className={styles.form} noValidate onSubmit={submit}>
                 <fieldset className={styles.needs} data-flash={flash}>
-                  <legend className={styles.groupLabel}>Votre projet</legend>
+                  <legend className={styles.groupLabel}>{t.project}</legend>
                   <div className={styles.needList}>
                     {NEEDS.filter((n) => !n.team).map((n) => (
                       <NeedChip key={n.id} need={n} checked={values.need === n.id} onChange={() => set("need", n.id)} />
@@ -350,13 +466,13 @@ export function ContactSection() {
                           <img key={n.id} src={`/images/agents/${n.agent}-avatar.webp`} alt="" width={22} height={22} />
                         ))}
                       </span>
-                      Toute l’équipe <span className={styles.teamCount}>+{TEAM_NEEDS.length}</span>
+                      {t.team} <span className={styles.teamCount}>+{TEAM_NEEDS.length}</span>
                       <ChevronDown size={14} />
                     </button>
                   </div>
                   {showTeam && (
                     <div id={`${uid}-team`} className={styles.teamList}>
-                      <p className={styles.teamLabel}>Toute l’équipe · un expert par métier</p>
+                      <p className={styles.teamLabel}>{t.teamLabel}</p>
                       <div className={styles.needList}>
                         {TEAM_NEEDS.map((n) => (
                           <NeedChip key={n.id} need={n} checked={values.need === n.id} onChange={() => set("need", n.id)} />
@@ -372,21 +488,21 @@ export function ContactSection() {
                       <Doc size={18} />
                     </span>
                     <div>
-                      <strong>Votre diagnostic est joint à la demande</strong>
+                      <strong>{t.attached}</strong>
                       <ul>
                         {intent.diagnostic.map((l) => (
                           <li key={l}>{l}</li>
                         ))}
                       </ul>
                     </div>
-                    <button type="button" className={styles.detach} onClick={clearDiagnostic} aria-label="Retirer le diagnostic de la demande">
+                    <button type="button" className={styles.detach} onClick={clearDiagnostic} aria-label={t.detach}>
                       <Close size={16} />
                     </button>
                   </div>
                 ) : null}
 
                 <div className={styles.grid}>
-                  <Field id={id("name")} label="Prénom et nom" error={shown("name")}>
+                  <Field id={id("name")} label={t.name} error={shown("name")}>
                     <input
                       id={id("name")}
                       className={styles.control}
@@ -401,7 +517,7 @@ export function ContactSection() {
                       required
                     />
                   </Field>
-                  <Field id={id("email")} label="E-mail professionnel" error={shown("email")}>
+                  <Field id={id("email")} label={t.email} error={shown("email")}>
                     <input
                       id={id("email")}
                       className={styles.control}
@@ -417,7 +533,7 @@ export function ContactSection() {
                       required
                     />
                   </Field>
-                  <Field id={id("company")} label="Entreprise" error={shown("company")}>
+                  <Field id={id("company")} label={t.company} error={shown("company")}>
                     <input
                       id={id("company")}
                       className={styles.control}
@@ -432,7 +548,7 @@ export function ContactSection() {
                       required
                     />
                   </Field>
-                  <Field id={id("phone")} label="Téléphone" optional>
+                  <Field id={id("phone")} label={t.phone} optional>
                     <input
                       id={id("phone")}
                       className={styles.control}
@@ -443,7 +559,7 @@ export function ContactSection() {
                       onChange={(e) => set("phone", e.target.value)}
                     />
                   </Field>
-                  <Field id={id("message")} label="Parlez-nous de votre projet" error={shown("message")} multiline>
+                  <Field id={id("message")} label={t.message} error={shown("message")} multiline>
                     <textarea
                       id={id("message")}
                       className={styles.control}
@@ -464,7 +580,7 @@ export function ContactSection() {
 
                 <div className={styles.bottom}>
                   <fieldset className={styles.channels}>
-                    <legend className={styles.groupLabel}>Pour échanger, vous préférez</legend>
+                    <legend className={styles.groupLabel}>{t.channel}</legend>
                     <div className={styles.segmented} style={{ "--active": CHANNELS.findIndex((c) => c.id === values.channel) } as React.CSSProperties}>
                       <span className={styles.thumb} aria-hidden="true" />
                       {CHANNELS.map((c) => (
@@ -492,7 +608,7 @@ export function ContactSection() {
                       <span className={styles.box} aria-hidden="true">
                         <Check size={12} />
                       </span>
-                      J’accepte que D2S AIgency utilise ces informations pour répondre à ma demande.
+                      {t.consent}
                     </label>
                     <p id={`${id("consent")}-error`} className={styles.error} aria-live="polite">
                       {shown("consent")}
@@ -507,16 +623,15 @@ export function ContactSection() {
 
                 <div className={styles.submitRow}>
                   <p className={styles.reassure}>
-                    Gratuit · Sans engagement. Vos données servent uniquement à vous répondre et sont conservées 3 ans au plus.{" "}
-                    <Link href={PRIVACY_HREF}>Vos droits et notre politique de confidentialité</Link>
+                    {t.reassure} <Link href={PRIVACY_HREF}>{t.rights}</Link>
                   </p>
                   {status === "error" && (
                     <p className={styles.failed} role="alert">
-                      L’envoi n’a pas abouti. Vérifiez votre connexion et réessayez.
+                      {t.failed}
                     </p>
                   )}
                   <button type="submit" className={styles.submit} data-sending={status === "sending"} disabled={status === "sending"}>
-                    <span>{status === "sending" ? "Envoi en cours…" : status === "error" ? "Réessayer" : "Envoyer ma demande"}</span>
+                    <span>{status === "sending" ? t.sending : status === "error" ? t.retry : t.send}</span>
                     {status === "sending" ? <span className={styles.spinner} aria-hidden="true" /> : <ArrowRight size={18} />}
                   </button>
                 </div>
@@ -527,11 +642,13 @@ export function ContactSection() {
 
         <footer className={styles.footer}>
           <Logo width={88} className={styles.footerLogo} />
-          <nav className={styles.footerLinks} aria-label="Informations légales">
-            <Link href={LEGAL_HREF}>Mentions légales</Link>
-            <Link href={PRIVACY_HREF}>Confidentialité</Link>
+          <nav className={styles.footerLinks} aria-label={t.legalNav}>
+            <Link href={legalHrefOf(locale)}>{t.legal}</Link>
+            <Link href={PRIVACY_HREF}>{t.privacy}</Link>
           </nav>
-          <p>© {new Date().getFullYear()} D2S AIgency · Agence d’agents IA</p>
+          <p>
+            © {new Date().getFullYear()} D2S AIgency · {t.tagline}
+          </p>
         </footer>
       </div>
     </section>

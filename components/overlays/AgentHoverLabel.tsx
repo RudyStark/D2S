@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useFrameUpdate } from "@/hooks/useFrameUpdate";
-import { TEAM, type AgentProfile } from "@/lib/team";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { teamOf, type AgentProfile } from "@/lib/team";
 import styles from "./AgentHoverLabel.module.css";
 
 /*
@@ -19,7 +20,10 @@ const MIN_HEIGHT = 0.17;
 const HEADER_CLEARANCE = 88;
 const BACKGROUND = new Set(["HTML", "BODY", "MAIN", "CANVAS"]);
 
-const byType = new Map(TEAM.map((agent) => [agent.type as string, agent]));
+const BY_TYPE = {
+  fr: new Map(teamOf("fr").map((agent) => [agent.type as string, agent])),
+  en: new Map(teamOf("en").map((agent) => [agent.type as string, agent])),
+};
 
 function overBackground(x: number, y: number) {
   const el = document.elementFromPoint(x, y);
@@ -27,6 +31,7 @@ function overBackground(x: number, y: number) {
 }
 
 export function AgentHoverLabel() {
+  const byType = BY_TYPE[useLocale()];
   const label = useRef<HTMLDivElement>(null);
   const pointer = useRef({ x: 0, y: 0, over: false });
   const hovered = useRef<string | null>(null);

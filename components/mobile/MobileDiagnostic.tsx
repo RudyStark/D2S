@@ -8,22 +8,82 @@ import {
   Replay,
   Sparkle,
 } from "@/components/ui/Icons";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { agentCard } from "@/lib/agent-directory";
 import {
   activeQuestions,
   buildResult,
-  CUSTOM_STEPS,
+  customStepsOf,
   diagnosticSummary,
-  hoursSentence,
   optionsFor,
   resultNeed,
   withAnswer,
   type Answers,
   type DiagnosticResult,
 } from "@/lib/diagnostic";
-import { TEAM, type AgentProfile } from "@/lib/team";
+import { teamOf, type AgentProfile } from "@/lib/team";
+import { valueOf } from "@/lib/value";
 import type { MobileContactIntent } from "./mobile-navigation";
 import styles from "./MobileHome.module.css";
+
+const TEXTS = {
+  fr: {
+    kicker: "Comment choisir",
+    title: ["Quel agent IA", "pour vous ?"],
+    lead: "Quelques questions pour trouver, parmi nos 16 agents, votre point de départ.",
+    count: (n: number, total: number) => (
+      <>
+        Question <strong>{n}</strong> sur {total}
+      </>
+    ),
+    back: "Retour",
+    see: "Voir mon résultat",
+    next: "Continuer",
+    privacy: "Vos réponses restent dans cette page.",
+    start: "Votre point de départ",
+    customTitle: "Un agent sur mesure, autour de votre métier.",
+    customText: "Vos règles et vos outils appellent une réponse spécifique. Nous la construisons avec vous.",
+    adapted: (fem: boolean) => `adapté${fem ? "e" : ""} à vos règles.`,
+    ready: "à vos côtés.",
+    discover: (n: string) => `Découvrir ${n}`,
+    footnote: (basis: string) => `* Estimation indicative : ${basis}. À affiner ensemble sur vos propres chiffres.`,
+    why: "Pourquoi cette recommandation ?",
+    priority: (task: string) => `Votre priorité : ${task.toLowerCase()}.`,
+    tools: (list: string) => `Vos outils : ${list}.`,
+    rules: "Nous tenons compte des règles propres à votre activité.",
+    duo: "Idéal en duo avec",
+    talk: "Parlons de ce résultat",
+    restart: "Recommencer",
+  },
+  en: {
+    kicker: "How to choose",
+    title: ["Which AI agent", "for you?"],
+    lead: "A few questions to find, among our 16 agents, your starting point.",
+    count: (n: number, total: number) => (
+      <>
+        Question <strong>{n}</strong> of {total}
+      </>
+    ),
+    back: "Back",
+    see: "See my result",
+    next: "Continue",
+    privacy: "Your answers stay in this page.",
+    start: "Your starting point",
+    customTitle: "A custom agent, built around your trade.",
+    customText: "Your rules and your tools call for a specific answer. We build it with you.",
+    adapted: () => "adapted to your rules.",
+    ready: "by your side.",
+    discover: (n: string) => `Meet ${n}`,
+    footnote: (basis: string) => `* Indicative estimate: ${basis}. To be refined together on your own figures.`,
+    why: "Why this recommendation?",
+    priority: (task: string) => `Your priority: ${task.toLowerCase()}.`,
+    tools: (list: string) => `Your tools: ${list}.`,
+    rules: "We take your business’s own rules into account.",
+    duo: "Ideal paired with",
+    talk: "Let’s talk about this result",
+    restart: "Start again",
+  },
+};
 
 export function MobileDiagnostic({
   onContact,
@@ -32,20 +92,23 @@ export function MobileDiagnostic({
   onContact: (intent: MobileContactIntent) => void;
   onAgent: (agent: AgentProfile) => void;
 }) {
+  const locale = useLocale();
+  const t = TEXTS[locale];
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [result, setResult] = useState<DiagnosticResult | null>(null);
   const [changed, setChanged] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const card = useRef<HTMLDivElement>(null);
-  const questions = activeQuestions(answers);
+  const questions = activeQuestions(answers, locale);
   const question = questions[Math.min(step, questions.length - 1)];
   const options = optionsFor(question, answers);
   const selected = answers[question.id] ?? [];
-  const recommended = result ? agentCard(result.agent) : null;
+  const recommended = result ? agentCard(result.agent, locale) : null;
+  const value = result ? valueOf({ task: result.task.id, time: answers.time?.[0], hours: result.hours }, locale) : null;
   // The five of the 3D world have a profile window on mobile; the others are presented in the result itself.
   const profile = result
-    ? TEAM.find((person) => person.type === result.agent)
+    ? teamOf(locale).find((person) => person.type === result.agent)
     : undefined;
 
   useEffect(() => {
@@ -78,16 +141,13 @@ export function MobileDiagnostic({
     >
       <div className={styles.inner}>
         <div data-reveal>
-          <p className={styles.eyebrow}>Comment choisir</p>
+          <p className={styles.eyebrow}>{t.kicker}</p>
           <h2 id="mobile-diagnostic-title" className={styles.title}>
-            Quel agent IA
+            {t.title[0]}
             <br />
-            <span>pour vous ?</span>
+            <span>{t.title[1]}</span>
           </h2>
-          <p className={styles.lead}>
-            Quelques questions pour trouver, parmi nos 16 agents, votre
-            point de départ.
-          </p>
+          <p className={styles.lead}>{t.lead}</p>
         </div>
         <div ref={card} className={styles.quizCard} data-reveal>
           {!result ? (
@@ -97,12 +157,12 @@ export function MobileDiagnostic({
                 if (!selected.length) return;
                 setChanged(true);
                 if (step < questions.length - 1) setStep(step + 1);
-                else setResult(buildResult(answers));
+                else setResult(buildResult(answers, locale));
               }}
             >
               <div className={styles.quizProgress}>
                 <span aria-live="polite">
-                  Question <strong>{step + 1}</strong> sur {questions.length}
+                  {t.count(step + 1, questions.length)}
                 </span>
                 <div aria-hidden="true">
                   {questions.map((item, i) => (
@@ -157,7 +217,7 @@ export function MobileDiagnostic({
                     }}
                   >
                     <ChevronLeft size={18} />
-                    Retour
+                    {t.back}
                   </button>
                 )}
                 <button
@@ -165,33 +225,28 @@ export function MobileDiagnostic({
                   className={styles.primary}
                   disabled={!selected.length}
                 >
-                  {step === questions.length - 1
-                    ? "Voir mon résultat"
-                    : "Continuer"}
+                  {step === questions.length - 1 ? t.see : t.next}
                   <ArrowRight size={18} />
                 </button>
               </div>
               <p className={styles.privacyNote}>
-                Vos réponses restent dans cette page.
+                {t.privacy}
               </p>
             </form>
           ) : (
             <div className={styles.result}>
-              <p className={styles.eyebrow}>Votre point de départ</p>
+              <p className={styles.eyebrow}>{t.start}</p>
               {result.outcome === "custom" ? (
                 <>
                   <span className={styles.resultIcon}>
                     <Sparkle size={30} />
                   </span>
                   <h3 ref={heading} tabIndex={-1}>
-                    Un agent sur mesure, autour de votre métier.
+                    {t.customTitle}
                   </h3>
-                  <p>
-                    Vos règles et vos outils appellent une réponse spécifique.
-                    Nous la construisons avec vous.
-                  </p>
+                  <p>{t.customText}</p>
                   <ol className={styles.customSteps}>
-                    {CUSTOM_STEPS.map((item) => (
+                    {customStepsOf(locale).map((item) => (
                       <li key={item.title}>
                         <strong>{item.title}</strong>
                         <p>{item.text}</p>
@@ -212,9 +267,7 @@ export function MobileDiagnostic({
                     <div>
                       <h3 ref={heading} tabIndex={-1}>
                         {recommended!.name},{" "}
-                        {result.outcome === "adapted"
-                          ? `adapté${recommended!.feminine ? "e" : ""} à vos règles.`
-                          : "à vos côtés."}
+                        {result.outcome === "adapted" ? t.adapted(recommended!.feminine) : t.ready}
                       </h3>
                       <p>{recommended!.role}</p>
                     </div>
@@ -234,39 +287,31 @@ export function MobileDiagnostic({
                       className={styles.secondary}
                       onClick={() => onAgent(profile)}
                     >
-                      Découvrir {recommended!.name}
+                      {t.discover(recommended!.name)}
                       <ChevronRight size={18} />
                     </button>
                   )}
                 </>
               )}
               <div className={styles.estimate}>
-                <strong>{hoursSentence(result.hours)}*</strong>
-                <p>
-                  * Estimation indicative fondée sur le temps déclaré et la part
-                  automatisable de la tâche. À confirmer lors de notre échange.
-                </p>
+                <strong>{value!.headline}*</strong>
+                {value!.time ? <p>{value!.time}*.</p> : value!.reframe ? <p>{value!.reframe}</p> : null}
+                <p>{t.footnote(value!.basis)}</p>
               </div>
               <details className={styles.resultWhy}>
-                <summary>Pourquoi cette recommandation ?</summary>
+                <summary>{t.why}</summary>
                 <ul>
-                  <li>Votre priorité : {result.task.label.toLowerCase()}.</li>
-                  {result.tools.length > 0 && (
-                    <li>
-                      Vos outils :{" "}
-                      {result.tools.map((tool) => tool.label).join(", ")}.
-                    </li>
-                  )}
-                  <li>
-                    Nous tenons compte des règles propres à votre activité.
-                  </li>
+                  <li>{t.priority(result.task.label)}</li>
+                  {result.tools.length > 0 && <li>{t.tools(result.tools.map((tool) => tool.label).join(", "))}</li>}
+                  <li>{t.rules}</li>
                 </ul>
               </details>
               {result.duo && (
                 <p>
-                  Idéal en duo avec {agentCard(result.duo).name},{" "}
-                  {agentCard(result.duo).role.charAt(0).toLowerCase() +
-                    agentCard(result.duo).role.slice(1)}
+                  {t.duo} {agentCard(result.duo, locale).name},{" "}
+                  {locale === "en"
+                    ? agentCard(result.duo, locale).role
+                    : agentCard(result.duo, locale).role.charAt(0).toLowerCase() + agentCard(result.duo, locale).role.slice(1)}
                   .
                 </p>
               )}
@@ -277,11 +322,11 @@ export function MobileDiagnostic({
                   onContact({
                     source: "mobile-diagnostic",
                     need: resultNeed(result),
-                    diagnostic: diagnosticSummary(answers, result),
+                    diagnostic: diagnosticSummary(answers, result, locale),
                   })
                 }
               >
-                Parlons de ce résultat
+                {t.talk}
                 <ArrowRight size={18} />
               </button>
               <button
@@ -295,7 +340,7 @@ export function MobileDiagnostic({
                 }}
               >
                 <Replay size={16} />
-                Recommencer
+                {t.restart}
               </button>
             </div>
           )}

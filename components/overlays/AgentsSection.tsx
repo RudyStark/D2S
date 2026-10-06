@@ -5,9 +5,10 @@ import { AGENTS } from "@/components/experience/agents/agents.config";
 import { ArrowUpRight, Sparkle } from "@/components/ui/Icons";
 import { useInView } from "@/hooks/useInView";
 import { lowerFirst } from "@/lib/site";
-import { TEAM, TEAM_INTRO } from "@/lib/team";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { teamIntroOf, teamOf } from "@/lib/team";
 import { MORE_START } from "@/lib/team-all";
-import { MORE_INTRO, MORE_TEAM, POLES, type PoleId } from "@/lib/team-more";
+import { moreIntroOf, moreTeamOf, polesOf, type PoleId } from "@/lib/team-more";
 import { AgentDialog } from "./AgentDialog";
 import styles from "./AgentsSection.module.css";
 import head from "./SectionHead.module.css";
@@ -18,7 +19,33 @@ export const AGENTS_ID = "nos-agents-ia";
  * The team. Hover (or focus) a card: the agent's name rises into the caption and the others step back.
  * Click: the profile window opens out of the card, with a live demo of the agent at work (AgentDialog).
  */
+const TEXTS = {
+  fr: {
+    open: "Découvrir ses missions",
+    alt: (name: string, role: string) => `${name}, ${lowerFirst(role)} de D2S AIgency`,
+    hintMouse: "Survolez un agent pour faire connaissance, cliquez pour le voir à l’œuvre.",
+    hintTouch: "Touchez un agent pour le voir à l’œuvre.",
+    filter: "Filtrer par pôle",
+    all: "Tous",
+  },
+  en: {
+    open: "See what they do",
+    alt: (name: string, role: string) => `${name}, ${role} at D2S AIgency`,
+    hintMouse: "Hover over an agent to meet them, click to see them at work.",
+    hintTouch: "Tap an agent to see them at work.",
+    filter: "Filter by team",
+    all: "All",
+  },
+};
+
 export function AgentsSection() {
+  const locale = useLocale();
+  const t = TEXTS[locale];
+  const TEAM = teamOf(locale);
+  const TEAM_INTRO = teamIntroOf(locale);
+  const MORE_TEAM = moreTeamOf(locale);
+  const MORE_INTRO = moreIntroOf(locale);
+  const POLES = polesOf(locale);
   const section = useRef<HTMLElement>(null);
   const inView = useInView(section, 0.2);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -75,7 +102,7 @@ export function AgentsSection() {
                   type="button"
                   className={styles.cardButton}
                   aria-haspopup="dialog"
-                  aria-label={`${agent.name}, ${agent.role}. Découvrir ses missions`}
+                  aria-label={`${agent.name}, ${agent.role}. ${t.open}`}
                   onClick={(e) => {
                     lastOpened.current = i;
                     setOrigin(e.currentTarget.getBoundingClientRect());
@@ -83,7 +110,7 @@ export function AgentsSection() {
                   }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- transparent cut-out, sized in design units */}
-                  <img className={styles.figure} src={def.image} alt={`${agent.name}, ${lowerFirst(agent.role)} de D2S AIgency`} loading="lazy" decoding="async" />
+                  <img className={styles.figure} src={def.image} alt={t.alt(agent.name, agent.role)} loading="lazy" decoding="async" />
                   <span className={styles.open} aria-hidden="true">
                     <ArrowUpRight size={18} />
                   </span>
@@ -103,8 +130,8 @@ export function AgentsSection() {
         </ul>
         <p className={styles.hint}>
           <Sparkle size={18} />
-          <span className={styles.hintMouse}>Survolez un agent pour faire connaissance, cliquez pour le voir à l’œuvre.</span>
-          <span className={styles.hintTouch}>Touchez un agent pour le voir à l’œuvre.</span>
+          <span className={styles.hintMouse}>{t.hintMouse}</span>
+          <span className={styles.hintTouch}>{t.hintTouch}</span>
         </p>
 
         {/* The rest of the team (2D only): by pole, each card opens the same profile window. */}
@@ -117,8 +144,8 @@ export function AgentsSection() {
               </h3>
               <p className={styles.moreLead}>{MORE_INTRO.lead}</p>
             </div>
-            <div className={styles.poles} role="group" aria-label="Filtrer par pôle">
-              {[{ id: "all" as const, label: "Tous" }, ...POLES].map((p) => (
+            <div className={styles.poles} role="group" aria-label={t.filter}>
+              {[{ id: "all" as const, label: t.all }, ...POLES].map((p) => (
                 <button key={p.id} type="button" aria-pressed={pole === p.id} className={styles.pole} onClick={() => setPole(p.id)}>
                   {p.label}
                   <span className={styles.poleCount}>{p.id === "all" ? MORE_TEAM.length : MORE_TEAM.filter((a) => a.pole === p.id).length}</span>
@@ -139,7 +166,7 @@ export function AgentsSection() {
                     type="button"
                     className={`${styles.cardButton} ${styles.moreButton}`}
                     aria-haspopup="dialog"
-                    aria-label={`${agent.name}, ${agent.role}. Découvrir ses missions`}
+                    aria-label={`${agent.name}, ${agent.role}. ${t.open}`}
                     onClick={(e) => {
                       lastOpened.current = i;
                       setOrigin(e.currentTarget.getBoundingClientRect());
@@ -147,7 +174,7 @@ export function AgentsSection() {
                     }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- transparent cut-out, sized in design units */}
-                    <img className={`${styles.figure} ${styles.moreFigure}`} src={agent.image} alt={`${agent.name}, ${lowerFirst(agent.role)} de D2S AIgency`} loading="lazy" decoding="async" />
+                    <img className={`${styles.figure} ${styles.moreFigure}`} src={agent.image} alt={t.alt(agent.name, agent.role)} loading="lazy" decoding="async" />
                     <span className={styles.open} aria-hidden="true">
                       <ArrowUpRight size={18} />
                     </span>

@@ -82,7 +82,9 @@ export async function POST(request: Request) {
     (request.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() ||
     request.headers.get("x-real-ip") ||
     "local";
-  if (rateLimited(ip)) return reject(429, "too_many_requests", "May a reçu beaucoup de messages. Réessayez dans quelques minutes.");
+  // The body is not read yet: the page that asks tells the language.
+  const english = /\/en(\/|#|\?|$)/.test(new URL(request.headers.get("referer") ?? "http://x/").pathname);
+  if (rateLimited(ip)) return reject(429, "too_many_requests", english ? "May has received a lot of messages. Try again in a few minutes." : "May a reçu beaucoup de messages. Réessayez dans quelques minutes.");
 
   const raw = await request.text();
   if (raw.length > MAX_BODY_BYTES) return reject(413, "too_large");
@@ -99,7 +101,13 @@ export async function POST(request: Request) {
 
   if (!mayConfigured()) {
     console.error("[may] ANTHROPIC_API_KEY is not configured");
-    return reject(503, "not_configured", "May termine sa configuration. En attendant, l’équipe vous répond via le formulaire de contact.");
+    return reject(
+      503,
+      "not_configured",
+      body.locale === "en"
+        ? "May is finishing her setup. Meanwhile, the team answers through the contact form."
+        : "May termine sa configuration. En attendant, l’équipe vous répond via le formulaire de contact.",
+    );
   }
 
   const encoder = new TextEncoder();
@@ -107,11 +115,17 @@ export async function POST(request: Request) {
     async start(controller) {
       const emit = (event: MayEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       try {
-        await runMay(messages, timezone(body.timezone), emit, clean(body.known).slice(0, 700) || undefined);
+        await runMay(messages, timezone(body.timezone), emit, clean(body.known).slice(0, 700) || undefined, body.locale === "en" ? "en" : "fr");
         emit({ type: "done" });
       } catch (error) {
         if (!(error instanceof MayConfigurationError)) console.error("[may] answer failed:", error instanceof Error ? error.message : "unknown error");
-        emit({ type: "error", message: "Je rencontre un problème temporaire. Réessayez dans un instant, ou laissez votre demande à l’équipe." });
+        emit({
+          type: "error",
+          message:
+            body.locale === "en"
+              ? "I’m having a temporary problem. Try again in a moment, or leave your request with the team."
+              : "Je rencontre un problème temporaire. Réessayez dans un instant, ou laissez votre demande à l’équipe.",
+        });
       } finally {
         controller.close();
       }

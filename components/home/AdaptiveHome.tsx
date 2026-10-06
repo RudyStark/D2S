@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useSyncExternalStore } from "react";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import MobileHome from "@/components/mobile/MobileHome";
 import styles from "./AdaptiveHome.module.css";
 
@@ -16,11 +17,12 @@ const getSnapshot = () => window.matchMedia(MOBILE_QUERY).matches;
 const getServerSnapshot = (): boolean | null => null;
 
 function DesktopBoot() {
+  const label = useLocale() === "en" ? "Loading the agency" : "Chargement de l’agence";
   return (
     <div
       className={styles.boot}
       role="status"
-      aria-label="Chargement de l’agence"
+      aria-label={label}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -29,7 +31,7 @@ function DesktopBoot() {
         height={65}
         alt="D2S AIgency"
       />
-      <span>Chargement de l’agence</span>
+      <span>{label}</span>
     </div>
   );
 }

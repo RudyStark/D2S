@@ -34,3 +34,14 @@ export const MOBILE_SECTIONS = [
   { id: "comment-choisir", label: "Comment choisir" },
   { id: "contact", label: "Parlons de votre projet" },
 ];
+
+const MOBILE_SECTIONS_EN: typeof MOBILE_SECTIONS = [
+  { id: "agence", label: "Home" },
+  { id: "mission", label: "Our mission" },
+  { id: "nos-services", label: "Our services" },
+  { id: "nos-agents-ia", label: "Our AI agents" },
+  { id: "comment-choisir", label: "How to choose" },
+  { id: "contact", label: "Let’s talk about your project" },
+];
+
+export const mobileSectionsOf = (locale: "fr" | "en") => (locale === "en" ? MOBILE_SECTIONS_EN : MOBILE_SECTIONS);

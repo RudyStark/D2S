@@ -1,11 +1,12 @@
 import { agentCard } from "./agent-directory";
 import { CHANNELS, type ChannelId, type NeedId } from "./contact-content";
-import { buildResult, hoursSentence, resultNeed, taskOption, type Answers } from "./diagnostic";
+import { buildResult, estimateHours, resultNeed, taskOption, type Answers } from "./diagnostic";
 import type { MayDraft } from "./may";
 import { readWhen, type DayPart } from "./may-dates";
 import { METHOD_PROMISES, METHOD_STEPS } from "./services";
 import { FAQ, lowerFirst } from "./site";
 import { TEAM } from "./team";
+import { valueOf } from "./value";
 import { MORE_TEAM } from "./team-more";
 
 /*
@@ -33,13 +34,17 @@ export type BookingStep = "slot-part" | "slot-day" | "slot";
 export interface MayMemory {
   task?: string;
   time?: string;
+  /** Weekly hours, when the visitor gave a figure (the estimate then starts from it, not from the bracket). */
+  weekly?: number;
   tools?: string[];
   /** The tools question was asked once: an unclear answer then means "none in particular". */
   toolsAsked?: boolean;
   process?: string;
   channel?: ChannelId;
-  /** Question May is waiting an answer to (booking steps: see BookingStep). */
-  asked?: Slot | "confirm" | BookingStep;
+  /** Question May is waiting an answer to (booking steps: see BookingStep; deal = what a customer brings). */
+  asked?: Slot | "confirm" | "deal" | BookingStep;
+  /** What a new customer brings the visitor, in euros (sales tasks: the outcome in money). */
+  dealValue?: number;
   /** The meeting being arranged. */
   slot?: SlotQuery;
   recommended?: { need: NeedId; line: string; agent?: string };
@@ -129,18 +134,27 @@ const TOOLS: [string, RegExp][] = [
   ["software", /\b(logiciels?|erp|outils? interne|outils? metier|intranet)\b/],
 ];
 
-function readTime(t: string): string | undefined {
+/** Weekly hours named in a message ("2 h", "moins de 2h", "une journée", "8 h par mois"), when there is a number. */
+function readWeekly(t: string): number | undefined {
   const hours = t.match(/\b(\d{1,3})(?:[ ,.]\d)?\s?(?:h|heures?)\b/);
   const days = t.match(/\b(\d|une|un|deux|trois)\s(?:jours?|journees?)\b/);
   let h: number | undefined;
   if (hours) h = Number(hours[1]);
   else if (days) h = ({ une: 1, un: 1, deux: 2, trois: 3 } as Record<string, number>)[days[1]] ?? Number(days[1]);
-  if (days && !hours && h !== undefined) h *= 7;
-  if (h !== undefined) {
-    if (/\b(par|chaque|la|une) (jour|journee)\b/.test(t) && hours) h *= 5;
-    if (/\b(par|chaque|le|au) mois\b/.test(t)) h /= 4.33;
-    return h < 2 ? "low" : h <= 10 ? "mid" : "high";
-  }
+  if (h === undefined) return undefined;
+  if (days && !hours) h *= 7;
+  if (/\b(par|chaque|la|une) (jour|journee)\b/.test(t) && hours) h *= 5;
+  if (/\b(par|chaque|le|au) mois\b/.test(t)) h /= 4.33;
+  // "Moins de 2 h": below the figure said.
+  if (/\b(moins de|moins d|pas plus de|max|maximum|a peine)\s+(\d|une|un|deux|trois)/.test(t)) h *= 0.75;
+  // "Plus de 10 h": above it.
+  else if (/\b(plus de|plus d|au moins|minimum|facilement|bien)\s+(\d|une|un|deux|trois)/.test(t)) h *= 1.25;
+  return h;
+}
+
+function readTime(t: string): string | undefined {
+  const h = readWeekly(t);
+  if (h !== undefined) return h < 2 ? "low" : h <= 10 ? "mid" : "high";
   if (/\b(peu|pas beaucoup|pas grand chose|un peu|quelques minutes|rarement)\b/.test(t.replace(/\bun peu de tout\b/g, " "))) return "low";
   if (/\b(plein temps|temps plein|un poste|toute la journee|toute la semaine|enormement)\b/.test(t)) return "high";
   return undefined;
@@ -173,7 +187,7 @@ const faq = (start: string) => FAQ.find((f) => f.q.startsWith(start))!.a;
 
 const QUESTIONS: Record<Slot, string> = {
   task: "Qu’est-ce qui vous prend le plus de temps aujourd’hui : trouver des clients, rédiger vos propositions, répondre à vos clients ou à vos e-mails, créer du contenu ou des visuels, suivre vos factures ou vos chiffres, recruter… ?",
-  time: "Combien de temps y passez-vous environ chaque semaine, toute l’équipe comprise ?",
+  time: "Combien de temps y passez-vous chaque semaine, toute l’équipe comprise ? Et votre façon de faire est-elle plutôt classique, avec quelques règles à vous, ou vraiment propre à votre métier ?",
   tools: "Où se passe ce travail aujourd’hui : e-mail, WhatsApp ou chat du site, réseaux sociaux, CRM, tableurs, agenda, boutique en ligne, documents, logiciel métier ?",
   process: "Et votre façon de faire : plutôt classique, avec quelques règles bien à vous, ou vraiment propre à votre métier ?",
 };
@@ -212,24 +226,51 @@ const BOOKING = /\b(rendez vous|rdv|reserver|reservation|creneau|creneaux|dispon
 
 /* ---------- Conversation ---------- */
 
-const nextSlot = (m: MayMemory): Slot | undefined =>
-  !m.task ? "task" : !m.time ? "time" : !m.tools && !m.toolsAsked ? "tools" : !m.process ? "process" : undefined;
+// Two questions at most before recommending (the task, then time and way of working): tools are read when named,
+// never asked; an unknown way of working counts as standard.
+const nextSlot = (m: MayMemory): Slot | undefined => (!m.task ? "task" : !m.time ? "time" : undefined);
 
+/**
+ * The recommendation, sold as a result (lib/value.ts): the agent and the outcome in figures first, how it gets there,
+ * the opportunity when the visitor barely does the task today, then the free demonstration on their own case.
+ */
 function recommendation(m: MayMemory) {
-  const answers: Answers = { task: [m.task!], time: [m.time!], tools: m.tools ?? [], process: [m.process!] };
+  const answers: Answers = { task: [m.task!], time: [m.time!], tools: m.tools ?? [], process: [m.process ?? "standard"] };
   const r = buildResult(answers);
   const agent = agentCard(r.agent);
   const duo = r.duo ? agentCard(r.duo) : null;
-  const hours = `${hoursSentence(r.hours)} (estimation indicative)`;
-  const text =
+  // Never more hours given back than the visitor said they spend.
+  const hours = m.weekly !== undefined ? estimateHours(answers, m.weekly) : r.hours;
+  const value = valueOf({ task: m.task!, time: m.time, dealValue: m.dealValue, hours });
+  const who =
     r.outcome === "custom"
-      ? `Votre processus est propre à votre métier : je vous recommande un agent sur mesure, construit autour de vos règles (atelier de cadrage, prototype sur vos cas réels, puis mise en service). ${hours}.`
-      : `Je vous recommande ${agent.name}, ${lowerFirst(agent.role)} (${r.percent} % de compatibilité) : « ${agent.blurb} »${r.outcome === "adapted" ? ` ${agent.feminine ? "Elle serait entraînée" : "Il serait entraîné"} à vos règles propres.` : ""} ${hours}.${duo ? ` ${duo.name}, ${lowerFirst(duo.role)}, pourrait l’épauler.` : ""}`;
+      ? "Je vous recommande un agent sur mesure, construit autour de vos règles."
+      : `Je vous recommande ${agent.name}, ${lowerFirst(agent.role)}${r.outcome === "adapted" ? `, ${agent.feminine ? "entraînée" : "entraîné"} à vos règles propres` : ""}.`;
+  const text = [
+    `${who} À la clé : ${lowerFirst(value.headline)}*.`,
+    `${value.capacity}.${duo && r.outcome !== "custom" ? ` ${duo.name}, ${lowerFirst(duo.role)}, peut l’épauler.` : ""}`,
+    value.money ? `${value.money}*.` : "",
+    value.reframe ?? "",
+    value.time ? `${value.time}*.` : "",
+    `* Estimation indicative : ${value.basis}.`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   const need: NeedId = resultNeed(r);
   const named = r.outcome === "custom" ? undefined : `${agent.name}, ${lowerFirst(agent.role)}`;
-  const line = r.outcome === "custom" ? `Recommandation de May : un agent sur mesure. ${hours}.` : `Recommandation de May : ${agent.name} (${agent.role}). ${hours}.`;
-  return { text, need, line, agent: named };
+  const line = `Recommandation de May : ${r.outcome === "custom" ? "un agent sur mesure" : `${agent.name} (${agent.role})`}. ${value.headline}${value.money ? `. ${value.money}` : ""} (estimation indicative).`;
+  return { text, need, line, agent: named, hook: value.hook, asksDeal: value.asksDealValue };
 }
+
+/** "5000", "5 000 €", "5k", "2,5 k€", "1500 euros" → euros (read on the raw text: the decimal comma matters). */
+function readDeal(input: string): number | undefined {
+  const m = input.toLowerCase().replace(/[  ]/g, " ").match(/(\d{1,3}(?: \d{3})+|\d+(?:[.,]\d+)?)\s?(k|mille)?\s?(?:€|e\b|eur\b|euros?\b)?/);
+  if (!m) return undefined;
+  const n = Number(m[1].replace(/ /g, "").replace(",", ".")) * (m[2] ? 1000 : 1);
+  return n >= 50 && n < 10_000_000 ? n : undefined;
+}
+
+const CLOSE = "Je vous réserve ces 30 minutes, ou je prépare votre demande pour que l’équipe vous recontacte ?";
 
 /** The form's need for a task named but not yet diagnosed: that of the agent whose job it is. */
 function taskNeed(task: string | undefined): NeedId | undefined {
@@ -272,6 +313,20 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
     if (NO.test(t)) return { kind: "reply", text: "Pas de souci. Je reste là si vous avez une question sur nos agents ou notre méthode.", memory: { ...m, asked: undefined } };
   }
 
+  // "Combien vous rapporte un nouveau client ?": the outcome in euros, then the close.
+  if (m.asked === "deal") {
+    const deal = readDeal(input);
+    const unsure = /\b(je ne sais pas|sais pas|ca depend|variable|aucune idee|pas d idee|confidentiel)\b/.test(t);
+    if (deal || unsure) {
+      if (deal) m.dealValue = deal;
+      const reco = recommendation(m);
+      m.recommended = { need: reco.need, line: reco.line, agent: reco.agent };
+      const money = deal ? valueOf({ task: m.task!, time: m.time, dealValue: deal }).money : undefined;
+      const text = [money ? `${money}* : chaque mois, en plus de ce que vous faites déjà.` : "Pas de souci, on le chiffrera ensemble sur vos vrais chiffres.", `${reco.hook}. ${CLOSE}`].join("\n\n");
+      return { kind: "reply", text, memory: { ...m, asked: "confirm" } };
+    }
+  }
+
   const tasks = readTasks(t);
   const tools = TOOLS.filter(([, re]) => has(t, re)).map(([id]) => id);
   const time = readTime(t);
@@ -279,6 +334,8 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
   const channel = readChannel(t);
   if (tasks.length === 1 && !m.task) m.task = tasks[0];
   if (time) m.time = time;
+  const weekly = readWeekly(t);
+  if (weekly !== undefined) m.weekly = weekly;
   if (process) m.process = process;
   if (channel) m.channel = channel;
   if (tools.length) m.tools = [...new Set([...(m.tools ?? []), ...tools])];
@@ -339,7 +396,12 @@ export function mayLocal(input: string, previous: MayMemory): LocalOutcome {
   if (!slot && !m.recommended && m.task) {
     const reco = recommendation(m);
     m.recommended = { need: reco.need, line: reco.line, agent: reco.agent };
-    parts.push(reco.text, "Je prépare votre demande pour en parler avec l’équipe ?");
+    // Sales tasks: the value of a customer first (to put the outcome in euros), then the close.
+    if (reco.asksDeal) {
+      parts.push(reco.text, "Combien vous rapporte un nouveau client en moyenne ? Je vous dis ce que cela représente.");
+      return { kind: "reply", text: parts.join("\n\n"), memory: { ...m, asked: "deal" } };
+    }
+    parts.push(reco.text, `${reco.hook}. ${CLOSE}`);
     return { kind: "reply", text: parts.join("\n\n"), memory: { ...m, asked: "confirm" } };
   }
   // Qualification under way (or starting on a first description / greeting): ask the next thing.
@@ -364,6 +426,7 @@ export function memorySummary(m: MayMemory) {
     `outils : ${m.tools?.length ? m.tools.join(", ") : "inconnus"}`,
     `processus : ${label(m.process, { standard: "classique", specific: "quelques règles propres", unique: "propre au métier" })}`,
     `préférence d’échange : ${m.channel ? CHANNELS.find((c) => c.id === m.channel)!.label : "inconnue"}`,
+    `valeur d’un nouveau client : ${m.dealValue ? `${m.dealValue} €` : "inconnue"}`,
     m.recommended ? m.recommended.line : "aucune recommandation encore faite",
   ].join(" ; ");
 }

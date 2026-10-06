@@ -2,11 +2,43 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { ArrowRight, Check, Close, Replay } from "@/components/ui/Icons";
 import { useReducedMotion } from "@/hooks/useInView";
 import type { AgentProfile } from "@/lib/team";
 import type { MobileContactIntent } from "./mobile-navigation";
 import styles from "./MobileHome.module.css";
+
+const TEXTS = {
+  fr: {
+    loading: "Chargement de la démonstration…",
+    bar: "Nos agents IA",
+    close: "Fermer la fiche",
+    missions: (n: string) => `Ce que ${n} fait pour vous`,
+    tools: "Dans vos outils",
+    control: "Vous gardez la main.",
+    note: "Démonstration illustrative · données fictives",
+    replay: "Rejouer la démonstration",
+    watch: "Voir la démonstration",
+    hire: (n: string) => `Recruter ${n}`,
+  },
+  en: {
+    loading: "Loading the demo…",
+    bar: "Our AI agents",
+    close: "Close the profile",
+    missions: (n: string) => `What ${n} does for you`,
+    tools: "In your tools",
+    control: "You stay in control.",
+    note: "Illustrative demo · fictitious data",
+    replay: "Replay the demo",
+    watch: "Watch the demo",
+    hire: (n: string) => `Hire ${n}`,
+  },
+};
+
+function DemoLoading() {
+  return <p role="status">{TEXTS[useLocale()].loading}</p>;
+}
 
 // The DOM demos have no WebGL dependency and only download when a profile is opened.
 const AgentDemo = dynamic(
@@ -14,7 +46,7 @@ const AgentDemo = dynamic(
     import("@/components/overlays/AgentDemos").then(
       (module) => module.AgentDemo,
     ),
-  { loading: () => <p role="status">Chargement de la démonstration…</p> },
+  { loading: DemoLoading },
 );
 
 export function MobileAgentDialog({
@@ -26,6 +58,7 @@ export function MobileAgentDialog({
   onClose: () => void;
   onContact: (intent: MobileContactIntent) => void;
 }) {
+  const t = TEXTS[useLocale()];
   const dialog = useRef<HTMLDialogElement>(null);
   const reduced = useReducedMotion();
   const [run, setRun] = useState(0);
@@ -53,12 +86,12 @@ export function MobileAgentDialog({
       }}
     >
       <div className={styles.dialogBar}>
-        <span>Nos agents IA</span>
+        <span>{t.bar}</span>
         <button
           type="button"
           className={styles.iconButton}
           autoFocus
-          aria-label="Fermer la fiche"
+          aria-label={t.close}
           onClick={onClose}
         >
           <Close />
@@ -82,7 +115,7 @@ export function MobileAgentDialog({
         <p className={styles.eyebrow}>{agent.role}</p>
         <h2 id="mobile-agent-title">{agent.name}</h2>
         <p>{agent.pitch}</p>
-        <h3>Ce que {agent.name} fait pour vous</h3>
+        <h3>{t.missions(agent.name)}</h3>
         <ul className={styles.dialogMissions}>
           {agent.missions.map((mission) => (
             <li key={mission}>
@@ -91,7 +124,7 @@ export function MobileAgentDialog({
             </li>
           ))}
         </ul>
-        <h3>Dans vos outils</h3>
+        <h3>{t.tools}</h3>
         <ul className={styles.chips}>
           {agent.channels.map((channel) => (
             <li key={channel}>{channel}</li>
@@ -100,14 +133,14 @@ export function MobileAgentDialog({
         <p className={styles.control}>
           <Check size={24} />
           <span>
-            <strong>Vous gardez la main.</strong>
+            <strong>{t.control}</strong>
             {agent.control}
           </span>
         </p>
         <div className={styles.demo}>
           <h3>{agent.demo}</h3>
           <p className={styles.demoNote}>
-            Démonstration illustrative · données fictives
+            {t.note}
           </p>
           {play ? (
             <>
@@ -120,7 +153,7 @@ export function MobileAgentDialog({
                 onClick={() => setRun((current) => current + 1)}
               >
                 <Replay size={16} />
-                Rejouer la démonstration
+                {t.replay}
               </button>
             </>
           ) : (
@@ -129,7 +162,7 @@ export function MobileAgentDialog({
               className={styles.secondary}
               onClick={() => setPlay(true)}
             >
-              Voir la démonstration
+              {t.watch}
               <ArrowRight size={18} />
             </button>
           )}
@@ -142,7 +175,7 @@ export function MobileAgentDialog({
             onContact({ source: "mobile-agent", need: agent.type });
           }}
         >
-          Recruter {agent.name}
+          {t.hire(agent.name)}
           <ArrowRight size={18} />
         </button>
       </div>

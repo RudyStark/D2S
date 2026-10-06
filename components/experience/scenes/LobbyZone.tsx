@@ -3,6 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo } from "react";
 import * as THREE from "three";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { useExperience } from "@/lib/experience/store";
 import { WORLD } from "@/lib/experience/world";
 import { Block, FloorBlock, InstancedBoxes, useArcGeometry, type BoxInstance } from "../architecture/primitives";
@@ -15,6 +16,10 @@ import { Sofa, CoffeeTable } from "../furniture/Lounge";
 import { Plant, Planter } from "../vegetation/Plants";
 
 const L = WORLD.lobby;
+
+/* The lobby's only inscriptions, per language (constant arrays: WallType rebuilds its texture when they change). */
+const SLOGAN = { fr: ["VOTRE ÉQUIPE,", "AUGMENTÉE", "PAR L’IA."], en: ["YOUR TEAM,", "AUGMENTED", "BY AI."] };
+const DESK_SIGN = { fr: ["INFORMATIONS"], en: ["INFORMATION"] };
 
 /** Height of the drum logo's centre. */
 const LOGO_Y = 5.72;
@@ -140,6 +145,7 @@ const DESK_TYPE_SIZE = 0.17;
 const DESK_TYPE_TOP = 0.72 + 0.9 * DESK_TYPE_SIZE;
 
 function Reception() {
+  const locale = useLocale();
   const logoSweep = useLogoSweep();
   const { desk, drum } = L;
   const body = useArcGeometry(desk.innerR, desk.outerR, desk.halfAngle, desk.height - 0.1, 64, 0.012);
@@ -190,7 +196,7 @@ function Reception() {
       </group>
       {/* Slogan (no effect). Curved type: position is the drum axis, the geometry wraps at curveRadius. */}
       <WallType
-        lines={["VOTRE ÉQUIPE,", "AUGMENTÉE", "PAR L’IA."]}
+        lines={SLOGAN[locale]}
         position={[0, 5.04, drum.centerZ]}
         size={0.17}
         weight={600}
@@ -212,7 +218,7 @@ function Reception() {
       </group>
       {/* Desk front lettering (user request): same type as the slogan, wrapped on the counter's curve. */}
       <WallType
-        lines={["INFORMATIONS"]}
+        lines={DESK_SIGN[locale]}
         position={[0, DESK_TYPE_TOP, desk.centerZ]}
         size={DESK_TYPE_SIZE}
         weight={600}

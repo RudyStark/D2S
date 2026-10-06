@@ -52,5 +52,8 @@ export const MAY_STARTERS = [
   "Prendre rendez-vous",
 ] as const;
 
+export const MAY_STARTERS_EN = ["Which agent for my need?", "How do you work?", "Book a meeting"] as const;
+export const mayStartersOf = (locale: "fr" | "en"): readonly string[] => (locale === "en" ? MAY_STARTERS_EN : MAY_STARTERS);
+
 /** History sent to Claude, message length, and visitor messages per conversation (then: the form). */
 export const MAY_LIMITS = { messages: 12, messageLength: 1_000, visitorMessages: 14 } as const;

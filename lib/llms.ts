@@ -24,6 +24,7 @@ export function llmsText({ full }: { full: boolean }) {
     `- [Contact](${abs("/#contact")}) : ${CONTACT_INTRO.lead}`,
     `- [Mentions légales](${abs("/mentions-legales")})`,
     `- [Politique de confidentialité](${abs("/confidentialite")})`,
+    `- [English version](${abs("/en")}) : the same site in English (${abs("/en/legal-notice")}, ${abs("/en/privacy")}).`,
     "",
   );
   push("## Services", "");

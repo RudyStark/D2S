@@ -1,4 +1,5 @@
 import { AGENT_CARDS, agentCard, type AgentKey } from "./agent-directory";
+import type { Locale } from "./i18n";
 
 /*
  * "Comment choisir votre agent IA ?" — a short diagnostic. The field of work, then the precise task (that is
@@ -195,11 +196,101 @@ export const QUESTIONS: DiagnosticQuestion[] = [
 
 export type Answers = Partial<Record<DiagnosticQuestion["id"], string[]>>;
 
-const question = (id: DiagnosticQuestion["id"]) => QUESTIONS.find((q) => q.id === id)!;
+/* ——— English: same ids, same scores, only the words change ——— */
+
+type Words = { label: string; hint?: string; phrase?: string };
+
+const DIAGNOSTIC_INTRO_EN: typeof DIAGNOSTIC_INTRO = {
+  kicker: "How it works",
+  title: ["How to choose", "your AI agent?"],
+  lead: "A few questions about your business, one minute. Among our sixteen agents, we tell you which one can take over, or whether you need a custom agent, built around your trade.",
+};
+
+const QUESTION_WORDS_EN: Record<DiagnosticQuestion["id"], { title: string; help: string; options: Record<string, Words> }> = {
+  area: {
+    title: "Where would you like help first?",
+    help: "Pick the area that costs you the most time. We narrow it down right after.",
+    options: {
+      sales: { label: "Selling", hint: "Prospecting, meetings, proposals" },
+      clients: { label: "Your customers and your e-mails", hint: "Questions, after-sales, inbox" },
+      marketing: { label: "Content and marketing", hint: "Posts, visuals, videos, strategy" },
+      admin: { label: "Admin and figures", hint: "Invoices, dashboards, presentations" },
+      team: { label: "Team and organisation", hint: "Hiring, internal knowledge, coordination" },
+      other: { label: "Something else", hint: "A process specific to your trade" },
+    },
+  },
+  task: {
+    title: "More precisely, what do you want to hand over?",
+    help: "The task that takes you the most time today.",
+    options: {
+      prospection: { label: "Find new customers", hint: "Target, reach out, follow up, land meetings" },
+      meetings: { label: "Make the most of your sales meetings", hint: "Notes, objections, follow-up after every meeting" },
+      proposals: { label: "Write your sales proposals", hint: "Well-argued offers, sent the same day" },
+      support: { label: "Answer your customers", hint: "WhatsApp, website chat, order tracking, after-sales" },
+      inbox: { label: "Keep your inbox under control", hint: "Sorting, today’s priorities, drafted replies, follow-ups" },
+      content: { label: "Write your posts and newsletters", hint: "LinkedIn, newsletters, articles" },
+      visuals: { label: "Create your visuals", hint: "Posts, banners, YouTube thumbnails" },
+      video: { label: "Produce product videos", hint: "E-commerce, ads, with no shoot" },
+      trends: { label: "Know what works in your industry", hint: "Trends, competitors, content ideas" },
+      strategy: { label: "Define your marketing strategy", hint: "Audience, positioning, message, campaigns" },
+      billing: { label: "Track your invoices and unpaid bills", hint: "Invoices, reminders, cash flow, margin" },
+      data: { label: "Understand your figures", hint: "Dashboards, metrics, alerts" },
+      decks: { label: "Prepare your presentations", hint: "Client decks, board meetings, reports" },
+      hr: { label: "Hire and onboard", hint: "CVs, interviews, onboarding" },
+      knowledge: { label: "Find internal information", hint: "Documents, history, sourced answers" },
+      orchestration: { label: "Hand over a bit of everything", hint: "A single point of contact who shares the work between the agents" },
+      other: { label: "A process specific to your trade" },
+    },
+  },
+  time: {
+    title: "How much time do you spend on it each week?",
+    help: "The whole team included, roughly.",
+    options: {
+      low: { label: "Under 2 h", hint: "A side task" },
+      mid: { label: "2 to 10 h", hint: "A real part of the week" },
+      high: { label: "Over 10 h", hint: "A full-time job" },
+    },
+  },
+  tools: {
+    title: "Where does this work happen today?",
+    help: "Several answers possible.",
+    options: {
+      mail: { label: "E-mail", phrase: "e-mail" },
+      chat: { label: "WhatsApp, website chat", phrase: "WhatsApp, the website chat" },
+      social: { label: "LinkedIn, social media", phrase: "social media" },
+      crm: { label: "CRM", phrase: "your CRM" },
+      sheet: { label: "Spreadsheets, reporting", phrase: "your spreadsheets" },
+      calendar: { label: "Calendar, video calls", phrase: "your calendar" },
+      shop: { label: "Online shop", phrase: "your online shop" },
+      docs: { label: "Documents, Drive", phrase: "your documents" },
+      software: { label: "Business software, internal tool", phrase: "your business software" },
+    },
+  },
+  process: {
+    title: "How would you describe this process?",
+    help: "This is what decides between a ready-to-use agent and a custom one.",
+    options: {
+      standard: { label: "Standard", hint: "It looks like what most companies do." },
+      specific: { label: "A few specifics", hint: "Some rules of our own, but the core is standard." },
+      unique: { label: "Unique to our trade", hint: "Rules, approvals and special cases that are ours alone." },
+    },
+  },
+};
+
+const QUESTIONS_EN: DiagnosticQuestion[] = QUESTIONS.map((q) => {
+  const w = QUESTION_WORDS_EN[q.id];
+  return { ...q, title: w.title, help: w.help, options: q.options.map((o) => ({ ...o, ...w.options[o.id] })) };
+});
+
+/** The questions in a language (same ids and scores). */
+export const questionsOf = (locale: Locale = "fr") => (locale === "en" ? QUESTIONS_EN : QUESTIONS);
+export const diagnosticIntroOf = (locale: Locale = "fr") => (locale === "en" ? DIAGNOSTIC_INTRO_EN : DIAGNOSTIC_INTRO);
+
+const question = (id: DiagnosticQuestion["id"], locale: Locale = "fr") => questionsOf(locale).find((q) => q.id === id)!;
 const TASKS = question("task").options;
 
 /** A precise task (option of the "task" question). */
-export const taskOption = (id: string | undefined) => TASKS.find((o) => o.id === id);
+export const taskOption = (id: string | undefined, locale: Locale = "fr") => (locale === "en" ? question("task", "en").options : TASKS).find((o) => o.id === id);
 
 /**
  * The answers made whole: the field of work follows from the precise task (May only knows the task), and
@@ -215,8 +306,8 @@ export function completeAnswers(answers: Answers): Answers {
 }
 
 /** The questions to ask for these answers: the precise task is skipped for « Autre chose ». */
-export function activeQuestions(answers: Answers) {
-  return QUESTIONS.filter((q) => !(q.id === "task" && answers.area?.[0] === "other"));
+export function activeQuestions(answers: Answers, locale: Locale = "fr") {
+  return questionsOf(locale).filter((q) => !(q.id === "task" && answers.area?.[0] === "other"));
 }
 
 /** Options shown for a question: the precise tasks of the chosen field only. */
@@ -269,6 +360,9 @@ export const matchPercent = (score: number) => Math.round(Math.min(99, barFill(s
 
 /** "a", "a et b", "a, b et c". */
 export const joinFr = (items: string[]) => (items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} et ${items.at(-1)}`);
+/** "a", "a and b", "a, b and c". */
+export const joinEn = (items: string[]) => (items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
+export const joinIn = (items: string[], locale: Locale = "fr") => (locale === "en" ? joinEn(items) : joinFr(items));
 
 export type Outcome = "ready" | "adapted" | "custom";
 
@@ -308,9 +402,10 @@ export interface HoursEstimate {
 
 const roundHours = (h: number) => (h < 10 ? Math.max(1, Math.round(h)) : Math.round(h / 5) * 5);
 
-export function estimateHours(input: Answers): HoursEstimate {
+/** `weeklyHours`: the visitor's own figure, when they gave one (May), instead of the middle of the bracket. */
+export function estimateHours(input: Answers, weeklyHours?: number): HoursEstimate {
   const answers = completeAnswers(input);
-  const weekly = WEEKLY_HOURS[answers.time?.[0] ?? "mid"] ?? WEEKLY_HOURS.mid;
+  const weekly = weeklyHours ?? WEEKLY_HOURS[answers.time?.[0] ?? "mid"] ?? WEEKLY_HOURS.mid;
   const share = taskOption(answers.task?.[0])?.share ?? DEFAULT_SHARE;
   const factor = PROCESS_FACTOR[answers.process?.[0] ?? "standard"] ?? 1;
   const base = weekly * WEEKS_PER_MONTH * factor;
@@ -320,21 +415,25 @@ export function estimateHours(input: Answers): HoursEstimate {
 }
 
 /** "Entre 10 et 15 h récupérées chaque mois, soit jusqu’à 2 jours de travail". */
-export function hoursSentence({ min, max, days }: HoursEstimate) {
+export function hoursSentence({ min, max, days }: HoursEstimate, locale: Locale = "fr") {
+  if (locale === "en") {
+    const range = min === max ? `About ${min} h` : `Between ${min} and ${max} h`;
+    return `${range} saved every month${days >= 1 ? `, up to ${days} working day${days > 1 ? "s" : ""}` : ""}`;
+  }
   const range = min === max ? `Environ ${min} h` : `Entre ${min} et ${max} h`;
   return `${range} récupérées chaque mois${days >= 1 ? `, soit jusqu’à ${days} jour${days > 1 ? "s" : ""} de travail` : ""}`;
 }
 
-export function buildResult(input: Answers): DiagnosticResult {
+export function buildResult(input: Answers, locale: Locale = "fr"): DiagnosticResult {
   const answers = completeAnswers(input);
   const scores = scoreAnswers(answers);
   const ranked = rankCandidates(scores).filter((c): c is AgentKey => c !== "custom");
   const best = ranked[0];
   const custom = scores.custom;
   const outcome: Outcome = custom >= scores[best] ? "custom" : custom >= 30 ? "adapted" : "ready";
-  const task = taskOption(answers.task?.[0]) ?? taskOption("other")!;
+  const task = taskOption(answers.task?.[0], locale) ?? taskOption("other", locale)!;
   const toolIds = answers.tools ?? [];
-  const tools = question("tools").options.filter((o) => toolIds.includes(o.id));
+  const tools = question("tools", locale).options.filter((o) => toolIds.includes(o.id));
   // The partner on the same job: the task's pair, or the task's own agent if the tools put someone else first.
   const partner = task.pair && task.pair !== best ? task.pair : task.agent && task.agent !== best ? task.agent : null;
   return {
@@ -377,18 +476,38 @@ export const CUSTOM_STEPS = [
   { title: "Mise en service et suivi", text: "Connecté à vos outils, mesuré, et amélioré en continu." },
 ];
 
+const CUSTOM_STEPS_EN: typeof CUSTOM_STEPS = [
+  { title: "Scoping workshop", text: "One hour with you to map your rules and your special cases." },
+  { title: "Prototype on your real cases", text: "A first agent tested on your own examples, adjusted with you." },
+  { title: "Go-live and follow-up", text: "Connected to your tools, measured, and improved continuously." },
+];
+export const customStepsOf = (locale: Locale = "fr") => (locale === "en" ? CUSTOM_STEPS_EN : CUSTOM_STEPS);
+
 /** The contact form's need for a result: the recommended agent, or the custom agent. */
 export const resultNeed = (result: DiagnosticResult) => (result.outcome === "custom" ? ("custom" as const) : agentCard(result.agent).need);
 
 /** The diagnostic in a few lines, attached to the contact request. */
-export function diagnosticSummary(input: Answers, result: DiagnosticResult) {
+export function diagnosticSummary(input: Answers, result: DiagnosticResult, locale: Locale = "fr") {
   const answers = completeAnswers(input);
   const labels = (id: DiagnosticQuestion["id"]) =>
-    question(id)
+    question(id, locale)
       .options.filter((o) => answers[id]?.includes(o.id))
       .map((o) => o.label)
       .join(", ");
-  const agent = agentCard(result.agent);
+  const agent = agentCard(result.agent, locale);
+  if (locale === "en") {
+    const task = taskOption(result.task.id, "en") ?? result.task;
+    return [
+      result.outcome === "custom"
+        ? "Recommendation: custom agent"
+        : `Recommendation: ${agent.name}, ${agent.role.charAt(0).toLowerCase()}${agent.role.slice(1)} (${result.percent}%)${result.outcome === "adapted" ? ", adapted to your rules" : ""}`,
+      `Priority: ${task.label}${task.area !== "other" ? ` (${labels("area").toLowerCase()})` : ""}`,
+      `${labels("time")} a week`,
+      answers.tools?.length ? `Tools: ${labels("tools")}` : "",
+      `Process: ${labels("process").toLowerCase()}`,
+      `Estimated gain: ${result.hours.min === result.hours.max ? `≈ ${result.hours.min}` : `${result.hours.min} to ${result.hours.max}`} h a month`,
+    ].filter(Boolean);
+  }
   const reco =
     result.outcome === "custom"
       ? "Recommandation : agent sur mesure"

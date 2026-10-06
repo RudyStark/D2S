@@ -1,10 +1,12 @@
 "use client";
 
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { scrollToProgress } from "@/lib/experience/director";
 import { frame, useExperience } from "@/lib/experience/store";
 
 /** Skip link: brings keyboard users straight to the reception, then focuses its heading. */
 export function SkipToLobby() {
+  const locale = useLocale();
   return (
     <a
       className="skip-link"
@@ -22,7 +24,7 @@ export function SkipToLobby() {
         requestAnimationFrame(focus);
       }}
     >
-      Aller à l’accueil de l’agence
+      {locale === "en" ? "Go to the agency’s reception" : "Aller à l’accueil de l’agence"}
     </a>
   );
 }

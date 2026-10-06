@@ -31,18 +31,20 @@ import {
   Users,
 } from "@/components/ui/Icons";
 import { useInView, useReducedMotion } from "@/hooks/useInView";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { agentCard } from "@/lib/agent-directory";
+import type { Locale } from "@/lib/i18n";
+import { valueOf } from "@/lib/value";
 import {
   activeQuestions,
   AGENT_TOOLS,
   barFill,
   buildResult,
   CANDIDATES,
-  CUSTOM_STEPS,
-  DIAGNOSTIC_INTRO,
+  customStepsOf,
+  diagnosticIntroOf,
   diagnosticSummary,
-  hoursSentence,
-  joinFr,
+  joinIn,
   matchPercent,
   optionsFor,
   rankCandidates,
@@ -55,8 +57,8 @@ import {
   type OptionIcon,
 } from "@/lib/diagnostic";
 import { contactClick } from "@/lib/contact";
-import { CONTACT_HREF } from "@/lib/navigation";
-import { ALL_AGENTS } from "@/lib/team-all";
+import { contactHrefOf } from "@/lib/navigation";
+import { allAgentsOf } from "@/lib/team-all";
 import { AgentDialog } from "./AgentDialog";
 import styles from "./DiagnosticSection.module.css";
 import glass from "./Glass.module.css";
@@ -139,6 +141,100 @@ function Counter({ value, reduced }: { value: number; reduced: boolean }) {
   return <>{Math.round(shown)}</>;
 }
 
+/* The section's words (the questions and agents come from lib/diagnostic and lib/agent-directory). */
+const DIAG = {
+  fr: {
+    prev: "Question précédente",
+    count: (n: number, total: number) => (
+      <>
+        Question <strong>{n}</strong> sur {total}
+      </>
+    ),
+    privacy: "Anonyme, sans inscription : vos réponses restent dans votre navigateur.",
+    see: "Voir ma recommandation",
+    next: "Continuer",
+    yours: "Votre recommandation",
+    badge: { ready: "Prêt à l’emploi", adapted: "Adapté à vos règles", custom: "Sur mesure" },
+    customTitle: ["Un agent sur mesure,", "conçu pour votre métier."],
+    adaptedTitle: (fem: boolean) => `${fem ? "adaptée" : "adapté"} à votre métier.`,
+    readyTitle: (fem: boolean) => ["est", `${fem ? "faite" : "fait"} pour vous.`],
+    customText: (tools: string) => `Votre processus a sa propre logique. Plutôt que de le faire entrer dans un agent standard, nous construisons un agent autour de vos règles${tools ? `, connecté à ${tools}` : ""}.`,
+    adaptedText: (name: string, role: string) => `Nous partons de ${name} (${role}) et l’entraînons à vos règles : le cœur est prêt, nous ajustons le reste avec vous.`,
+    readyText: (role: string, fem: boolean) => `${role}, ${fem ? "prête" : "prêt"} à travailler dans vos outils en quelques jours, sans rien changer à votre organisation.`,
+    duo: "Idéal en duo avec",
+    design: "Concevoir mon agent",
+    talk: "Parlons de votre projet",
+    discover: (n: string) => `Découvrir ${n}`,
+    restart: "Refaire le diagnostic",
+    footnote: (basis: string) => `* Estimation indicative : ${basis}. À affiner ensemble sur vos propres chiffres lors du premier échange.`,
+    live: "Compatibilité en direct",
+    liveOn: "Les 5 plus compatibles parmi nos 16 agents, à chaque réponse.",
+    liveOff: "Répondez : nos 16 agents se classent en direct.",
+    leader: (who: string, pct: number) => `En tête : ${who}, ${pct} % de compatibilité.`,
+    aCustom: "un agent sur mesure",
+    custom: "Sur mesure",
+    forTrade: "Conçu pour votre métier",
+    pct: " %",
+    compatible: "compatible avec votre besoin",
+    yourTools: "Vos outils actuels",
+    rules: ["Vos règles métier", "Vos validations", "Vos cas particuliers"],
+    plan: "Plan de votre agent",
+    yourAgent: "Votre agent",
+    yourWay: (task: string) => `${task}, à votre façon`,
+    why: {
+      task: (task: string, name: string) => `Votre priorité, « ${task.toLowerCase()} », c’est le métier de ${name}.`,
+      tools: (fem: boolean, tools: string) => `${fem ? "Elle" : "Il"} travaille déjà avec ${tools}.`,
+      noTools: (fem: boolean) => `${fem ? "Elle" : "Il"} se connecte à vos outils actuels, sans rien changer.`,
+      rules: "Vos règles métier intégrées dès le brief, validées avec vous.",
+    },
+  },
+  en: {
+    prev: "Previous question",
+    count: (n: number, total: number) => (
+      <>
+        Question <strong>{n}</strong> of {total}
+      </>
+    ),
+    privacy: "Anonymous, no sign-up: your answers stay in your browser.",
+    see: "See my recommendation",
+    next: "Continue",
+    yours: "Your recommendation",
+    badge: { ready: "Ready to use", adapted: "Adapted to your rules", custom: "Custom" },
+    customTitle: ["A custom agent,", "designed for your trade."],
+    adaptedTitle: () => "adapted to your trade.",
+    readyTitle: () => ["is", "made for you."],
+    customText: (tools: string) => `Your process has its own logic. Rather than squeezing it into a standard agent, we build an agent around your rules${tools ? `, connected to ${tools}` : ""}.`,
+    adaptedText: (name: string, role: string) => `We start from ${name} (${role}) and train them on your rules: the core is ready, we adjust the rest with you.`,
+    readyText: (role: string) => `${role}, ready to work in your tools within a few days, without changing anything in your organisation.`,
+    duo: "Ideal paired with",
+    design: "Design my agent",
+    talk: "Discuss your project",
+    discover: (n: string) => `Meet ${n}`,
+    restart: "Start the diagnostic again",
+    footnote: (basis: string) => `* Indicative estimate: ${basis}. To be refined together on your own figures during the first call.`,
+    live: "Live compatibility",
+    liveOn: "The 5 best matches among our 16 agents, with every answer.",
+    liveOff: "Answer: our 16 agents rank themselves live.",
+    leader: (who: string, pct: number) => `In the lead: ${who}, ${pct}% compatible.`,
+    aCustom: "a custom agent",
+    custom: "Custom",
+    forTrade: "Designed for your trade",
+    pct: "%",
+    compatible: "compatible with your need",
+    yourTools: "Your current tools",
+    rules: ["Your business rules", "Your approvals", "Your special cases"],
+    plan: "Your agent’s blueprint",
+    yourAgent: "Your agent",
+    yourWay: (task: string) => `${task}, your way`,
+    why: {
+      task: (task: string, name: string) => `Your priority, “${task.toLowerCase()}”, is exactly ${name}’s job.`,
+      tools: (_fem: boolean, tools: string) => `Already works with ${tools}.`,
+      noTools: () => "Connects to your current tools, without changing anything.",
+      rules: "Your business rules built in from the brief, approved with you.",
+    },
+  },
+};
+
 /** Rows of the live ranking: the five best agents, and the custom agent. */
 const SHOWN = 5;
 
@@ -150,6 +246,10 @@ const SHOWN = 5;
  * for its trade.
  */
 export function DiagnosticSection() {
+  const locale = useLocale();
+  const tx = DIAG[locale];
+  const DIAGNOSTIC_INTRO = diagnosticIntroOf(locale);
+  const ALL_AGENTS = allAgentsOf(locale);
   const section = useRef<HTMLElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const inView = useInView(panel, 0.3);
@@ -166,7 +266,7 @@ export function DiagnosticSection() {
   // Radios also fire "click" on arrow keys: only a pointer pick moves on by itself.
   const viaPointer = useRef(false);
 
-  const questions = activeQuestions(answers);
+  const questions = activeQuestions(answers, locale);
   const question = questions[Math.min(step, questions.length - 1)];
   const options = optionsFor(question, answers);
   const selected = answers[question.id] ?? [];
@@ -188,14 +288,14 @@ export function DiagnosticSection() {
 
   const next = useCallback(
     (current: Answers) => {
-      if (step < activeQuestions(current).length - 1) {
+      if (step < activeQuestions(current, locale).length - 1) {
         setDir(1);
         setStep((s) => s + 1);
       } else {
-        setResult(buildResult(current));
+        setResult(buildResult(current, locale));
       }
     },
-    [step],
+    [step, locale],
   );
 
   const choose = (id: string, pointer: boolean) => {
@@ -224,7 +324,7 @@ export function DiagnosticSection() {
     setStep(0);
   };
 
-  const recommended = result ? agentCard(result.agent) : null;
+  const recommended = result ? agentCard(result.agent, locale) : null;
 
   return (
     <section ref={section} id={DIAGNOSTIC_ID} className={styles.diagnostic} aria-labelledby="diagnostic-title">
@@ -255,11 +355,11 @@ export function DiagnosticSection() {
                 }}
               >
                 <div className={styles.progress}>
-                  <button type="button" className={styles.back} onClick={back} disabled={step === 0} aria-label="Question précédente">
+                  <button type="button" className={styles.back} onClick={back} disabled={step === 0} aria-label={tx.prev}>
                     <ChevronLeft size={16} />
                   </button>
                   <span className={styles.count} aria-live="polite">
-                    Question <strong>{step + 1}</strong> sur {questions.length}
+                    {tx.count(step + 1, questions.length)}
                   </span>
                   <span className={styles.segments} aria-hidden="true">
                     {questions.map((q, i) => (
@@ -314,10 +414,10 @@ export function DiagnosticSection() {
                 <div className={styles.actions}>
                   <p className={styles.privacy}>
                     <span className={styles.lock} aria-hidden="true" />
-                    Anonyme, sans inscription : vos réponses restent dans votre navigateur.
+                    {tx.privacy}
                   </p>
                   <button type="submit" className={styles.next} disabled={!selected.length}>
-                    {step === questions.length - 1 ? "Voir ma recommandation" : "Continuer"}
+                    {step === questions.length - 1 ? tx.see : tx.next}
                     <ArrowRight size={17} />
                   </button>
                 </div>
@@ -325,41 +425,41 @@ export function DiagnosticSection() {
             ) : (
               <div className={styles.result} data-outcome={result.outcome}>
                 <p className={styles.resultKicker}>
-                  Votre recommandation
+                  {tx.yours}
                   <span className={styles.badge} data-outcome={result.outcome}>
-                    {result.outcome === "ready" ? "Prêt à l’emploi" : result.outcome === "adapted" ? "Adapté à vos règles" : "Sur mesure"}
+                    {tx.badge[result.outcome]}
                   </span>
                 </p>
                 <h3 ref={resultTitle} tabIndex={-1} className={styles.resultTitle}>
                   {result.outcome === "custom" ? (
                     <>
-                      Un agent sur mesure, <span className={styles.accent}>conçu pour votre métier.</span>
+                      {tx.customTitle[0]} <span className={styles.accent}>{tx.customTitle[1]}</span>
                     </>
                   ) : result.outcome === "adapted" ? (
                     <>
-                      {recommended!.name}, <span className={styles.accent}>{recommended!.feminine ? "adaptée" : "adapté"} à votre métier.</span>
+                      {recommended!.name}, <span className={styles.accent}>{tx.adaptedTitle(recommended!.feminine)}</span>
                     </>
                   ) : (
                     <>
-                      {recommended!.name} est <span className={styles.accent}>{recommended!.feminine ? "faite" : "fait"} pour vous.</span>
+                      {recommended!.name} {tx.readyTitle(recommended!.feminine)[0]} <span className={styles.accent}>{tx.readyTitle(recommended!.feminine)[1]}</span>
                     </>
                   )}
                 </h3>
                 <p className={styles.resultText}>
                   {result.outcome === "custom"
-                    ? `Votre processus a sa propre logique. Plutôt que de le faire entrer dans un agent standard, nous construisons un agent autour de vos règles${result.tools.length ? `, connecté à ${joinFr(result.tools.map((t) => t.phrase ?? t.label))}` : ""}.`
+                    ? tx.customText(joinIn(result.tools.map((t) => t.phrase ?? t.label), locale))
                     : result.outcome === "adapted"
-                      ? `Nous partons de ${recommended!.name} (${recommended!.role}) et l’entraînons à vos règles : le cœur est prêt, nous ajustons le reste avec vous.`
-                      : `${recommended!.role}, ${recommended!.feminine ? "prête" : "prêt"} à travailler dans vos outils en quelques jours, sans rien changer à votre organisation.`}
+                      ? tx.adaptedText(recommended!.name, recommended!.role)
+                      : tx.readyText(recommended!.role, recommended!.feminine)}
                 </p>
 
                 {result.outcome === "custom" ? (
                   <>
                   <p className={styles.gain}>
-                    <strong>{hoursSentence(result.hours)}*</strong> une fois votre agent en service.
+                    <strong>{valueOf({ task: result.task.id, time: answers.time?.[0], hours: result.hours }, locale).headline}*</strong>
                   </p>
                   <ol className={styles.steps}>
-                    {CUSTOM_STEPS.map((s, i) => (
+                    {customStepsOf(locale).map((s, i) => (
                       <li key={s.title} style={{ "--i": i } as React.CSSProperties}>
                         <span className={styles.stepNum}>{i + 1}</span>
                         <span>
@@ -373,7 +473,7 @@ export function DiagnosticSection() {
                 ) : (
                   <>
                     <ul className={styles.why}>
-                      {whyLines(result).map((line, i) => (
+                      {whyLines(result, locale, answers.time?.[0]).map((line, i) => (
                         <li key={line} style={{ "--i": i } as React.CSSProperties}>
                           <Check size={15} />
                           {line}
@@ -383,9 +483,9 @@ export function DiagnosticSection() {
                     {result.duo && (
                       <p className={styles.duo}>
                         {/* eslint-disable-next-line @next/next/no-img-element -- avatar */}
-                        <img src={agentCard(result.duo).avatar} alt="" width={36} height={36} />
+                        <img src={agentCard(result.duo, locale).avatar} alt="" width={36} height={36} />
                         <span>
-                          Idéal en duo avec <strong>{agentCard(result.duo).name}</strong>, {lowerFirst(agentCard(result.duo).role)}
+                          {tx.duo} <strong>{agentCard(result.duo, locale).name}</strong>, {locale === "en" ? agentCard(result.duo, locale).role : lowerFirst(agentCard(result.duo, locale).role)}
                         </span>
                       </p>
                     )}
@@ -394,15 +494,15 @@ export function DiagnosticSection() {
 
                 <div className={styles.resultActions}>
                   <Link
-                    href={CONTACT_HREF}
+                    href={contactHrefOf(locale)}
                     className={styles.primary}
                     onClick={contactClick({
                       source: "diagnostic",
                       need: resultNeed(result),
-                      diagnostic: diagnosticSummary(answers, result),
+                      diagnostic: diagnosticSummary(answers, result, locale),
                     })}
                   >
-                    {result.outcome === "custom" ? "Concevoir mon agent" : "Parlons de votre projet"}
+                    {result.outcome === "custom" ? tx.design : tx.talk}
                     <ArrowRight size={17} />
                   </Link>
                   {result.outcome !== "custom" && (
@@ -415,17 +515,16 @@ export function DiagnosticSection() {
                         setDialogIndex(ALL_AGENTS.findIndex((a) => a.key === result.agent));
                       }}
                     >
-                      Découvrir {recommended!.name}
+                      {tx.discover(recommended!.name)}
                     </button>
                   )}
                   <button type="button" className={styles.restart} onClick={restart}>
                     <Replay size={15} />
-                    Refaire le diagnostic
+                    {tx.restart}
                   </button>
                 </div>
                 <p className={styles.footnote}>
-                  * Estimation indicative : votre temps déclaré × la part qu’un agent prend en charge en moyenne sur ce type de tâche
-                  ({result.hours.share[0]} à {result.hours.share[1]} %), ajustée à la spécificité de votre processus. À affiner ensemble lors du brief.
+                  {tx.footnote(valueOf({ task: result.task.id, time: answers.time?.[0], hours: result.hours }, locale).basis)}
                 </p>
               </div>
             )}
@@ -437,9 +536,9 @@ export function DiagnosticSection() {
               <div className={styles.live}>
                 <p className={styles.liveTitle}>
                   <span className={styles.liveDot} aria-hidden="true" />
-                  Compatibilité en direct
+                  {tx.live}
                 </p>
-                <p className={styles.liveHelp}>{answered ? "Les 5 plus compatibles parmi nos 16 agents, à chaque réponse." : "Répondez : nos 16 agents se classent en direct."}</p>
+                <p className={styles.liveHelp}>{answered ? tx.liveOn : tx.liveOff}</p>
                 <ol className={styles.ranking} aria-hidden="true">
                   {CANDIDATES.map((c) => {
                     const rank = ranking.indexOf(c);
@@ -458,7 +557,7 @@ export function DiagnosticSection() {
                   })}
                 </ol>
                 <p className="visually-hidden" role="status">
-                  {leader ? `En tête : ${leader === "custom" ? "un agent sur mesure" : agentCard(leader).name}, ${matchPercent(scores[leader])} % de compatibilité.` : ""}
+                  {leader ? tx.leader(leader === "custom" ? tx.aCustom : agentCard(leader, locale).name, matchPercent(scores[leader])) : ""}
                 </p>
               </div>
             ) : result.outcome === "custom" ? (
@@ -485,18 +584,19 @@ export function DiagnosticSection() {
 
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
-function whyLines(result: DiagnosticResult) {
-  const agent = agentCard(result.agent);
-  const pronoun = agent.feminine ? "Elle" : "Il";
+function whyLines(result: DiagnosticResult, locale: Locale, time?: string) {
+  const why = DIAG[locale].why;
+  const agent = agentCard(result.agent, locale);
+  const value = valueOf({ task: result.task.id, time, hours: result.hours }, locale);
   const shared = result.tools.filter((t) => AGENT_TOOLS[result.agent].includes(t.id)).map((t) => t.phrase ?? t.label);
+  // The outcome first; hours only when they are worth saying (value.time), the opportunity when time is low.
   const lines = [
-    `Votre priorité, « ${result.task.label.toLowerCase()} », c’est le métier de ${agent.name}.`,
-    shared.length
-      ? `${pronoun} travaille déjà avec ${joinFr(shared)}.`
-      : `${pronoun} se connecte à vos outils actuels, sans rien changer.`,
-    `${hoursSentence(result.hours)}*.`,
+    `${value.headline}*.`,
+    why.task(result.task.label, agent.name),
+    shared.length ? why.tools(agent.feminine, joinIn(shared, locale)) : why.noTools(agent.feminine),
+    ...(value.time ? [`${value.time}*.`] : value.reframe ? [value.reframe] : []),
   ];
-  if (result.outcome === "adapted") lines.push("Vos règles métier intégrées dès le brief, validées avec vous.");
+  if (result.outcome === "adapted") lines.push(why.rules);
   return lines;
 }
 
@@ -518,7 +618,9 @@ function LiveRow({
   lead: boolean;
   reduced: boolean;
 }) {
-  const agent = candidate === "custom" ? null : agentCard(candidate);
+  const locale = useLocale();
+  const tx = DIAG[locale];
+  const agent = candidate === "custom" ? null : agentCard(candidate, locale);
   return (
     <li
       className={styles.row}
@@ -536,8 +638,8 @@ function LiveRow({
         )}
       </span>
       <span className={styles.rowText}>
-        <strong>{agent ? agent.name : "Sur mesure"}</strong>
-        <small>{agent ? agent.role : "Conçu pour votre métier"}</small>
+        <strong>{agent ? agent.name : tx.custom}</strong>
+        <small>{agent ? agent.role : tx.forTrade}</small>
       </span>
       <span className={styles.rowBar}>
         <span />
@@ -545,7 +647,8 @@ function LiveRow({
       <span className={styles.rowPct}>
         {answered && score > 0 ? (
           <>
-            <Counter value={matchPercent(score)} reduced={reduced} /> %
+            <Counter value={matchPercent(score)} reduced={reduced} />
+            {tx.pct}
           </>
         ) : (
           "—"
@@ -556,7 +659,8 @@ function LiveRow({
 }
 
 function Portrait({ result, reduced }: { result: DiagnosticResult; reduced: boolean }) {
-  const agent = agentCard(result.agent);
+  const locale = useLocale();
+  const agent = agentCard(result.agent, locale);
   return (
     <div className={styles.portrait} style={{ "--tint-a": agent.tint[0], "--tint-b": agent.tint[1], "--pct": result.percent } as React.CSSProperties}>
       {/* eslint-disable-next-line @next/next/no-img-element -- transparent cut-out */}
@@ -573,18 +677,19 @@ function Portrait({ result, reduced }: { result: DiagnosticResult; reduced: bool
       </div>
       <p className={styles.scoreLabel}>
         <strong>{agent.name}</strong>
-        compatible avec votre besoin
+        {DIAG[locale].compatible}
       </p>
     </div>
   );
 }
 
 function Blueprint({ result }: { result: DiagnosticResult }) {
-  const inputs = (result.tools.length ? result.tools.map((t) => t.label) : ["Vos outils actuels"]).slice(0, 4);
-  const rules = ["Vos règles métier", "Vos validations", "Vos cas particuliers"];
+  const tx = DIAG[useLocale()];
+  const inputs = (result.tools.length ? result.tools.map((t) => t.label) : [tx.yourTools]).slice(0, 4);
+  const rules = tx.rules;
   return (
     <div className={styles.blueprint}>
-      <p className={styles.blueprintLabel}>Plan de votre agent</p>
+      <p className={styles.blueprintLabel}>{tx.plan}</p>
       <ul className={styles.nodes} data-row="in">
         {inputs.map((t, i) => (
           <li key={t} style={{ "--i": i } as React.CSSProperties}>
@@ -598,8 +703,8 @@ function Blueprint({ result }: { result: DiagnosticResult }) {
           <Sparkle size={20} />
         </span>
         <span>
-          <strong>Votre agent</strong>
-          <small>{result.task.id === "other" ? "Conçu pour votre métier" : `${result.task.label}, à votre façon`}</small>
+          <strong>{tx.yourAgent}</strong>
+          <small>{result.task.id === "other" ? tx.forTrade : tx.yourWay(result.task.label)}</small>
         </span>
       </div>
       <span className={styles.wire} aria-hidden="true" />

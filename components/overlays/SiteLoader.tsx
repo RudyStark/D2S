@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { setScrollLocked } from "@/lib/experience/director";
 import { useExperience } from "@/lib/experience/store";
 import styles from "./SiteLoader.module.css";
@@ -56,6 +57,70 @@ const SLIDES: { kicker: string; title: string; text: string; visual: "team" | "a
 /** How long a slide stays (ms). */
 const SLIDE_MS = 2800;
 const TOOLS = ["E-mail", "LinkedIn", "WhatsApp", "Site web", "CRM", "Agenda", "Instagram", "Tableaux"];
+type Slide = (typeof SLIDES)[number];
+const STEPS_EN: [number, string][] = [
+  [0, "Setting up the façade"],
+  [0.3, "Lighting the lobby"],
+  [0.62, "The AI agents are arriving"],
+  [0.9, "Opening the doors"],
+];
+const SLIDES_EN: Slide[] = [
+  {
+    kicker: "Welcome",
+    title: "D2S AIgency, the AI agents agency.",
+    text: "We bring AI agents into your company that work for you, every day.",
+    visual: "team",
+  },
+  {
+    kicker: "A complete team",
+    title: "Sixteen experts, one trade each.",
+    text: "Sales, content, operations, management: each agent masters its job and hands over to the others.",
+    visual: "all",
+  },
+  {
+    kicker: "In your tools",
+    title: "They work where you work.",
+    text: "E-mail, LinkedIn, WhatsApp, your website, your spreadsheets: your agents plug into them, 24/7.",
+    visual: "tools",
+  },
+  {
+    kicker: "You stay in control",
+    title: "They prepare. You approve.",
+    text: "Nothing is sent or published without your go-ahead. You decide, they execute.",
+    visual: "control",
+  },
+  {
+    kicker: "Here we go",
+    title: "Step into the agency.",
+    text: "Meet the team, in 3D, then find the agent you need.",
+    visual: "enter",
+  },
+];
+const LOADER = {
+  fr: {
+    steps: STEPS,
+    slides: SLIDES,
+    tools: TOOLS,
+    draft: "Brouillon préparé par votre agent",
+    approve: "✓ Valider et envoyer",
+    label: "Chargement de l’agence D2S AIgency",
+    welcome: "Bienvenue chez D2S AIgency",
+    ready: "L’agence est prête.",
+    pct: " %",
+  },
+  en: {
+    steps: STEPS_EN,
+    slides: SLIDES_EN,
+    tools: ["E-mail", "LinkedIn", "WhatsApp", "Website", "CRM", "Calendar", "Instagram", "Spreadsheets"],
+    draft: "Draft prepared by your agent",
+    approve: "✓ Approve and send",
+    label: "Loading the D2S AIgency agency",
+    welcome: "Welcome to D2S AIgency",
+    ready: "The agency is ready.",
+    pct: "%",
+  },
+};
+
 /** Never flashes: the loader stays at least this long (ms). */
 const MIN_DURATION = 1400;
 /** Pause on "Bienvenue" before the doors slide open (ms). */
@@ -71,16 +136,17 @@ type Phase = "loading" | "welcome" | "opening" | "done";
  * doors to reveal the agency. Rendered on the server, so it covers the page from the first paint.
  */
 export function SiteLoader() {
+  const L = LOADER[useLocale()];
   const root = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<Phase>("loading");
   const [percent, setPercent] = useState(0);
-  const [step, setStep] = useState(STEPS[0][1]);
+  const [step, setStep] = useState(L.steps[0][1]);
   const [slide, setSlide] = useState(0);
 
   // The presentation plays while loading; after the last slide it starts again at the second.
   useEffect(() => {
     if (phase !== "loading") return;
-    const id = window.setInterval(() => setSlide((s) => (s + 1 >= SLIDES.length ? 1 : s + 1)), SLIDE_MS);
+    const id = window.setInterval(() => setSlide((s) => (s + 1 >= L.slides.length ? 1 : s + 1)), SLIDE_MS);
     return () => window.clearInterval(id);
   }, [phase]);
 
@@ -144,7 +210,7 @@ export function SiteLoader() {
       const pct = Math.floor(shown * 100);
       setPercent(pct);
       root.current?.style.setProperty("--p", shown.toFixed(4));
-      setStep(STEPS.reduce((label, [at, text]) => (shown >= at ? text : label), STEPS[0][1]));
+      setStep(L.steps.reduce((label, [at, text]) => (shown >= at ? text : label), L.steps[0][1]));
 
       if (shown >= 1 && (instant || now - start >= MIN_DURATION)) {
         open();
@@ -186,7 +252,7 @@ export function SiteLoader() {
 
       {/* The presentation of the agency (decorative for assistive tech: the status below says what happens). */}
       <div className={styles.stage} aria-hidden="true">
-        {SLIDES.map((sl, i) => (
+        {L.slides.map((sl, i) => (
           <section key={sl.kicker} className={styles.slide} data-active={i === slide} data-past={i < slide}>
             <p className={styles.kicker}>
               <span>{String(i + 1).padStart(2, "0")}</span>
@@ -206,7 +272,7 @@ export function SiteLoader() {
                   <img key={a} src={avatar(a)} alt="" width={44} height={44} loading="lazy" style={{ "--k": k } as React.CSSProperties} />
                 ))}
               {sl.visual === "tools" &&
-                TOOLS.map((t, k) => (
+                L.tools.map((t, k) => (
                   <span key={t} className={styles.tool} style={{ "--k": k } as React.CSSProperties}>
                     {t}
                   </span>
@@ -214,11 +280,11 @@ export function SiteLoader() {
               {sl.visual === "control" && (
                 <div className={styles.approve}>
                   <span className={styles.approveLine}>
-                    <b>Brouillon préparé par votre agent</b>
+                    <b>{L.draft}</b>
                     <i />
                     <i />
                   </span>
-                  <span className={styles.approveButton}>✓ Valider et envoyer</span>
+                  <span className={styles.approveButton}>{L.approve}</span>
                 </div>
               )}
               {sl.visual === "enter" && (
@@ -235,24 +301,29 @@ export function SiteLoader() {
       <div
         className={styles.foot}
         role="progressbar"
-        aria-label="Chargement de l’agence D2S AIgency"
+        aria-label={L.label}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
       >
         <ol className={styles.dots} aria-hidden="true">
-          {SLIDES.map((sl, i) => (
+          {L.slides.map((sl, i) => (
             <li key={sl.kicker} data-active={i === slide} />
           ))}
         </ol>
         <p className={styles.label}>
-          <span>{welcome ? "Bienvenue chez D2S AIgency" : step}</span>
-          {!welcome && <span className={styles.percent}>{percent} %</span>}
+          <span>{welcome ? L.welcome : step}</span>
+          {!welcome && (
+            <span className={styles.percent}>
+              {percent}
+              {L.pct}
+            </span>
+          )}
         </p>
         <span className={styles.bar} aria-hidden="true" />
       </div>
       <p className="visually-hidden" role="status">
-        {welcome ? "L’agence est prête." : ""}
+        {welcome ? L.ready : ""}
       </p>
     </div>
   );

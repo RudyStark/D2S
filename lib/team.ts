@@ -129,3 +129,98 @@ export const TEAM: AgentProfile[] = [
     tint: ["#e2f4f4", "#d3e6f7"],
   },
 ];
+
+/* ——— English (same agents: only the words change) ——— */
+
+const TEAM_INTRO_EN: typeof TEAM_INTRO = {
+  kicker: "Our AI agents",
+  title: ["An AI agent for every challenge,", "concrete results."],
+  lead: "Five specialised AI agents, each an expert in its trade. They work in your tools, 24/7, and always leave you the final say.",
+  note: ["An AI team", "serving your ambitions"],
+};
+
+type Words = Pick<AgentProfile, "role" | "blurb" | "pitch" | "missions" | "channels" | "control" | "demo">;
+
+const TEAM_WORDS_EN: Record<AgentType, Words> = {
+  content: {
+    role: "Content creator",
+    blurb: "Punchy content, in line with your strategy and your tone.",
+    pitch: "Déa writes like a pro and never misses a deadline. She produces punchy content, in line with your strategy and your tone.",
+    missions: [
+      "Writes LinkedIn posts, Instagram captions and newsletters",
+      "Plans and keeps your editorial calendar",
+      "Adapts the message to the tone and the audience",
+      "Generates articles from keywords or briefs",
+      "Suggests viral hooks and angles for every topic",
+    ],
+    channels: ["LinkedIn", "Instagram", "Newsletter", "Blog", "Editorial calendar"],
+    control: "You approve every piece of content before it is published.",
+    demo: "From brief to scheduled post",
+  },
+  support: {
+    role: "AI customer support",
+    blurb: "Answers your customers instantly, at any hour.",
+    pitch: "Loic answers your customers instantly, at any hour. He solves problems, tracks orders and keeps support smooth.",
+    missions: [
+      "Answers common questions by chat, WhatsApp or e-mail",
+      "Escalates complex cases to your teams",
+      "Tracks orders and keeps customers informed in real time",
+      "Collects feedback after every conversation",
+      "Guides customers with clear instructions",
+    ],
+    channels: ["Website chat", "WhatsApp", "E-mail", "Order tracking"],
+    control: "Sensitive cases go to your team, with the full history of the conversation.",
+    demo: "A customer request solved, at 9:47 pm",
+  },
+  prospection: {
+    role: "AI sales rep",
+    blurb: "Reaches out, qualifies and keeps your pipeline warm, 24/7.",
+    pitch: "May is your tireless sales rep. She reaches out, qualifies, handles objections and keeps your pipeline warm, 24/7.",
+    missions: [
+      "Qualifies your leads by e-mail, LinkedIn or WhatsApp",
+      "Books meetings in your calendar",
+      "Follows up and closes small deals on her own",
+      "Personalises every message to the lead’s profile",
+      "Updates the CRM after every exchange",
+    ],
+    channels: ["E-mail", "LinkedIn", "WhatsApp", "Calendar", "CRM"],
+    control: "The big deals come back to your sales team, ready to close.",
+    demo: "From the first message to the meeting",
+  },
+  automation: {
+    role: "AI HR coordinator",
+    blurb: "Smooths out recruiting, onboarding and HR processes.",
+    pitch: "Diva smooths out your recruiting, your onboarding and your internal HR processes. Candidates and employees always feel looked after.",
+    missions: [
+      "Screens CVs and ranks candidates by relevance",
+      "Sends interview invitations and reminders",
+      "Welcomes newcomers with checklists and documents",
+      "Answers internal HR questions by chat",
+      "Gathers employee feedback through automated surveys",
+    ],
+    channels: ["E-mail", "Calendar", "Internal messaging", "Documents", "Surveys"],
+    control: "Hiring decisions stay in your hands.",
+    demo: "48 applications sorted in seconds",
+  },
+  data: {
+    role: "AI data analyst",
+    blurb: "Turns your data into decisions, in real time.",
+    pitch: "Morgan turns your data into decisions. He tracks your metrics, spots trends and alerts you at the right time.",
+    missions: [
+      "Brings your data together: sales, CRM, marketing, finance",
+      "Produces your dashboards and reports automatically",
+      "Detects trends, anomalies and opportunities",
+      "Answers your questions in plain language",
+      "Alerts you as soon as a metric drops",
+    ],
+    channels: ["Spreadsheets", "CRM", "Sales tools", "Dashboards", "E-mail"],
+    control: "You keep access to all the source data.",
+    demo: "Your month’s sales, explained",
+  },
+};
+
+const TEAM_EN: AgentProfile[] = TEAM.map((a) => ({ ...a, ...TEAM_WORDS_EN[a.type] }));
+
+/** The five agents in a language (names, faces and colours stay the same). */
+export const teamOf = (locale: "fr" | "en") => (locale === "en" ? TEAM_EN : TEAM);
+export const teamIntroOf = (locale: "fr" | "en") => (locale === "en" ? TEAM_INTRO_EN : TEAM_INTRO);

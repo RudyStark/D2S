@@ -71,6 +71,7 @@ export async function POST(request: Request) {
     phone: text(body.phone, 40),
     message: text(body.message, 4_000),
     receivedAt: new Date().toISOString(),
+    locale: body.locale === "en" ? ("en" as const) : ("fr" as const),
   };
   const errors: string[] = [];
   if (msg.name.length < 2) errors.push("name");

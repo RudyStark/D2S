@@ -1,7 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { MayChat } from "@/components/may/MayChat";
+import { homeOf } from "@/lib/navigation";
 import { goToContact } from "@/lib/contact";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight, Bars, Bolt, People, Sparkle } from "@/components/ui/Icons";
@@ -14,6 +16,29 @@ import styles from "./LobbyOverlay.module.css";
 import { ScrollCue } from "./ScrollCue";
 import { AGENTS_ID } from "./AgentsSection";
 import { SERVICES_ID } from "./ServicesSection";
+
+const TEXTS = {
+  fr: {
+    kicker: "Notre mission",
+    title: ["Mettre l’IA au service", "des gens et des idées", "qui comptent."],
+    text: "Chez D2S AIgency, nous concevons et déployons des agents IA sur mesure pour automatiser vos tâches, accélérer votre croissance et libérer ce qui compte vraiment : l’humain, la créativité et l’impact.",
+    services: "Découvrir nos services",
+    meet: "Rencontrer nos agents",
+    benefits: ["Plus de temps", "Plus d’impact", "Croissance durable"],
+    cue: ["Continuez l’exploration", "de notre univers"],
+    cueLabel: "Continuer l’exploration : découvrir nos services",
+  },
+  en: {
+    kicker: "Our mission",
+    title: ["AI that works", "for the people and", "ideas that matter."],
+    text: "At D2S AIgency, we design and deploy custom AI agents to automate your tasks, speed up your growth and free up what really matters: people, creativity and impact.",
+    services: "Explore our services",
+    meet: "Meet our agents",
+    benefits: ["More time", "More impact", "Lasting growth"],
+    cue: ["Keep exploring", "our world"],
+    cueLabel: "Keep exploring: discover our services",
+  },
+};
 
 function WelcomeBubble() {
   return (
@@ -32,6 +57,8 @@ function WelcomeBubble() {
  * The welcome bubble is pinned to the receptionist's head (screen anchor published by WebGL).
  */
 export function LobbyOverlay() {
+  const locale = useLocale();
+  const tx = TEXTS[locale];
   const section = useRef<HTMLElement>(null);
   const bubble = useRef<HTMLDivElement>(null);
   const mission = useRef<HTMLDivElement>(null);
@@ -95,24 +122,21 @@ export function LobbyOverlay() {
             <span className={styles.kickerIcon} aria-hidden="true">
               <Sparkle size={13} />
             </span>
-            Notre mission
+            {tx.kicker}
           </p>
           <h2 id="mission-title" className={styles.missionTitle}>
             <span className={styles.rule} aria-hidden="true" />
             <span className={styles.titleLine} style={{ "--l": 0 } as React.CSSProperties}>
-              Mettre l’IA au service{" "}
+              {tx.title[0]}{" "}
             </span>
             <span className={styles.titleLine} style={{ "--l": 1 } as React.CSSProperties}>
-              des gens et des idées{" "}
+              {tx.title[1]}{" "}
             </span>
             <span className={`${styles.titleLine} ${styles.accent}`} style={{ "--l": 2 } as React.CSSProperties}>
-              qui comptent.
+              {tx.title[2]}
             </span>
           </h2>
-          <p className={styles.missionText}>
-            Chez D2S AIgency, nous concevons et déployons des agents IA sur mesure pour automatiser vos tâches, accélérer
-            votre croissance et libérer ce qui compte vraiment : l’humain, la créativité et l’impact.
-          </p>
+          <p className={styles.missionText}>{tx.text}</p>
           <div className={styles.missionActions}>
             <Button
               icon={<ArrowRight size={20} />}
@@ -122,11 +146,11 @@ export function LobbyOverlay() {
                 if (target) scrollToElement(target);
               }}
             >
-              Découvrir nos services
+              {tx.services}
             </Button>
             {/* Scroll on the page: following the link would redirect to "/" and remount the 3D world. */}
             <Button
-              href={`/#${AGENTS_ID}`}
+              href={`${homeOf(locale)}#${AGENTS_ID}`}
               variant="secondary"
               className={styles.wide}
               onClick={(e) => {
@@ -138,7 +162,7 @@ export function LobbyOverlay() {
             >
               <span className={styles.meet}>
                 <People size={22} />
-                Rencontrer nos agents
+                {tx.meet}
               </span>
             </Button>
           </div>
@@ -147,19 +171,19 @@ export function LobbyOverlay() {
               <span className={styles.benefitIcon}>
                 <Bolt size={22} />
               </span>
-              Plus de temps
+              {tx.benefits[0]}
             </li>
             <li>
               <span className={styles.benefitIcon}>
                 <People size={22} />
               </span>
-              Plus d’impact
+              {tx.benefits[1]}
             </li>
             <li>
               <span className={styles.benefitIcon}>
                 <Bars size={22} />
               </span>
-              Croissance durable
+              {tx.benefits[2]}
             </li>
           </ul>
         </div>
@@ -168,8 +192,8 @@ export function LobbyOverlay() {
       <div ref={cue} className={styles.cue}>
         {/* Also a button: a way on for visitors who do not scroll (or who are stopped by the lobby detent). */}
         <ScrollCue
-          lines={["Continuez l’exploration", "de notre univers"]}
-          label="Continuer l’exploration : découvrir nos services"
+          lines={tx.cue}
+          label={tx.cueLabel}
           onClick={() => {
             const target = document.getElementById(SERVICES_ID);
             if (target) scrollToElement(target);

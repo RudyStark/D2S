@@ -10,8 +10,9 @@ import { FOCUS_PULL, focusPullCurve } from "@/lib/experience/focusPull";
 import { frame, useExperience } from "@/lib/experience/store";
 import { clamp, smootherstep } from "@/lib/math";
 import { contactClick } from "@/lib/contact";
-import { CONTACT_HREF } from "@/lib/navigation";
-import { SERVICES, SERVICES_INTRO, type BenefitIcon } from "@/lib/services";
+import { contactHrefOf } from "@/lib/navigation";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { servicesText, type BenefitIcon } from "@/lib/services";
 import { AGENTS_ID } from "./AgentsSection";
 import { MethodProcess } from "./MethodProcess";
 import { PlugDiagram } from "./PlugDiagram";
@@ -34,7 +35,15 @@ const BENEFIT_ICONS: Record<BenefitIcon, typeof Bolt> = {
  * a frosted veil, and the page content scrolls in over it. Publishes its arrival (frame.services) for the
  * lobby UI fade, the header state and the render freeze.
  */
+const TEXTS = {
+  fr: { functions: "Pour vos fonctions clés", more: "et bien d’autres…", cta: "Parlons de votre projet", agents: "Voir nos agents" },
+  en: { functions: "For your key functions", more: "and many more…", cta: "Discuss your project", agents: "See our agents" },
+};
+
 export function ServicesSection() {
+  const locale = useLocale();
+  const t = TEXTS[locale];
+  const { intro: SERVICES_INTRO, services: SERVICES } = servicesText(locale);
   const section = useRef<HTMLElement>(null);
   const feature = useRef<HTMLDivElement>(null);
   const featureIn = useInView(feature, 0.25);
@@ -105,16 +114,16 @@ export function ServicesSection() {
               {service.title}
             </h3>
             <p className={styles.featureText}>{service.text}</p>
-            <p className={styles.functionsLabel}>Pour vos fonctions clés</p>
+            <p className={styles.functionsLabel}>{t.functions}</p>
             <ul className={styles.functions}>
               {service.functions.map((f) => (
                 <li key={f}>{f}</li>
               ))}
-              <li className={styles.functionsMore}>et bien d’autres…</li>
+              <li className={styles.functionsMore}>{t.more}</li>
             </ul>
             <div className={styles.actions}>
-              <Link href={CONTACT_HREF} className={styles.primary} onClick={contactClick({ source: "services" })}>
-                Parlons de votre projet
+              <Link href={contactHrefOf(locale)} className={styles.primary} onClick={contactClick({ source: "services" })}>
+                {t.cta}
                 <ArrowRight size={18} />
               </Link>
               <button
@@ -125,7 +134,7 @@ export function ServicesSection() {
                   if (target) scrollToElement(target);
                 }}
               >
-                Voir nos agents
+                {t.agents}
               </button>
             </div>
           </div>
