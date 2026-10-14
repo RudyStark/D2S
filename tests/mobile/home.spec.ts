@@ -247,7 +247,9 @@ test("diagnostic back navigation preserves choices", async ({ page }) => {
 test("reception preserves the visitor's question in the contact form", async ({
   page,
 }) => {
-  // The reception is May's chat (since 22/09): what the visitor wrote to her reaches the contact form.
+  // The reception is May's chat (since 22/09): what the visitor wrote to her reaches the contact form, even when
+  // the written summary cannot be made (here: the summary route fails, the visitor's words stand).
+  await page.route("**/api/may/recap", (route) => route.fulfill({ status: 502, json: { ok: false, error: "recap_failed" } }));
   await page.goto("/#mission");
   await page
     .getByLabel("Votre message à May", { exact: true })
@@ -258,6 +260,26 @@ test("reception preserves the visitor's question in the contact form", async ({
   await expect(page.locator("#mobile-contact-message")).toHaveValue(
     /Comment automatiser mes relances commerciales \?/,
   );
+});
+
+test("reception hands the team a written summary, not the conversation", async ({
+  page,
+}) => {
+  const summary = "Bonjour,\nJe souhaite automatiser mes relances commerciales.";
+  let asked: { messages?: { role: string; content: string }[] } = {};
+  await page.route("**/api/may/recap", async (route) => {
+    asked = route.request().postDataJSON();
+    await route.fulfill({ status: 200, json: { ok: true, message: summary } });
+  });
+  await page.goto("/#mission");
+  await page
+    .getByLabel("Votre message à May", { exact: true })
+    .fill("Comment automatiser mes relances commerciales ?");
+  await page
+    .getByRole("button", { name: "Être recontacté par l’équipe" })
+    .click();
+  await expect(page.locator("#mobile-contact-message")).toHaveValue(summary);
+  expect(asked.messages?.at(-1)).toEqual({ role: "user", content: "Comment automatiser mes relances commerciales ?" });
 });
 
 test("form validates, keeps values after failure and only confirms a successful response", async ({

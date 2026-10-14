@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ArrowRight, Calendar, ChatDots } from "@/components/ui/Icons";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { needLabelOf } from "@/lib/contact-content";
@@ -21,6 +21,8 @@ interface UiMessage {
   /** Quick answers of a booking step (only on the latest message). */
   choices?: MayChoice[];
   draft?: MayDraft;
+  /** The request is being written up (Claude's summary of the conversation, /api/may/recap). */
+  writing?: boolean;
 }
 
 /* ---------- Words of the chat ---------- */
@@ -52,8 +54,6 @@ const WORDS = {
     slow: "Ma réponse prend trop de temps. L’équipe peut reprendre votre demande via le formulaire.",
     offline: "Je n’arrive pas à joindre le serveur. Vérifiez votre connexion et réessayez, ou laissez votre demande à l’équipe.",
     trouble: "Je rencontre un problème temporaire. L’équipe peut reprendre votre demande.",
-    me: "Moi",
-    exchange: "Échange avec May :",
     callback: "Je souhaite être recontacté pour préciser mon besoin.",
     available: "Assistante IA disponible",
     hello: "Bonjour !",
@@ -65,6 +65,8 @@ const WORDS = {
     quick: "Réponses rapides",
     ready: "Votre demande est prête",
     review: "Relire et envoyer ma demande",
+    writing: "May rédige le récapitulatif de votre demande…",
+    handing: "May prépare votre demande…",
     preparing: "May prépare sa réponse",
     suggested: "Questions suggérées",
     yourMessage: "Votre message à May",
@@ -100,8 +102,6 @@ const WORDS = {
     slow: "My answer is taking too long. The team can pick up your request through the form.",
     offline: "I can’t reach the server. Check your connection and try again, or leave your request with the team.",
     trouble: "I’m having a temporary problem. The team can pick up your request.",
-    me: "Me",
-    exchange: "Conversation with May:",
     callback: "I would like to be contacted to clarify my need.",
     available: "AI assistant available",
     hello: "Hello!",
@@ -113,6 +113,8 @@ const WORDS = {
     quick: "Quick answers",
     ready: "Your request is ready",
     review: "Review and send my request",
+    writing: "May is writing up your request…",
+    handing: "May is preparing your request…",
     preparing: "May is preparing her answer",
     suggested: "Suggested questions",
     yourMessage: "Your message to May",
@@ -233,6 +235,44 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
   }, [active, messages, sending, status]);
 
   const openDraft = (value: MayDraft) => (onDraft ? onDraft(value) : onContact(value.message));
+  const [handing, setHanding] = useState(false);
+
+  // The field grows with what is typed (up to its max-height), and shrinks back once sent.
+  useLayoutEffect(() => {
+    const element = field.current;
+    if (!element) return;
+    element.style.height = "auto";
+    element.style.height = `${element.scrollHeight}px`;
+  }, [draft]);
+
+  /**
+   * The request handed to the team: Claude's short, factual summary of the conversation (not the transcript). If it
+   * cannot be written (no key, network), the free level's own summary stands.
+   */
+  const recapOf = async (conversation: UiMessage[], fallback: string) => {
+    try {
+      const response = await fetch("/api/may/recap", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          messages: conversation.filter((m) => m.id !== 0 && m.content).map(({ role, content }) => ({ role, content })),
+          recommended: memory.current.recommended?.line,
+          locale,
+        }),
+      });
+      const out = (await response.json().catch(() => null)) as { message?: string } | null;
+      return response.ok && out?.message ? out.message : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  /** A request prepared by the free level: shown at once, then its text replaced by the written summary. */
+  const writeUp = (id: number, conversation: UiMessage[], base: MayDraft) => {
+    void recapOf(conversation, base.message).then((message) =>
+      setMessages((current) => current.map((m) => (m.id === id && m.draft ? { ...m, draft: { ...m.draft, message }, writing: false } : m))),
+    );
+  };
 
   const send = async (suggestion?: string) => {
     const content = (suggestion ?? draft).trim().slice(0, MAY_LIMITS.messageLength);
@@ -254,7 +294,9 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
     if (history.filter((m) => m.role === "user").length > MAY_LIMITS.visitorMessages) {
       await pause(350);
       const final = { ...memory.current, said: [...memory.current.said, content] };
-      reply(w.limit, { draft: en ? draftOfEn(final) : draftOf(final) });
+      const prepared = en ? draftOfEn(final) : draftOf(final);
+      reply(w.limit, { draft: prepared, writing: true });
+      writeUp(replyId, history, prepared);
       setSending(false);
       return;
     }
@@ -266,7 +308,8 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
       if (local.kind === "reply") {
         await pause(450);
         if (!local.booking) {
-          reply(local.text, local.draft ? { draft: local.draft } : {});
+          reply(local.text, local.draft ? { draft: local.draft, writing: true } : {});
+          if (local.draft) writeUp(replyId, history, local.draft);
           setSending(false);
           return;
         }
@@ -373,19 +416,21 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
     }
   };
 
-  // "Être recontacté": the request May prepared if there is one, otherwise the conversation itself.
-  const handoff = () => {
-    const prepared = [...messages].reverse().find((m) => m.draft)?.draft;
-    if (prepared) return openDraft(prepared);
+  // "Être recontacté": the request May prepared if there is one, otherwise a summary of the conversation written now.
+  const handoff = async () => {
+    const prepared = [...messages].reverse().find((m) => m.draft);
+    if (prepared?.draft && !prepared.writing) return openDraft(prepared.draft);
+    if (handing) return;
     // A question typed but not sent yet counts too: the visitor expects it to reach the team.
     const unsent = draft.trim();
-    const transcript = [
-      ...messages.filter((message) => message.id !== 0 && message.content).map((message) => `${message.role === "user" ? w.me : "May"}${en ? ":" : " :"} ${message.content}`),
-      ...(unsent ? [`${w.me}${en ? ":" : " :"} ${unsent}`] : []),
-    ]
-      .join("\n\n")
-      .slice(0, 3_850);
-    onContact(transcript ? `${w.exchange}\n\n${transcript}` : w.callback);
+    const conversation = unsent ? [...messages, { id: -1, role: "user" as const, content: unsent }] : messages;
+    if (!conversation.some((m) => m.role === "user")) return onContact(w.callback);
+    const known = { ...memory.current, said: unsent ? [...memory.current.said, unsent] : memory.current.said };
+    const base = en ? draftOfEn(known) : draftOf(known);
+    setHanding(true);
+    const message = await recapOf(conversation, base.message);
+    setHanding(false);
+    openDraft({ ...base, message });
   };
 
   const last = messages.at(-1);
@@ -450,8 +495,14 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
-                    <p className={styles.draftText}>{message.draft.message}</p>
-                    <button type="button" className={styles.draftButton} onClick={() => openDraft(message.draft!)}>
+                    {message.writing ? (
+                      <p className={styles.draftWriting} role="status">
+                        {w.writing}
+                      </p>
+                    ) : (
+                      <p className={styles.draftText}>{message.draft.message}</p>
+                    )}
+                    <button type="button" className={styles.draftButton} disabled={message.writing} onClick={() => openDraft(message.draft!)}>
                       {w.review}
                       <ArrowRight size={15} />
                     </button>
@@ -489,7 +540,7 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
         </div>
       ) : null}
 
-      <form className={styles.form} onSubmit={submit}>
+      <form className={styles.form} onSubmit={submit} data-filled={Boolean(draft.trim())}>
         <label className="visually-hidden" htmlFor={`may-question-${variant}`}>
           {w.yourMessage}
         </label>
@@ -512,8 +563,8 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
       </form>
 
       <div className={styles.footer}>
-        <button type="button" className={styles.handoff} onClick={handoff}>
-          {w.handoff}
+        <button type="button" className={styles.handoff} onClick={() => void handoff()} disabled={handing} aria-busy={handing}>
+          {handing ? w.handing : w.handoff}
         </button>
         <p>
           {w.disclaimer} <a href={privacyHrefOf(locale)}>{w.privacy}</a>
