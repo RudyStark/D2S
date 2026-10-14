@@ -279,9 +279,28 @@ function taskNeed(task: string | undefined): NeedId | undefined {
 }
 
 /** The request prepared from what the visitor said (their words, plus May's recommendation if any). */
+/**
+ * The request handed to the team without Claude (its summary is the norm, /api/may/recap): what May understood, in
+ * order, then the visitor's most telling sentence — never the whole conversation.
+ */
 export function draftOf(m: MayMemory): MayDraft {
-  const words = m.said.filter((s) => s.length > 3 && !STARTERS.has(norm(s)) && !GREETING.test(norm(s))).join("\n");
-  const message = [words ? `Ce que j’ai expliqué à May :\n${words}` : "Je souhaite être recontacté pour parler de mon projet.", m.recommended?.line]
+  const words = m.said.filter((s) => s.length > 3 && !STARTERS.has(norm(s)) && !GREETING.test(norm(s)));
+  const task = m.task ? lowerFirst(taskOption(m.task)?.label ?? m.task) : "";
+  const facts = [
+    task ? `- Mon besoin : ${task}` : "",
+    m.weekly ? `- Temps passé aujourd’hui : environ ${m.weekly} h par semaine` : m.time ? `- Temps passé aujourd’hui : ${({ low: "moins de 2 h", mid: "2 à 10 h", high: "plus de 10 h" } as Record<string, string>)[m.time] ?? m.time} par semaine` : "",
+    m.tools?.length ? `- Outils utilisés : ${m.tools.join(", ")}` : "",
+    m.process ? `- Notre fonctionnement : ${({ standard: "plutôt classique", specific: "quelques règles qui nous sont propres", unique: "très propre à notre métier" } as Record<string, string>)[m.process] ?? m.process}` : "",
+    m.dealValue ? `- Un nouveau client nous rapporte environ ${m.dealValue} €` : "",
+  ].filter(Boolean);
+  const quote = [...words].sort((x, y) => y.length - x.length)[0]?.slice(0, 400);
+  const message = [
+    "Bonjour,",
+    task ? `Je souhaite échanger avec votre équipe au sujet de ${task}.` : "Je souhaite échanger avec votre équipe sur mon projet.",
+    facts.length ? `Ce que j’ai expliqué à May :\n${facts.join("\n")}` : "",
+    quote && !facts.length ? `En quelques mots : « ${quote} »` : "",
+    m.recommended?.line,
+  ]
     .filter(Boolean)
     .join("\n\n")
     .slice(0, 3_800);

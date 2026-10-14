@@ -70,8 +70,28 @@
   font-size: 15px;
 }
 
+/* Mobile: the field opens up as soon as one writes (about four lines), then grows with the text; the send button
+   and the icon stay at the bottom and the top of a multi-line message. */
+.root[data-variant="mobile"] .form {
+  align-items: flex-end;
+}
+
+.root[data-variant="mobile"] .form > svg {
+  align-self: flex-start;
+  margin-top: 9px;
+}
+
 .root[data-variant="mobile"] .form textarea {
+  min-height: 34px;
+  max-height: 168px;
   font-size: 16px;
+  line-height: 1.4;
+  transition: min-height 0.28s ease-out;
+}
+
+.root[data-variant="mobile"] .form:focus-within textarea,
+.root[data-variant="mobile"] .form[data-filled="true"] textarea {
+  min-height: 96px;
 }
 
 .root[data-variant="mobile"] .starters button {
@@ -327,6 +347,34 @@
   -webkit-box-orient: vertical;
 }
 
+/* The request being written up: a soft shimmer instead of its text. */
+.draftWriting {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgb(21 112 240 / 0.06), rgb(21 112 240 / 0.16), rgb(21 112 240 / 0.06));
+  background-size: 200% 100%;
+  color: #35405d;
+  font-size: 11px;
+  line-height: 1.4;
+  animation: may-writing 1.4s ease-in-out infinite;
+}
+
+@keyframes may-writing {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+.draftButton:disabled,
+.handoff:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
 .draftButton {
   display: inline-flex;
   align-items: center;
@@ -537,6 +585,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .meeting,
+  .draftWriting,
+  .form textarea,
   .draftButton,
   .send,
   .log,

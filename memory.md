@@ -778,6 +778,10 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   proposition » ajoutée au parcours. Détails dans `d2s-app/memory.md`.
 - 02/10 : notifications remplacées par une barre « Agents au travail » en verre (îlot en haut, fiche au survol, historique),
   PR d2s-app #6 fusionnée et EN LIGNE. Détails dans `d2s-app/memory.md`.
+- 09/10 : badge « brAin Partner » sur la connexion (PR d2s-app #9 fusionnée, en ligne) ; Inès branchée sur la boîte mail pro
+  (IMAP + SMTP, n'importe quelle adresse, tri + réponses envoyées après validation) et envoi SMTP réparé sur Workers
+  (PR d2s-app #10 fusionnée et EN LIGNE le 10/10, avec la facturation des ajouts, le tableau de tri, les copies, l'historique
+  des conversations et les contrôles anti-arnaque). Détails dans `d2s-app/memory.md`.
 
 ## En cours / à faire
 - Domaine (21/09) : d2saigency.com (IONOS) ajouté à Cloudflare (Free, zone 972705025ea475ab0aaecee6c72028fc),
@@ -963,7 +967,7 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   150–500 €, revu à la baisse à cause de la liste d'attente Doctolib), étiqueté « estimation illustrative ».
   8 sources (ENP 2021, INSEE, arrêté 2018, Elsan, medcode, Diagnomi, DREES, Doctolib). Vérifié page par page (PDFKit), ~5 Mo.
 
-## Version anglaise du site (04-05/10, branche `feat/english`, PR à ouvrir puis fusionner par l'utilisateur)
+## Version anglaise du site (04-05/10, PR https://github.com/RudyStark/D2S/pull/11 fusionnée par l'utilisateur, EN LIGNE : d2saigency.com/en → 200, `<html lang="en">`, vérifié le 08/10)
 - Choix utilisateur : FR à la racine, EN sous `/en` (+ hreflang) ; mobile traduit (textes + sélecteur seulement) ;
   hub ensuite (UI par utilisateur, agents dans la « langue de travail » du client).
 - Infra faite : groupes `app/(fr)` et `app/(en)/en` (2 layouts racine, `RootDocument`, `LocaleProvider`/`useLocale`),
@@ -996,7 +1000,7 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   menu), `npm run build` (OpenNext) OK, `wrangler deploy --dry-run` 1,86 Mo gzip, Worker local : routes FR/EN, 308, 404,
   415, `<html lang>`, 3D + CSP sans violation, 0 erreur d'hydratation (desktop et mobile, FR et EN).
 
-## May vend un résultat, pas des heures (04/10, branche `feat/english`, non commité)
+## May vend un résultat, pas des heures (04/10, dans la PR #11)
 - Retour utilisateur : « gagner 2-3 h par mois, ce que je vends est inintéressant ; il faut des chiffres concrets,
   réalistes mais VENDEURS ». Cause : seul argument = temps récupéré = temps déclaré × part × facteur processus → minuscule
   pour qui prospecte peu (alors que c'est là que l'agent rapporte le plus).
@@ -1018,3 +1022,23 @@ Façade z=0, bassin centre (−5.55, 10.55) R 4.62, lobby desk centerZ −21, dr
   MobileDiagnostic NON modifié (zone protégée) : affiche encore les heures.
 - PIÈGE (encore) : python non raw → `\b` devient \x08, `\n` un vrai retour ligne dans une chaîne TS. Toujours r'''…'''
   et vérifier `grep -c $'\x08'`.
+
+## May : un vrai récapitulatif pour l'équipe + champ de saisie mobile (14/10, branche `fix/may-recap-mobile`, SUR DEMANDE EXPLICITE pour le mobile)
+- Retour utilisateur : « Être recontacté » mettait TOUTE la conversation dans le formulaire (et la demande préparée par le
+  niveau gratuit = les phrases du visiteur collées) → il faut un récapitulatif bien écrit, concret, qui prépare l'échange.
+- `/api/may/recap` (mêmes défenses que le chat, 12 / 10 min / IP) → `writeRecap` (may-agent.ts, Sonnet 5, effort low,
+  sans réflexion, ≤ 700 tokens) : message À LA 1re PERSONNE (Bonjour · besoin · Contexte : · Ce que j'attends de
+  l'échange : · « May m'a suggéré … »), 900 car. max. ⚠️ 1er essai : il INVENTAIT (« factures impayés », « je préfère
+  un appel ») en suivant la lecture erronée du niveau gratuit (`known`) et les messages de May → `known` n'est plus
+  envoyé, seule la recommandation de May à part ; règle « seules les paroles du visiteur font foi », ses mots gardés.
+- MayChat : demande du niveau gratuit affichée tout de suite puis remplacée par le résumé (bandeau « May rédige le
+  récapitulatif… », bouton désactivé pendant) ; « Être recontacté » → « May prépare votre demande… » puis le formulaire
+  avec le résumé (+ besoin / agent / canal). Si l'API échoue : `draftOf` / `draftOfEn` = résumé structuré de ce que May
+  a compris + la phrase la plus parlante du visiteur (plus jamais la transcription).
+- Champ : hauteur ajustée au texte (useLayoutEffect, scrollHeight, plafonnée par max-height : bureau 76 px, mobile
+  168 px). Mobile : 36 px au repos → 96 px dès le focus ou s'il y a du texte (transition 0,28 s), bouton d'envoi en bas,
+  icône en haut ; mouvement réduit : sans transition.
+- Tests mobiles : `reception preserves…` simule l'échec du résumé (les mots du visiteur restent) + nouveau test « written
+  summary » (résumé simulé) → 13/13. Vérifié en vrai (Claude) : cabinet comptable → résumé fidèle ; bureau (rendu
+  logiciel swiftshader : `--use-gl=angle --use-angle=swiftshader`, sans quoi le bureau ne se monte pas en headless) :
+  champ 32 → 76 px, résumé dans le formulaire.

@@ -84,8 +84,13 @@ const STARTERS = new Set([" which agent for my need ", " how do you work ", " bo
 
 /** The request prepared from the visitor's own words (nothing invented). */
 export function draftOfEn(m: MayMemory): MayDraft {
-  const words = m.said.filter((s) => s.length > 3 && !STARTERS.has(norm(s)) && !GREETING.test(norm(s))).join("\n");
-  const message = [words ? `What I told May:\n${words}` : "I would like to be contacted to talk about my project.", m.recommended?.line].filter(Boolean).join("\n\n").slice(0, 3_800);
+  const words = m.said.filter((s) => s.length > 3 && !STARTERS.has(norm(s)) && !GREETING.test(norm(s)));
+  // The visitor's most telling sentence, never the whole conversation (Claude's summary is the norm: /api/may/recap).
+  const quote = [...words].sort((x, y) => y.length - x.length)[0]?.slice(0, 400);
+  const message = ["Hello,", quote ? `I would like to talk with your team about my project. In a few words: “${quote}”` : "I would like to talk with your team about my project.", m.recommended?.line]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 3_800);
   const draft: MayDraft = { need: m.recommended?.need ?? "unsure", message };
   if (m.recommended?.agent) draft.agent = m.recommended.agent;
   if (m.channel) draft.channel = m.channel;
