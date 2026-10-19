@@ -184,17 +184,17 @@ export const MORE_TEAM: MoreAgent[] = [
     name: "Inès",
     role: "Assistante e-mail",
     pole: "operations",
-    blurb: "Une boîte mail triée chaque jour, avec les réponses déjà prêtes.",
-    pitch: "Inès vous rend le temps que vous prend votre boîte de réception : elle trie, vous dit quoi traiter en premier et prépare des réponses claires, prêtes à envoyer.",
+    blurb: "Votre boîte mail triée et traitée : réponses prêtes, rendez-vous fixés, rien d’oublié.",
+    pitch: "Inès tient votre boîte de réception comme une assistante : elle trie chaque e-mail en connaissant vos clients, lit les pièces jointes, prépare les réponses dans votre style, fixe vos rendez-vous sur vos vrais créneaux libres et relance ce qui reste sans réponse.",
     missions: [
-      "Classe chaque e-mail : client, prospect, fournisseur, administratif",
-      "Établit la liste des priorités du jour",
-      "Rédige des brouillons de réponse courts et clairs",
-      "Repère les messages restés sans réponse",
-      "Prépare les relances au bon moment",
+      "Trie et priorise chaque e-mail, en connaissant vos clients et vos règles",
+      "Prépare les réponses dans votre style, appuyées sur vos propositions et vos documents",
+      "Lit les pièces jointes : factures, devis, contrats, PDF, Word, Excel, photos",
+      "Propose vos créneaux libres et place les rendez-vous dans votre agenda",
+      "Relance au bon moment et repère les arnaques (faux expéditeur, changement de RIB)",
     ],
-    channels: ["Gmail", "Outlook", "Toute messagerie", "To-do du jour"],
-    control: "Inès ne voit que ce que vous lui confiez, et ne répond jamais seule.",
+    channels: ["Gmail", "Outlook", "Toute messagerie", "Google Agenda", "Calendly"],
+    control: "Rien ne part sans votre clic, sauf si vous lui confiez la confirmation des rendez-vous que vous avez déjà proposés.",
     demo: "Quarante e-mails, dix minutes",
     tint: ["#ffe9e6", "#fbd8d3"],
     ...img("gmail"),
@@ -288,7 +288,7 @@ export const MORE_TEAM: MoreAgent[] = [
 export const MORE_BY_POLE: { pole: PoleId; label: string; agents: string[]; text: string }[] = [
   { pole: "commercial", label: "Vente", agents: ["fireflies", "proposition"], text: "Jules analyse vos rendez-vous, Victor rédige vos propositions commerciales." },
   { pole: "marketing", label: "Contenu & marketing", agents: ["strategiste", "designer", "veille", "ecommerce"], text: "Antoine pose votre stratégie, Mia crée vos visuels, Nina repère les tendances, Emma produit vos vidéos produit." },
-  { pole: "operations", label: "Opérations & finance", agents: ["gmail", "comptabilite", "presentateur"], text: "Inès trie vos e-mails, Chloé suit et relance vos factures, Hugo monte vos présentations." },
+  { pole: "operations", label: "Opérations & finance", agents: ["gmail", "comptabilite", "presentateur"], text: "Inès trie vos e-mails et fixe vos rendez-vous, Chloé suit et relance vos factures, Hugo monte vos présentations." },
   { pole: "pilotage", label: "Pilotage", agents: ["cerveau", "orchestrateur"], text: "Clément retrouve toute l’information de l’entreprise, Noam coordonne l’équipe." },
 ];
 
@@ -402,17 +402,17 @@ const MORE_WORDS_EN: Record<MoreSlug, MoreWords> = {
   },
   gmail: {
     role: "E-mail assistant",
-    blurb: "An inbox sorted every day, with the replies already drafted.",
-    pitch: "Inès gives you back the time your inbox takes: she sorts it, tells you what to handle first and prepares clear replies, ready to send.",
+    blurb: "Your inbox sorted and handled: replies ready, meetings booked, nothing forgotten.",
+    pitch: "Inès runs your inbox like an assistant: she sorts every e-mail knowing your customers, reads the attachments, drafts replies in your style, books meetings in your real free slots and follows up on what stays unanswered.",
     missions: [
-      "Files each e-mail: customer, prospect, supplier, admin",
-      "Draws up the day’s priority list",
-      "Drafts short, clear replies",
-      "Spots messages left unanswered",
-      "Prepares follow-ups at the right time",
+      "Sorts and prioritises every e-mail, knowing your customers and your rules",
+      "Drafts replies in your style, based on your proposals and documents",
+      "Reads attachments: invoices, quotes, contracts, PDF, Word, Excel, photos",
+      "Offers your free slots and puts meetings in your calendar",
+      "Follows up at the right time and spots scams (fake sender, changed bank details)",
     ],
-    channels: ["Gmail", "Outlook", "Any mailbox", "Today’s to-do"],
-    control: "Inès only sees what you share with her, and never replies on her own.",
+    channels: ["Gmail", "Outlook", "Any mailbox", "Google Calendar", "Calendly"],
+    control: "Nothing leaves without your click, unless you let her confirm the meetings you already offered.",
     demo: "Forty e-mails, ten minutes",
   },
   comptabilite: {
@@ -482,7 +482,7 @@ const MORE_TEAM_EN: MoreAgent[] = MORE_TEAM.map((a) => ({ ...a, ...MORE_WORDS_EN
 const MORE_BY_POLE_EN: typeof MORE_BY_POLE = [
   { pole: "commercial", label: "Sales", agents: ["fireflies", "proposition"], text: "Jules analyses your meetings, Victor writes your sales proposals." },
   { pole: "marketing", label: "Content & marketing", agents: ["strategiste", "designer", "veille", "ecommerce"], text: "Antoine sets your strategy, Mia creates your visuals, Nina spots the trends, Emma produces your product videos." },
-  { pole: "operations", label: "Operations & finance", agents: ["gmail", "comptabilite", "presentateur"], text: "Inès sorts your e-mails, Chloé tracks and chases your invoices, Hugo builds your presentations." },
+  { pole: "operations", label: "Operations & finance", agents: ["gmail", "comptabilite", "presentateur"], text: "Inès sorts your e-mails and books your meetings, Chloé tracks and chases your invoices, Hugo builds your presentations." },
   { pole: "pilotage", label: "Management", agents: ["cerveau", "orchestrateur"], text: "Clément finds any information in the company, Noam coordinates the team." },
 ];
 
