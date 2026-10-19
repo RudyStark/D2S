@@ -140,7 +140,7 @@ export const QUESTIONS: DiagnosticQuestion[] = [
       task("meetings", "sales", "Exploiter vos rendez-vous commerciaux", "Comptes rendus, objections, relance après chaque rendez-vous", "meetings", "fireflies", "proposition", [0.5, 0.7], { proposition: 8 }),
       task("proposals", "sales", "Rédiger vos propositions commerciales", "Des offres argumentées, envoyées le jour même", "proposals", "proposition", "fireflies", [0.45, 0.65], { fireflies: 8 }),
       task("support", "clients", "Répondre à vos clients", "WhatsApp, chat du site, suivi de commande, SAV", "support", "support", "gmail", [0.55, 0.75], { gmail: 6 }),
-      task("inbox", "clients", "Tenir votre boîte mail", "Tri, priorités du jour, réponses préparées, relances", "inbox", "gmail", "support", [0.4, 0.6], { support: 6 }),
+      task("inbox", "clients", "Tenir votre boîte mail", "Tri, réponses préparées, pièces jointes, rendez-vous, relances", "inbox", "gmail", "support", [0.4, 0.6], { support: 6 }),
       task("content", "marketing", "Écrire vos posts et newsletters", "LinkedIn, newsletters, articles", "content", "content", "designer", [0.45, 0.65], { veille: 8 }),
       task("visuals", "marketing", "Créer vos visuels", "Posts, bannières, miniatures YouTube", "visuals", "designer", "content", [0.4, 0.6], { content: 8 }),
       task("video", "marketing", "Produire des vidéos produit", "E-commerce, publicités, sans tournage", "video", "ecommerce", "designer", [0.45, 0.65], { designer: 8 }),
