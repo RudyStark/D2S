@@ -127,7 +127,7 @@ const FIXED: Record<Locale, Record<string, Words>> = {
     },
     hr: {
       headline: "100 candidatures triées en quelques minutes et une présélection prête le jour même",
-      capacity: "Diva classe les CV selon votre fiche de poste, invite les meilleurs profils et accueille les nouvelles recrues",
+      capacity: "Diva lit vos candidatures sur votre grille, fait réserver les entretiens, accueille les recrues et suit leurs échéances jusqu’à la paie",
       hook: "En 30 minutes, l’équipe vous montre Diva sur l’un de vos recrutements",
       basis: "tri sur vos propres critères ; la décision d’embauche reste la vôtre",
     },
@@ -213,7 +213,7 @@ const FIXED: Record<Locale, Record<string, Words>> = {
     },
     hr: {
       headline: "100 applications sorted in minutes and a shortlist ready the same day",
-      capacity: "Diva ranks CVs against your job description, invites the best profiles and welcomes new hires",
+      capacity: "Diva reads your applications against your grid, lets candidates book interviews, welcomes new hires and tracks their deadlines through to payroll",
       hook: "In 30 minutes, the team shows you Diva on one of your openings",
       basis: "sorting on your own criteria; the hiring decision stays yours",
     },
