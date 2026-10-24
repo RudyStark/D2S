@@ -5,8 +5,10 @@ import { abs } from "@/lib/site";
 /** Only real pages, each in both languages with its hreflang alternates (the rooms under construction stay out). */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const pages: { fr: string; changeFrequency: "weekly" | "yearly"; priority: number }[] = [
+  const pages: { fr: string; changeFrequency: "weekly" | "monthly" | "yearly"; priority: number }[] = [
     { fr: "/", changeFrequency: "weekly", priority: 1 },
+    // The public page of the client hub (app.d2saigency.com), also the OAuth app's home page for Google.
+    { fr: "/hub", changeFrequency: "monthly", priority: 0.5 },
     { fr: "/mentions-legales", changeFrequency: "yearly", priority: 0.2 },
     { fr: "/confidentialite", changeFrequency: "yearly", priority: 0.2 },
   ];

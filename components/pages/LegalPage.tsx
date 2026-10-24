@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Header } from "@/components/ui/Header";
 import type { Locale } from "@/lib/i18n";
 import { LEGAL_UPDATED, legalHrefOf, privacyHrefOf } from "@/lib/legal";
@@ -8,9 +8,14 @@ import styles from "./LegalPage.module.css";
 
 export interface LegalSection {
   id: string;
+  /** The same section's id in the other language: the language switch keeps the hash, so the link lands here too. */
+  alias?: string;
   title: string;
   body: ReactNode;
 }
+
+/* An alias id: no height, at the very top of its section, with the section's own scroll margin. */
+const ALIAS: CSSProperties = { display: "block", scrollMarginTop: "calc(var(--header-h) + 24px)" };
 
 /** A missing company detail: shown, never invented. */
 export function ToFill({ value, label }: { value: string | null; label: string }) {
@@ -20,7 +25,7 @@ export function ToFill({ value, label }: { value: string | null; label: string }
 
 const TEXTS = {
   fr: { updated: "Dernière mise à jour :", toc: "Sommaire", home: "Retour à l’accueil", legal: "Mentions légales", privacy: "Politique de confidentialité", date: LEGAL_UPDATED },
-  en: { updated: "Last updated:", toc: "Contents", home: "Back to home", legal: "Legal notice", privacy: "Privacy policy", date: "23 September 2026" },
+  en: { updated: "Last updated:", toc: "Contents", home: "Back to home", legal: "Legal notice", privacy: "Privacy policy", date: "24 October 2026" },
 };
 
 /**
@@ -68,6 +73,7 @@ export function LegalPage({
 
           {sections.map((s, i) => (
             <section key={s.id} id={s.id} className={styles.section} aria-labelledby={`${s.id}-title`}>
+              {s.alias && <span id={s.alias} style={ALIAS} aria-hidden="true" />}
               <h2 id={`${s.id}-title`} className={styles.sectionTitle}>
                 <span aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
                 {s.title}
