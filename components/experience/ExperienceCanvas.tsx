@@ -1,5 +1,6 @@
 "use client";
 
+import { waitForGate } from "@/lib/language-gate";
 import { PerformanceMonitor, useProgress } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import dynamic from "next/dynamic";
@@ -192,6 +193,9 @@ function AdaptiveQuality() {
     }
     let cancelled = false;
     void (async () => {
+      // Measured on the agency itself, not while the language gate is still up over a frozen canvas.
+      await waitForGate();
+      if (cancelled) return;
       const rate = await refresh;
       const floor = floorFps(rate) + margin(rate);
       const trace: string[] = [];

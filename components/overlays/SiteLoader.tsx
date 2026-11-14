@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { setScrollLocked } from "@/lib/experience/director";
 import { useExperience } from "@/lib/experience/store";
+import { useGateHolding } from "@/lib/language-gate";
 import styles from "./SiteLoader.module.css";
 
 /** Loading steps shown next to the counter (by displayed progress). */
@@ -144,11 +145,13 @@ export function SiteLoader() {
   const [slide, setSlide] = useState(0);
 
   // The presentation plays while loading; after the last slide it starts again at the second.
+  // …and only once the language gate is gone, so it starts at its first slide.
+  const gated = useGateHolding();
   useEffect(() => {
-    if (phase !== "loading") return;
+    if (phase !== "loading" || gated) return;
     const id = window.setInterval(() => setSlide((s) => (s + 1 >= L.slides.length ? 1 : s + 1)), SLIDE_MS);
     return () => window.clearInterval(id);
-  }, [phase]);
+  }, [phase, gated]);
 
   useEffect(() => {
     const html = document.documentElement;

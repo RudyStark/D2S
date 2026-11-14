@@ -1,4 +1,5 @@
 import { advance } from "@react-three/fiber";
+import { gateHolding } from "@/lib/language-gate";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -154,7 +155,8 @@ function tick(time: number, deltaMs: number) {
   // ReadyMarker compiles everything at once and renders the warm-up frames itself.
   // Once the services section covers the (blurred) lobby and nothing moves, the last frame is kept:
   // no GPU work behind a static page.
-  const covered = frame.services >= 0.999 && frame.settled;
+  // The language gate covers the page (first visit): no GPU work behind it either.
+  const covered = (frame.services >= 0.999 && frame.settled) || gateHolding();
   if (canvasActive && ready && (!covered || renderBudget > 0)) {
     advance(time);
     if (renderBudget > 0) renderBudget--;
