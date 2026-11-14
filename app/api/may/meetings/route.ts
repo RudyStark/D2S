@@ -95,7 +95,6 @@ async function bookingStep(mode: "days" | "times", window: ReturnType<typeof rea
       kind: "meeting" as const,
       label: new Intl.DateTimeFormat(en ? "en-GB" : "fr-FR", { hour: "2-digit", minute: "2-digit", timeZone }).format(new Date(slot.startTime)),
       href: safeLink(slot.schedulingUrl),
-      detail: `${meeting.name} · ${meeting.duration} min`,
     }))
     .filter((action) => action.href);
   return { meeting, inWindow, day, actions };
@@ -131,12 +130,11 @@ export async function GET(request: Request) {
     for (const type of types) {
       const found = await findSlots(type.id, window, timeZone, types.length > 1 ? 2 : 4);
       if (!found.inWindow) inWindow = false;
-      const detail = `${type.name} · ${type.duration} min`;
       for (const slot of found.slots) {
         const href = safeLink(slot.schedulingUrl);
-        if (href) actions.push({ kind: "meeting", label: label(slot.startTime, timeZone, en), href, detail });
+        if (href) actions.push({ kind: "meeting", label: label(slot.startTime, timeZone, en), href });
       }
-      if (!found.slots.length && safeLink(type.schedulingUrl)) actions.push({ kind: "meeting", label: detail, href: safeLink(type.schedulingUrl), detail: en ? "See the calendar" : "Voir l’agenda" });
+      if (!found.slots.length && safeLink(type.schedulingUrl)) actions.push({ kind: "meeting", label: en ? "See the full calendar" : "Voir l’agenda complet", href: safeLink(type.schedulingUrl) });
     }
     return NextResponse.json({ ok: true, configured: true, inWindow: !window || inWindow, actions: actions.slice(0, 6) }, noStore);
   } catch (error) {

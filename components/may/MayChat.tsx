@@ -59,6 +59,9 @@ const WORDS = {
     hello: "Bonjour !",
     iam: "Je suis May.",
     badge: "Assistante D2S",
+    expand: "Agrandir la conversation",
+    collapse: "Réduire la conversation",
+    window: "Conversation avec May",
     log: "Conversation avec May",
     freeTimes: "Horaires libres",
     proposed: "Rendez-vous proposés",
@@ -107,6 +110,9 @@ const WORDS = {
     hello: "Hello!",
     iam: "I’m May.",
     badge: "D2S assistant",
+    expand: "Expand the conversation",
+    collapse: "Collapse the conversation",
+    window: "Chat with May",
     log: "Conversation with May",
     freeTimes: "Free times",
     proposed: "Suggested meetings",
@@ -226,13 +232,32 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
   const memory = useRef<MayMemory>(emptyMemory());
   const claude = useRef(false);
   const active = messages.some((message) => message.role === "user");
+  // "Open in large": the SAME chat moves into a modal window (a native <dialog> in the top layer, so it escapes the
+  // lobby's transformed containers). Closed, the <dialog> is display: contents and the chat sits in place. Desktop only.
+  const shell = useRef<HTMLDialogElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = variant === "desktop";
+  const toggleExpanded = () => {
+    const dialog = shell.current;
+    if (!dialog) return;
+    if (dialog.open) {
+      dialog.close();
+      return;
+    }
+    dialog.showModal();
+    setExpanded(true);
+    window.requestAnimationFrame(() => {
+      field.current?.focus({ preventScroll: true });
+      if (log.current) log.current.scrollTop = log.current.scrollHeight;
+    });
+  };
 
   useEffect(() => () => pending.current?.abort(), []);
   useEffect(() => {
     if (!active) return;
     const element = log.current;
     if (element) element.scrollTop = element.scrollHeight;
-  }, [active, messages, sending, status]);
+  }, [active, messages, sending, status, expanded]);
 
   const openDraft = (value: MayDraft) => (onDraft ? onDraft(value) : onContact(value.message));
   const [handing, setHanding] = useState(false);
@@ -438,6 +463,18 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
 
   return (
     <div className={styles.root} data-variant={variant} data-active={active}>
+      <dialog
+        ref={shell}
+        className={styles.shell}
+        aria-label={w.window}
+        onClose={() => setExpanded(false)}
+        onClick={(event) => {
+          // A click on the dimmed backdrop (the dialog box itself, outside its content) closes the window.
+          if (event.target === event.currentTarget && expanded) event.currentTarget.close();
+        }}
+        data-expanded={expanded}
+        data-lenis-prevent
+      >
       {showIntro ? (
         <header className={styles.header}>
           <div>
@@ -448,7 +485,22 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
               {w.iam}
             </p>
           </div>
-          <span className={styles.badge}>{w.badge}</span>
+          <div className={styles.headerSide}>
+            <span className={styles.badge}>{w.badge}</span>
+            {canExpand ? (
+              <button
+                type="button"
+                className={styles.expand}
+                onClick={toggleExpanded}
+                aria-label={expanded ? w.collapse : w.expand}
+                title={expanded ? w.collapse : w.expand}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  {expanded ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />}
+                </svg>
+              </button>
+            ) : null}
+          </div>
         </header>
       ) : null}
 
@@ -570,6 +622,7 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
           {w.disclaimer} <a href={privacyHrefOf(locale)}>{w.privacy}</a>
         </p>
       </div>
+      </dialog>
     </div>
   );
 }
