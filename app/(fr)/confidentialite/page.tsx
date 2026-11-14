@@ -194,6 +194,11 @@ const SECTIONS: LegalSection[] = [
           Les polices sont servies par notre propre serveur : votre navigateur ne contacte aucun service tiers pendant la visite.
         </p>
         <p>
+          Le choix de langue fait à votre première visite (français ou anglais) est gardé dans votre navigateur (stockage local
+          « d2s:lang ») pour ne pas vous le redemander. Il n’est jamais envoyé à notre serveur ; vous pouvez l’effacer avec les
+          données du site dans les réglages de votre navigateur.
+        </p>
+        <p>
           Le hub app.d2saigency.com, réservé à nos clients, n’utilise que les cookies strictement nécessaires à la connexion à leur
           compte et, le temps de brancher un service chez Google ou Microsoft, un cookie technique de 10 minutes.
         </p>

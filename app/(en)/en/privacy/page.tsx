@@ -160,6 +160,11 @@ const SECTIONS: LegalSection[] = [
         </p>
         <p>Fonts are served by our own server: your browser contacts no third-party service during your visit.</p>
         <p>
+          The language you choose on your first visit (French or English) is kept in your browser (local storage
+          &ldquo;d2s:lang&rdquo;) so you are not asked again. It is never sent to our server; you can erase it with the site data in
+          your browser settings.
+        </p>
+        <p>
           The app.d2saigency.com hub, reserved for our clients, uses only the cookies strictly needed to sign in to their account and,
           while a service is connected at Google or Microsoft, a 10-minute technical cookie.
         </p>

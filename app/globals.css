@@ -173,3 +173,9 @@ html[data-debug-materials] main section,
 html[data-debug-materials] header {
   visibility: hidden;
 }
+
+/* The language gate (components/i18n/LanguageGate) covers the first visit: the page underneath does not scroll. */
+html[data-lang-gate="open"],
+html[data-lang-gate="enter"] {
+  overflow: hidden;
+}
