@@ -1,0 +1,183 @@
+/* Fanned deck of the five flagship agents (mobile). Geometry is written on each card by MobileAgentFan. */
+.fan {
+  margin: 30px -22px 0;
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 420px;
+  padding-bottom: 24px;
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.glow {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  width: 300px;
+  height: 110px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(21 112 240 / 0.28), transparent);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.card {
+  --shade: 0;
+  --caption: 1;
+  position: absolute;
+  width: 214px;
+  height: 312px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 26px;
+  background:
+    radial-gradient(80% 55% at 50% 22%, rgb(255 255 255 / 0.9), transparent 70%),
+    linear-gradient(165deg, var(--tint-a), var(--tint-b));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.85),
+    0 26px 50px -24px rgb(11 18 56 / 0.5);
+  color: var(--ink);
+  text-align: left;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.card img {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  width: auto;
+  height: 430px;
+  max-width: none;
+  translate: -50% 0;
+  pointer-events: none;
+  filter: drop-shadow(0 14px 18px rgb(11 18 56 / 0.2));
+}
+
+/* Cards behind the front one darken a little (depth), as in the original. */
+.shade {
+  position: absolute;
+  inset: 0;
+  background: #0a1131;
+  opacity: var(--shade);
+  pointer-events: none;
+}
+
+.caption {
+  position: absolute;
+  inset: auto 10px 10px;
+  display: grid;
+  gap: 1px;
+  padding: 12px 14px 13px;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.88);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.9), 0 10px 24px -14px rgb(11 18 56 / 0.45);
+  backdrop-filter: blur(12px) saturate(1.2);
+  opacity: var(--caption);
+}
+
+.caption strong {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  background: linear-gradient(90deg, #0b1238, #1a3fb0 60%, #1570f0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.caption > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.caption em {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 4px;
+}
+
+.arrow {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgb(21 112 240 / 0.14);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 8px 18px -12px rgb(11 18 56 / 0.4);
+  color: var(--blue);
+}
+
+.arrow:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.dots {
+  display: flex;
+  gap: 7px;
+}
+
+.dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 7px;
+  background: rgb(21 112 240 / 0.2);
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.dots span[data-on="true"] {
+  width: 22px;
+  background: linear-gradient(90deg, #0b52ef, #14a6e2);
+}
+
+.blurb {
+  max-width: 340px;
+  min-height: 44px;
+  margin: 14px auto 0;
+  padding: 0 22px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text);
+}
+
+.blurb strong {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dots span {
+    transition: none;
+  }
+}

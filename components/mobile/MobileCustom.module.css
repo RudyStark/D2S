@@ -1,0 +1,324 @@
+/* « Sur mesure » on mobile: compact cards in the mobile visual language (px, white surfaces, one deep card). */
+.overview {
+  display: grid;
+  gap: 10px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.overview li {
+  background: #fff !important;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border: 1px solid var(--mobile-border, var(--line));
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.overview li[data-tone="deep"] {
+  background:
+    radial-gradient(90% 80% at 100% 0%, rgb(40 110 255 / 0.4), transparent 62%),
+    linear-gradient(160deg, #0f1a4a, #0a1131) !important;
+  border-color: rgb(140 180 255 / 0.35);
+  box-shadow: 0 0 0 1px rgb(140 180 255 / 0.12), 0 18px 40px -20px rgb(40 110 255 / 0.6);
+  background:
+    radial-gradient(90% 80% at 100% 0%, rgb(40 110 255 / 0.4), transparent 62%),
+    linear-gradient(160deg, #0f1a4a, #0a1131);
+  color: rgb(222 232 255 / 0.86);
+}
+
+.overview strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.overview li[data-tone="deep"] strong {
+  color: #fff;
+}
+
+.ovIndex {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #0b52ef, #14a6e2);
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.overview li[data-tone="deep"] .ovIndex {
+  background: #fff;
+  color: #0b52ef;
+}
+
+.card {
+  color: var(--ink);
+  margin-top: 22px;
+  padding: 24px 20px;
+  border: 1px solid var(--mobile-border, var(--line));
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.9) inset, 0 26px 50px -28px rgb(0 0 0 / 0.55);
+  scroll-margin-top: calc(var(--mobile-header, 72px) + 16px);
+}
+
+.card h3 {
+  margin-top: 12px;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.tag {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--blue-tint);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue-deep);
+}
+
+.text {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.points,
+.list {
+  display: grid;
+  gap: 14px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.points li,
+.list li {
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.points svg {
+  flex: 0 0 21px;
+  width: 21px;
+  height: 21px;
+  margin-top: 1px;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+}
+
+.points strong {
+  display: block;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.list {
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.list svg {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  color: var(--blue);
+}
+
+.more {
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+.more summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.more summary::-webkit-details-marker {
+  display: none;
+}
+
+.more summary svg {
+  transition: rotate 0.25s ease;
+}
+
+.more[open] summary svg {
+  rotate: 180deg;
+}
+
+.steps {
+  display: grid;
+  gap: 14px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.steps li > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--blue-tint);
+  font-weight: 800;
+  color: var(--blue-deep);
+}
+
+.steps strong {
+  display: block;
+  color: var(--ink);
+}
+
+.format {
+  margin-top: 18px;
+  padding: 18px 16px 6px;
+  border-radius: 18px;
+  background: linear-gradient(170deg, #f7faff, #eef4ff);
+  box-shadow: inset 0 0 0 1px rgb(21 112 240 / 0.12);
+}
+
+.format[data-tone="deep"] {
+  background:
+    radial-gradient(90% 70% at 100% 0%, rgb(40 110 255 / 0.4), transparent 62%),
+    linear-gradient(160deg, #0f1a4a, #0a1131);
+  box-shadow: none;
+  color: #fff;
+}
+
+.formatTag {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue-deep);
+}
+
+.format[data-tone="deep"] .formatTag {
+  color: #8fc2ff;
+}
+
+.format h4 {
+  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.audience {
+  margin-top: 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.formatText {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.format[data-tone="deep"] .audience {
+  color: rgb(255 255 255 / 0.9);
+}
+
+.format[data-tone="deep"] .formatText,
+.format[data-tone="deep"] .list li {
+  color: rgb(222 232 255 / 0.88);
+}
+
+.format[data-tone="deep"] .more summary {
+  color: #fff;
+}
+
+.format[data-tone="deep"] .list svg {
+  color: #7fb6ff;
+}
+
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 50px;
+  margin-top: 22px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(110deg, var(--blue), var(--blue-deep));
+  box-shadow: var(--shadow-blue);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .more summary svg {
+    transition: none;
+  }
+}
+
+/* The format's mock (application / command centre), on its own little stage. */
+.stage {
+  position: relative;
+  height: 210px;
+  margin: -2px -4px 16px;
+  overflow: hidden;
+  border-radius: 14px;
+  background:
+    radial-gradient(70% 80% at 50% 0%, rgb(21 112 240 / 0.12), transparent 70%),
+    linear-gradient(180deg, #eef4ff, #e4edfc);
+  box-shadow: inset 0 0 0 1px rgb(21 112 240 / 0.1);
+}
+.format[data-tone="deep"] .stage {
+  background:
+    radial-gradient(60% 70% at 50% 45%, rgb(40 110 255 / 0.3), transparent 70%),
+    rgb(255 255 255 / 0.03);
+  box-shadow: inset 0 0 0 1px rgb(140 180 255 / 0.18);
+}

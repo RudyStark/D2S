@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata, ResolvingMetadata, Viewport } from "next";
 import type { Locale } from "./i18n";
 import { alternates } from "./i18n";
 import { SITE_NAME, SITE_URL, siteText } from "./site";
@@ -43,3 +43,37 @@ export const rootViewport: Viewport = {
   width: "device-width",
   initialScale: 1,
 };
+
+/**
+ * Full metadata of an inner page: title, description, canonical + hreflang, and its own Open Graph / Twitter
+ * card (url, title, description). A page that defines openGraph replaces the layout's whole object, the
+ * share image included, so the layout's images are carried over from the parent.
+ */
+export async function pageMetadata(
+  { frPath, locale, title, description }: { frPath: string; locale: Locale; title: string; description: string },
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const { openGraph, twitter } = await parent;
+  const url = alternates(frPath)[locale];
+  const full = `${title} — ${SITE_NAME}`;
+  return {
+    title,
+    description,
+    alternates: pageAlternates(frPath, locale),
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      locale: locale === "en" ? "en_US" : "fr_FR",
+      url,
+      title: full,
+      description,
+      ...(openGraph?.images?.length ? { images: openGraph.images } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: full,
+      description,
+      ...(twitter?.images?.length ? { images: twitter.images } : {}),
+    },
+  };
+}

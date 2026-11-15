@@ -27,7 +27,8 @@ test("mobile widths have readable content, no horizontal overflow and no 3D", as
     await expect(page.locator("[data-mobile-home]")).toBeVisible();
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.locator("canvas")).toHaveCount(0);
-    await expect(page.locator("#nos-agents-ia button")).toHaveCount(5);
+    // The five flagship agents (the fanned deck also has its previous / next arrows).
+    await expect(page.locator("#nos-agents-ia [data-agent-card]")).toHaveCount(5);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -108,9 +109,8 @@ test("each agent opens the right 2D profile and passes their need to contact", a
     ["Diva", "automation"],
     ["Morgan", "data"],
   ]) {
-    await page
-      .getByRole("button", { name: new RegExp(`^Découvrir ${name},`) })
-      .click();
+    // The fanned deck overlaps its cards: focusing one brings it to the front, Enter opens its profile.
+    await openAgent(page, name);
     const dialog = page.getByRole("dialog", { name });
     await expect(dialog).toBeVisible();
     await expect(dialog.locator("img")).toHaveAttribute(
@@ -129,7 +129,7 @@ test("agent demos remain available without WebGL", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/");
   for (const name of ["Déa", "Loic", "May", "Diva", "Morgan"]) {
-    await page.getByRole("button", { name: new RegExp(`^Découvrir ${name},`) }).click();
+    await openAgent(page, name);
     const dialog = page.getByRole("dialog", { name });
     await dialog.getByRole("button", { name: "Voir la démonstration" }).click();
     await expect(
@@ -152,6 +152,13 @@ test("agent demos remain available without WebGL", async ({ page }) => {
   }
 });
 
+async function openAgent(page: Page, name: string) {
+  const card = page.getByRole("button", { name: new RegExp(`^Découvrir ${name},`) });
+  await card.focus();
+  await page.waitForTimeout(500); // the deck turns to the focused card
+  await page.keyboard.press("Enter");
+}
+
 async function answer(page: Page, label: string, last = false) {
   const section = page.locator("#comment-choisir");
   await section.getByLabel(label, { exact: false }).check();
@@ -163,7 +170,7 @@ async function answer(page: Page, label: string, last = false) {
     .click();
 }
 
-// Field of work, then the precise task (none for « Autre chose »), time, tools, process.
+// Scope (« Une tâche précise »), field of work, then the precise task (none for « Autre chose »), time, tools, process.
 for (const scenario of [
   {
     name: "ready",
@@ -206,6 +213,7 @@ for (const scenario of [
     page,
   }) => {
     await page.goto("/#comment-choisir");
+    await answer(page, "Une tâche précise");
     await answer(page, scenario.area);
     if (scenario.task) await answer(page, scenario.task);
     await answer(page, "2 à 10 h");
@@ -227,8 +235,23 @@ for (const scenario of [
     ).not.toBeVisible();
   });
 
+// Several departments of a large organisation: the custom AI solution path, carried to the contact form.
+test("diagnostic solution path recommends a command centre and carries it to contact", async ({ page }) => {
+  await page.goto("/#comment-choisir");
+  await answer(page, "Plusieurs services ou équipes");
+  await answer(page, "Grande entreprise ou groupe");
+  await answer(page, "Logistique", true);
+  await expect(
+    page.getByRole("heading", { name: "Un centre de pilotage IA pour vos équipes.", exact: true }),
+  ).toBeVisible();
+  await page.locator("#comment-choisir").getByRole("button", { name: "Étudier votre projet" }).click();
+  await expect(page.locator("#mobile-contact-need")).toHaveValue("custom");
+  await expect(page.getByText("Votre diagnostic est joint")).toBeVisible();
+});
+
 test("diagnostic back navigation preserves choices", async ({ page }) => {
   await page.goto("/#comment-choisir");
+  await answer(page, "Une tâche précise");
   await answer(page, "Contenu et marketing");
   await answer(page, "Créer vos visuels");
   const back = page

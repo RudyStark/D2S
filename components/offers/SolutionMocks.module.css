@@ -1,0 +1,434 @@
+/*
+ * The two custom AI solution mocks (business application, command centre), shared by the desktop « Sur mesure »
+ * section, the desktop diagnostic and the mobile version. Pure CSS / SVG: no 3D, no director. Sized in design
+ * units (--u = 1 px on mobile). The parent gives the stage (position: relative, height, background).
+ */
+/* Business application mock: a window, a sidebar, three prepared actions approved one after the other. */
+.app {
+  position: absolute;
+  inset: calc(26 * var(--u)) calc(30 * var(--u)) calc(-8 * var(--u));
+  overflow: hidden;
+  border-radius: calc(14 * var(--u)) calc(14 * var(--u)) 0 0;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(11 18 56 / 0.08),
+    0 24px 50px -20px rgb(11 18 56 / 0.35);
+}
+
+.appBar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: calc(30 * var(--u));
+  padding: 0 calc(12 * var(--u));
+  border-bottom: 1px solid rgb(11 18 56 / 0.06);
+  background: #f7f9fd;
+}
+
+.appBar span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(11 18 56 / 0.14);
+}
+
+.appBar em {
+  margin-left: calc(10 * var(--u));
+  font-family: var(--font-body);
+  font-size: max(10px, calc(11 * var(--u)));
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.appBody {
+  display: grid;
+  grid-template-columns: calc(54 * var(--u)) 1fr;
+  height: 100%;
+}
+
+.appSide {
+  display: grid;
+  align-content: start;
+  gap: calc(12 * var(--u));
+  padding: calc(16 * var(--u)) calc(14 * var(--u));
+  background: linear-gradient(180deg, #13205a, #0b1238);
+}
+
+.appSide i {
+  height: calc(8 * var(--u));
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.18);
+}
+
+.appSide i:first-child {
+  background: linear-gradient(90deg, #4c9bff, #14a6e2);
+}
+
+.appList {
+  display: grid;
+  align-content: start;
+  gap: calc(10 * var(--u));
+  margin: 0;
+  padding: calc(16 * var(--u));
+  list-style: none;
+}
+
+.appList li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  height: calc(46 * var(--u));
+  padding: 0 calc(10 * var(--u));
+  border-radius: calc(12 * var(--u));
+  background: #f6f9ff;
+  box-shadow: inset 0 0 0 1px rgb(21 112 240 / 0.1);
+  animation: appRow 7.2s var(--ease-out) infinite;
+  animation-delay: calc(var(--i) * 1.6s);
+}
+
+@keyframes appRow {
+  0%,
+  8% {
+    box-shadow: inset 0 0 0 1px rgb(21 112 240 / 0.1);
+  }
+  12%,
+  22% {
+    box-shadow:
+      inset 0 0 0 1.5px rgb(21 112 240 / 0.6),
+      0 10px 20px -14px rgb(21 112 240 / 0.6);
+  }
+  30%,
+  100% {
+    box-shadow: inset 0 0 0 1px rgb(34 197 94 / 0.3);
+  }
+}
+
+.appSpark {
+  display: grid;
+  place-items: center;
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+  border-radius: 8px;
+  background: var(--blue-tint);
+  color: var(--blue);
+}
+
+.appSpark svg {
+  width: calc(14 * var(--u));
+  height: calc(14 * var(--u));
+}
+
+.appItem {
+  overflow: hidden;
+  font-family: var(--font-body);
+  font-size: max(10.5px, calc(12.5 * var(--u)));
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-soft);
+}
+
+.appBtn {
+  display: grid;
+  font-family: var(--font-body);
+  font-size: max(10px, calc(11 * var(--u)));
+  font-weight: 600;
+}
+
+.appValidate,
+.appDone {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: calc(26 * var(--u));
+  padding: 0 calc(10 * var(--u));
+  border-radius: var(--radius-pill);
+}
+
+.appValidate {
+  background: linear-gradient(135deg, #0b52ef, #1a86f5);
+  color: #fff;
+  animation: appSwapOut 7.2s infinite;
+  animation-delay: inherit;
+}
+
+.appDone {
+  background: rgb(34 197 94 / 0.12);
+  color: #15803d;
+  opacity: 0;
+  animation: appSwapIn 7.2s infinite;
+  animation-delay: inherit;
+}
+
+.appList li .appValidate,
+.appList li .appDone {
+  animation-delay: calc(var(--i) * 1.6s);
+}
+
+.appDone svg {
+  width: 12px;
+  height: 12px;
+}
+
+@keyframes appSwapOut {
+  0%,
+  22% {
+    opacity: 1;
+    scale: 1;
+  }
+  26%,
+  100% {
+    opacity: 0;
+    scale: 0.85;
+  }
+}
+
+@keyframes appSwapIn {
+  0%,
+  24% {
+    opacity: 0;
+    scale: 0.85;
+  }
+  30%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* Command centre mock: a coordinating agent, six departments, signals running out and one hand-off. */
+.command {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.commandSvg {
+  width: auto;
+  max-width: 94%;
+  height: 84%;
+  overflow: visible;
+}
+
+.coreChip {
+  fill: #0f1a4a;
+  stroke: rgb(127 182 255 / 0.5);
+  stroke-width: 1;
+}
+
+.orbit {
+  fill: none;
+  stroke: rgb(140 180 255 / 0.18);
+  stroke-dasharray: 3 6;
+}
+
+.wire {
+  stroke: rgb(140 180 255 / 0.22);
+  stroke-width: 1;
+}
+
+.pulse {
+  stroke: #7fb6ff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 10 90;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 4px rgb(80 160 255 / 0.9));
+  animation: pulse 3s linear infinite;
+  animation-delay: calc(var(--i) * -0.5s);
+}
+
+@keyframes pulse {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.relay {
+  fill: none;
+  stroke: #ffb547;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 14 86;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 5px rgb(255 181 71 / 0.85));
+  animation: pulse 2.6s linear infinite;
+}
+
+.coreHalo {
+  fill: rgb(80 150 255 / 0.18);
+  transform-origin: 200px 112px;
+  animation: halo 3.2s ease-in-out infinite;
+}
+
+@keyframes halo {
+  50% {
+    scale: 1.25;
+    opacity: 0.5;
+  }
+}
+
+.coreLabel {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  fill: #fff;
+}
+
+.node circle {
+  fill: #0f1a4a;
+  stroke: #7fb6ff;
+  stroke-width: 2;
+}
+
+.node text {
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-anchor: middle;
+  fill: rgb(222 232 255 / 0.9);
+}
+
+.approval {
+  position: absolute;
+  right: calc(14 * var(--u));
+  top: calc(14 * var(--u));
+  display: grid;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: max(10px, calc(11 * var(--u)));
+  font-weight: 600;
+}
+
+.approval span {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: calc(28 * var(--u));
+  padding: 0 calc(12 * var(--u));
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(8px);
+}
+
+.approvalWait {
+  background: rgb(255 181 71 / 0.16);
+  box-shadow: inset 0 0 0 1px rgb(255 181 71 / 0.5);
+  color: #ffd38a;
+  animation: approvalWait 6s infinite;
+}
+
+.approvalOk {
+  background: rgb(34 197 94 / 0.16);
+  box-shadow: inset 0 0 0 1px rgb(34 197 94 / 0.5);
+  color: #86efac;
+  opacity: 0;
+  animation: approvalOk 6s infinite;
+}
+
+.approvalOk svg {
+  width: 12px;
+  height: 12px;
+}
+
+@keyframes approvalWait {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  52%,
+  94% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes approvalOk {
+  0%,
+  47% {
+    opacity: 0;
+  }
+  54%,
+  92% {
+    opacity: 1;
+  }
+  98%,
+  100% {
+    opacity: 0;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse,
+  .relay,
+  .coreHalo,
+  .appList li,
+  .approval span {
+    animation: none;
+  }
+
+  .appValidate {
+    animation: none;
+    opacity: 0;
+  }
+
+  .appDone {
+    animation: none;
+    opacity: 1;
+  }
+
+  .approvalWait {
+    animation: none;
+    opacity: 0;
+  }
+
+  .approvalOk {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Narrow stages (mobile): a tighter window so the three actions stay readable. */
+@media (max-width: 1024px) {
+  .app {
+    inset: 18px 12px -8px;
+  }
+
+  .appBody {
+    grid-template-columns: 34px 1fr;
+  }
+
+  .appSide {
+    padding: 14px 9px;
+  }
+
+  .appList {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .appList li {
+    gap: 7px;
+    height: 42px;
+    padding: 0 7px;
+  }
+
+  .appItem {
+    font-size: 11.5px;
+  }
+
+  .appValidate,
+  .appDone {
+    padding: 0 8px;
+  }
+}

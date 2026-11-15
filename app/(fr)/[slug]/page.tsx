@@ -25,6 +25,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if (slug === "contact") permanentRedirect("/#contact");
   if (slug === "comment-choisir") permanentRedirect("/#comment-choisir");
   if (slug === "nos-agents-ia") permanentRedirect("/#nos-agents-ia");
+  if (slug === "sur-mesure") permanentRedirect("/#sur-mesure");
   const page = PLACEHOLDER_PAGES[slug];
   if (!page) notFound();
   return <PlaceholderRoom {...page} />;

@@ -10,7 +10,7 @@ import type { AgentType } from "@/components/experience/agents/agents.config";
 export const SERVICES_INTRO = {
   kicker: "Nos services",
   title: ["L’IA qui s’adapte à vous,", "pas l’inverse."],
-  lead: "Nous concevons, connectons et faisons évoluer des agents IA qui prennent en charge le travail répétitif de vos équipes, sans rien changer à vos outils.",
+  lead: "Des agents prêts à l’emploi, des agents sur mesure ou une solution IA complète : nous concevons, connectons et faisons évoluer l’IA qui prend en charge le travail répétitif de vos équipes, sans rien changer à vos outils.",
 };
 
 export type BenefitIcon = "sparkle" | "bolt" | "plug" | "nocode" | "trend";
@@ -128,7 +128,7 @@ export const METHOD_PROMISES = [
 const SERVICES_INTRO_EN: typeof SERVICES_INTRO = {
   kicker: "Our services",
   title: ["AI that adapts to you,", "not the other way round."],
-  lead: "We design, connect and keep improving AI agents that take the repetitive work off your teams’ hands, without changing any of your tools.",
+  lead: "Ready-made agents, custom agents or a complete AI solution: we design, connect and keep improving the AI that takes the repetitive work off your teams’ hands, without changing any of your tools.",
 };
 
 const SERVICES_EN: Service[] = [

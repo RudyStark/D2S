@@ -139,7 +139,7 @@ export function PlugDiagram() {
           <span className={styles.agentName}>Agent {current.role}</span>
           <span className={styles.agentStatus}>
             <span className={styles.dot} />
-            {connected ? "En ligne" : "Hors ligne"}
+            {connected ? (locale === "en" ? "Online" : "En ligne") : locale === "en" ? "Offline" : "Hors ligne"}
           </span>
         </span>
         <span className={styles.agentBars}>

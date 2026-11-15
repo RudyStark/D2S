@@ -237,6 +237,7 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
   const shell = useRef<HTMLDialogElement>(null);
   const [expanded, setExpanded] = useState(false);
   const canExpand = variant === "desktop";
+  const Shell = canExpand ? "dialog" : "div";
   const toggleExpanded = () => {
     const dialog = shell.current;
     if (!dialog) return;
@@ -463,14 +464,15 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
 
   return (
     <div className={styles.root} data-variant={variant} data-active={active}>
-      <dialog
-        ref={shell}
+      {/* Desktop only: a <dialog> (the large window). On mobile a plain box, so no stray "May" dialog is exposed. */}
+      <Shell
+        ref={shell as React.RefObject<HTMLDialogElement & HTMLDivElement>}
         className={styles.shell}
-        aria-label={w.window}
-        onClose={() => setExpanded(false)}
+        aria-label={canExpand ? w.window : undefined}
+        onClose={canExpand ? () => setExpanded(false) : undefined}
         onClick={(event) => {
           // A click on the dimmed backdrop (the dialog box itself, outside its content) closes the window.
-          if (event.target === event.currentTarget && expanded) event.currentTarget.close();
+          if (event.target === event.currentTarget && expanded) (event.currentTarget as HTMLDialogElement).close();
         }}
         data-expanded={expanded}
         data-lenis-prevent
@@ -622,7 +624,7 @@ export function MayChat({ variant, showIntro = true, onContact, onDraft }: MayCh
           {w.disclaimer} <a href={privacyHrefOf(locale)}>{w.privacy}</a>
         </p>
       </div>
-      </dialog>
+      </Shell>
     </div>
   );
 }

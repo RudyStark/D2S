@@ -1,16 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { LegalPage, type LegalSection } from "@/components/pages/LegalPage";
 import { PRIVACY_CONTACT, PUBLISHER, legalHrefOf } from "@/lib/legal";
-import { pageAlternates } from "@/lib/seo";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy policy",
-  description:
-    "How D2S AIgency handles messages sent to May, contact requests, meeting bookings and the Google or Outlook calendars its clients connect to the hub.",
-  alternates: pageAlternates("/confidentialite", "en"),
-};
+export function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> {
+  return pageMetadata({ frPath: "/confidentialite", locale: "en", title: "Privacy policy", description: "How D2S AIgency handles messages sent to May, contact requests, meeting bookings and the Google or Outlook calendars its clients connect to the hub." }, parent);
+}
 
 /*
  * English translation of /confidentialite (the French version prevails): keep both true when the site or the hub's

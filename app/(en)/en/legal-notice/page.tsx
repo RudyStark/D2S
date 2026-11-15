@@ -1,14 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { LegalPage, type LegalSection } from "@/components/pages/LegalPage";
 import { HOST, PUBLISHER, SIRET, privacyHrefOf } from "@/lib/legal";
-import { pageAlternates } from "@/lib/seo";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Legal notice",
-  description: "Publisher, host, intellectual property and credits of the D2S AIgency website.",
-  alternates: pageAlternates("/mentions-legales", "en"),
-};
+export function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> {
+  return pageMetadata({ frPath: "/mentions-legales", locale: "en", title: "Legal notice", description: "Publisher, host, intellectual property and credits of the D2S AIgency website." }, parent);
+}
 
 /* English translation of /mentions-legales (the French version prevails). Same facts, from lib/legal. */
 const SECTIONS: LegalSection[] = [

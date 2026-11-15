@@ -23,6 +23,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if (slug === "contact") permanentRedirect("/en#contact");
   if (slug === "how-to-choose") permanentRedirect("/en#comment-choisir");
   if (slug === "ai-agents") permanentRedirect("/en#nos-agents-ia");
+  if (slug === "custom-solutions") permanentRedirect("/en#sur-mesure");
   const page = PLACEHOLDER_PAGES_EN[slug];
   if (!page) notFound();
   return <PlaceholderRoom {...page} locale="en" />;

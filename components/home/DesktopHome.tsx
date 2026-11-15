@@ -5,6 +5,7 @@ import { HeroOverlay } from "@/components/overlays/HeroOverlay";
 import { LobbyOverlay } from "@/components/overlays/LobbyOverlay";
 import { AgentHoverLabel } from "@/components/overlays/AgentHoverLabel";
 import { AgentsSection } from "@/components/overlays/AgentsSection";
+import { CustomSection } from "@/components/overlays/CustomSection";
 import { ContactSection } from "@/components/overlays/ContactSection";
 import { DiagnosticSection } from "@/components/overlays/DiagnosticSection";
 import { FaqSection } from "@/components/overlays/FaqSection";
@@ -30,9 +31,10 @@ export default function DesktopHome() {
         <LobbyOverlay />
         <AgentHoverLabel />
         <div id={TRACK_ID} className={styles.track} aria-hidden="true" />
-        {/* Scrolling on from the reception, over the blurred lobby (no new 3D): services, agents, diagnostic, contact. */}
+        {/* Scrolling on from the reception, over the blurred lobby (no new 3D): services, agents, custom offers + method, diagnostic, FAQ, contact. */}
         <ServicesSection />
         <AgentsSection />
+        <CustomSection />
         <DiagnosticSection />
         <FaqSection />
         <ContactSection />

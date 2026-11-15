@@ -18,7 +18,7 @@ import { ArrowRight, ChevronDown, Globe } from "./Icons";
 import { Logo } from "./Logo";
 
 /** Sections of the home page, deepest last (the nav follows the scroll through them). */
-const HOME_SECTIONS = ["nos-services", "nos-agents-ia", "comment-choisir"];
+const HOME_SECTIONS = ["nos-services", "nos-agents-ia", "sur-mesure", "comment-choisir"];
 
 const TEXTS = {
   fr: {
