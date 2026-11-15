@@ -14,6 +14,7 @@ const PAGES: { fr: string; en: string }[] = [
   { fr: "/a-propos", en: "/en/about" },
   { fr: "/nos-services", en: "/en/services" },
   { fr: "/nos-agents-ia", en: "/en/ai-agents" },
+  { fr: "/sur-mesure", en: "/en/custom-solutions" },
   { fr: "/comment-choisir", en: "/en/how-to-choose" },
   { fr: "/contact", en: "/en/contact" },
 ];

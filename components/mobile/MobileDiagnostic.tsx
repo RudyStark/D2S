@@ -13,6 +13,10 @@ import { agentCard } from "@/lib/agent-directory";
 import {
   activeQuestions,
   buildResult,
+  buildSolution,
+  isSolutionPath,
+  solutionSummary,
+  joinIn,
   customStepsOf,
   diagnosticSummary,
   optionsFor,
@@ -20,7 +24,10 @@ import {
   withAnswer,
   type Answers,
   type DiagnosticResult,
+  type SolutionResult,
 } from "@/lib/diagnostic";
+import { offersOf } from "@/lib/offers";
+import { Layers } from "@/components/ui/Icons";
 import { teamOf, type AgentProfile } from "@/lib/team";
 import { valueOf } from "@/lib/value";
 import type { MobileContactIntent } from "./mobile-navigation";
@@ -30,7 +37,7 @@ const TEXTS = {
   fr: {
     kicker: "Comment choisir",
     title: ["Quel agent IA", "pour vous ?"],
-    lead: "Quelques questions pour trouver, parmi nos 16 agents, votre point de départ.",
+    lead: "Quelques questions pour trouver votre point de départ : un de nos 16 agents, un agent sur mesure ou une solution IA complète.",
     count: (n: number, total: number) => (
       <>
         Question <strong>{n}</strong> sur {total}
@@ -54,11 +61,14 @@ const TEXTS = {
     duo: "Idéal en duo avec",
     talk: "Parlons de ce résultat",
     restart: "Recommencer",
+    solTitle: { app: "Une application métier IA, conçue pour votre activité.", command: "Un centre de pilotage IA pour vos équipes." },
+    brings: (list: string) => `Votre point de départ : ${list}.`,
+    solTalk: "Étudier votre projet",
   },
   en: {
     kicker: "How to choose",
     title: ["Which AI agent", "for you?"],
-    lead: "A few questions to find, among our 16 agents, your starting point.",
+    lead: "A few questions to find your starting point: one of our 16 agents, a custom agent or a complete AI solution.",
     count: (n: number, total: number) => (
       <>
         Question <strong>{n}</strong> of {total}
@@ -82,6 +92,9 @@ const TEXTS = {
     duo: "Ideal paired with",
     talk: "Let’s talk about this result",
     restart: "Start again",
+    solTitle: { app: "An AI business application, designed for your business.", command: "An AI command centre for your teams." },
+    brings: (list: string) => `Your starting point: ${list}.`,
+    solTalk: "Discuss your project",
   },
 };
 
@@ -97,6 +110,7 @@ export function MobileDiagnostic({
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [result, setResult] = useState<DiagnosticResult | null>(null);
+  const [solution, setSolution] = useState<SolutionResult | null>(null);
   const [changed, setChanged] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const card = useRef<HTMLDivElement>(null);
@@ -120,7 +134,7 @@ export function MobileDiagnostic({
         behavior: "auto",
       });
     }
-  }, [step, result, changed]);
+  }, [step, result, solution, changed]);
 
   const choose = (id: string) => {
     const values = question.multiple
@@ -150,13 +164,27 @@ export function MobileDiagnostic({
           <p className={styles.lead}>{t.lead}</p>
         </div>
         <div ref={card} className={styles.quizCard} data-reveal>
-          {!result ? (
+          {solution ? (
+            <MobileSolution
+              solution={solution}
+              locale={locale}
+              titleRef={heading}
+              onContact={onContact}
+              onRestart={() => {
+                setAnswers({});
+                setSolution(null);
+                setStep(0);
+                setChanged(true);
+              }}
+            />
+          ) : !result ? (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!selected.length) return;
                 setChanged(true);
                 if (step < questions.length - 1) setStep(step + 1);
+                else if (isSolutionPath(answers)) setSolution(buildSolution(answers, locale));
                 else setResult(buildResult(answers, locale));
               }}
             >
@@ -347,5 +375,55 @@ export function MobileDiagnostic({
         </div>
       </div>
     </section>
+  );
+}
+
+/** Result of the solution path (« tout le quotidien de mon métier » / « plusieurs services »). */
+function MobileSolution({
+  solution,
+  locale,
+  titleRef,
+  onContact,
+  onRestart,
+}: {
+  solution: SolutionResult;
+  locale: "fr" | "en";
+  titleRef: React.RefObject<HTMLHeadingElement | null>;
+  onContact: (intent: MobileContactIntent) => void;
+  onRestart: () => void;
+}) {
+  const t = TEXTS[locale];
+  const format = offersOf(locale).solutions.formats.find((f) => f.id === solution.format)!;
+  return (
+    <div className={styles.result}>
+      <p className={styles.eyebrow}>{t.start}</p>
+      <span className={styles.resultIcon}>
+        <Layers size={30} />
+      </span>
+      <h3 ref={titleRef} tabIndex={-1}>
+        {t.solTitle[solution.format]}
+      </h3>
+      <p>
+        {format.text}
+        {solution.parts.length > 0 && <> {t.brings(joinIn(solution.parts.map((p) => p.phrase ?? p.label), locale))}</>}
+      </p>
+      <ul className={styles.resultMissions}>
+        {format.points.map((point) => (
+          <li key={point}>{point}</li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        className={styles.primary}
+        onClick={() => onContact({ source: "mobile-diagnostic-solution", need: "custom", diagnostic: solutionSummary(solution, locale) })}
+      >
+        {t.solTalk}
+        <ArrowRight size={18} />
+      </button>
+      <button type="button" className={styles.textButton} onClick={onRestart}>
+        <Replay size={16} />
+        {t.restart}
+      </button>
+    </div>
   );
 }

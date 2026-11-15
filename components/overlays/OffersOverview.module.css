@@ -1,0 +1,281 @@
+/*
+ * The offer at a glance (desktop): three cards on the services grid (1253 u wide, like the feature panel).
+ * Light glass for the two agent offers, deep navy for the custom AI software — the "top of the range" reads
+ * at a glance without a word. A large faint numeral anchors each card, editorial style.
+ */
+.overview {
+  width: calc(1253 * var(--u));
+  margin-top: calc(34 * var(--u));
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: calc(12 * var(--u));
+  margin: 0 0 calc(16 * var(--u));
+  font-family: var(--font-body);
+  font-size: max(10.5px, calc(12 * var(--u)));
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+
+.labelLine {
+  width: calc(28 * var(--u));
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #0b52ef, #14a6e2);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(18 * var(--u));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  --edge: rgb(255 255 255 / 0.95);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(318 * var(--u));
+  padding: calc(26 * var(--u)) calc(28 * var(--u)) calc(24 * var(--u));
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: calc(24 * var(--u));
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgb(255 255 255 / 0.7), transparent 60%),
+    linear-gradient(165deg, rgb(255 255 255 / 0.9), rgb(246 250 255 / 0.78));
+  box-shadow:
+    inset 0 0 0 1px var(--edge),
+    0 0 0 1px rgb(11 18 56 / 0.06),
+    0 26px 60px -36px rgb(11 18 56 / 0.4);
+  backdrop-filter: blur(18px) saturate(1.3);
+  color: var(--ink);
+  transition:
+    opacity 0.8s var(--ease-out),
+    translate 0.8s var(--ease-out),
+    box-shadow 0.45s var(--ease-out);
+  transition-delay: calc(var(--i) * 90ms), calc(var(--i) * 90ms), 0s;
+}
+
+.overview[data-in="false"] .card {
+  opacity: 0;
+  translate: 0 calc(26 * var(--u));
+}
+
+@media (hover: hover) {
+  .card:hover {
+    translate: 0 calc(-5 * var(--u));
+    box-shadow:
+      inset 0 0 0 1px var(--edge),
+      0 0 0 1px rgb(21 112 240 / 0.22),
+      0 34px 70px -34px rgb(21 60 160 / 0.45);
+    transition-delay: 0s;
+  }
+}
+
+/* The custom AI software: deep navy, a slow aurora in the corner. */
+.card[data-tone="deep"] {
+  --edge: rgb(140 180 255 / 0.28);
+  background:
+    radial-gradient(90% 70% at 100% 0%, rgb(40 110 255 / 0.42), transparent 62%),
+    radial-gradient(70% 60% at 0% 100%, rgb(20 166 226 / 0.22), transparent 65%),
+    linear-gradient(160deg, #0f1a4a, #0a1131 70%);
+  box-shadow:
+    inset 0 0 0 1px var(--edge),
+    0 0 0 1px rgb(11 18 56 / 0.2),
+    0 30px 70px -34px rgb(11 18 56 / 0.7);
+  color: #fff;
+}
+
+.card[data-tone="deep"]::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: conic-gradient(from 0deg at 70% 30%, transparent 0deg, rgb(80 150 255 / 0.16) 60deg, transparent 140deg);
+  animation: aurora 14s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes aurora {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.numeral {
+  position: absolute;
+  top: calc(-6 * var(--u));
+  right: calc(18 * var(--u));
+  z-index: -1;
+  font-family: var(--font-display);
+  font-size: calc(112 * var(--u));
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  background: linear-gradient(180deg, rgb(21 112 240 / 0.16), rgb(21 112 240 / 0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  user-select: none;
+}
+
+.card[data-tone="deep"] .numeral {
+  background-image: linear-gradient(180deg, rgb(160 200 255 / 0.26), rgb(160 200 255 / 0));
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: calc(48 * var(--u));
+  height: calc(48 * var(--u));
+  border-radius: calc(15 * var(--u));
+  background: linear-gradient(135deg, #0b52ef, #14a6e2);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    0 12px 24px -12px rgb(21 112 240 / 0.7);
+  color: #fff;
+}
+
+.icon svg {
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+}
+
+.card[data-tone="deep"] .icon {
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.95), rgb(200 224 255 / 0.9));
+  box-shadow: 0 12px 26px -12px rgb(60 140 255 / 0.8);
+  color: #0b52ef;
+}
+
+.tag {
+  margin: calc(20 * var(--u)) 0 0;
+  font-family: var(--font-body);
+  font-size: max(10px, calc(11.5 * var(--u)));
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+
+.card[data-tone="deep"] .tag {
+  color: #8fc2ff;
+}
+
+.title {
+  margin: calc(8 * var(--u)) 0 0;
+  font-family: var(--font-display);
+  font-size: max(19px, calc(26 * var(--u)));
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+.text {
+  margin: calc(10 * var(--u)) 0 0;
+  font-family: var(--font-body);
+  font-size: max(12.5px, calc(14.5 * var(--u)));
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.card[data-tone="deep"] .text {
+  color: rgb(222 232 255 / 0.86);
+}
+
+.fit {
+  margin: calc(14 * var(--u)) 0 0;
+  padding-top: calc(14 * var(--u));
+  border-top: 1px solid var(--line);
+  font-family: var(--font-body);
+  font-size: max(11.5px, calc(13 * var(--u)));
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.card[data-tone="deep"] .fit {
+  border-top-color: rgb(255 255 255 / 0.14);
+  color: rgb(255 255 255 / 0.92);
+}
+
+.more {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: calc(8 * var(--u));
+  margin-top: auto;
+  padding: calc(16 * var(--u)) 0 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: max(12px, calc(14 * var(--u)));
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+}
+
+.more svg {
+  width: calc(16 * var(--u));
+  height: calc(16 * var(--u));
+  transition: translate 0.35s var(--ease-out);
+}
+
+.more:hover svg,
+.more:focus-visible svg {
+  translate: calc(4 * var(--u)) 0;
+}
+
+.more:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.card[data-tone="deep"] .more {
+  color: #fff;
+}
+
+.card[data-tone="deep"] .more:focus-visible {
+  outline-color: #8fc2ff;
+}
+
+@media (max-width: 1024px) {
+  .overview {
+    width: auto;
+    margin-top: 24px;
+  }
+
+  .cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card {
+    min-height: 0;
+  }
+
+  .numeral {
+    font-size: 88px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+
+  .overview[data-in="false"] .card {
+    opacity: 1;
+    translate: none;
+  }
+
+  .card[data-tone="deep"]::after {
+    animation: none;
+  }
+}

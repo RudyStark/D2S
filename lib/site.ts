@@ -9,12 +9,12 @@ import { MORE_TEAM, moreTeamOf } from "./team-more";
  */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3217").replace(/\/$/, "");
 export const SITE_NAME = "D2S AIgency";
-export const SITE_TITLE = "D2S AIgency — Agence IA : agents IA sur mesure pour votre entreprise";
+export const SITE_TITLE = "Agence IA : agents IA et solutions IA sur mesure — D2S AIgency";
 export const SITE_DESCRIPTION =
-  "D2S AIgency, agence IA en Île-de-France : 16 agents IA prêts à l’emploi ou sur mesure pour la prospection, le support client, le contenu et la gestion.";
+  "D2S AIgency, agence IA en Île-de-France : 16 agents IA prêts à l’emploi, agents IA sur mesure et logiciels IA métier, jusqu’aux centres de pilotage IA.";
 /** One paragraph an assistant can quote as is. */
 export const SITE_SUMMARY =
-  "D2S AIgency est une agence d’intelligence artificielle basée aux Pavillons-sous-Bois, en Île-de-France, qui conçoit, connecte et fait évoluer des agents IA pour les entreprises. Ses cinq agents phares (Déa pour le contenu, Loic pour le support client, May pour la prospection, Diva pour les RH et Morgan pour l’analyse de données) et onze autres experts (vente, marketing, gestion, pilotage) travaillent dans les outils existants de l’entreprise, 24h/24, et laissent toujours la décision aux équipes. Quand un processus est propre au métier, D2S AIgency construit un agent sur mesure. Le premier échange, de 30 minutes, est gratuit et sans engagement.";
+  "D2S AIgency est une agence d’intelligence artificielle basée aux Pavillons-sous-Bois, en Île-de-France, qui conçoit, connecte et fait évoluer des agents IA pour les entreprises. Ses cinq agents phares (Déa pour le contenu, Loic pour le support client, May pour la prospection, Diva pour les RH et Morgan pour l’analyse de données) et onze autres experts (vente, marketing, gestion, pilotage) travaillent dans les outils existants de l’entreprise, 24h/24, et laissent toujours la décision aux équipes. Quand un processus est propre au métier, D2S AIgency construit un agent IA sur mesure, branché sur les logiciels de l’entreprise. Elle conçoit aussi des solutions IA sur mesure : des applications métier pour les indépendants, cabinets et PME, et des centres de pilotage où des équipes d’agents travaillent par département pour les grandes entreprises, en France et à l’international. Le premier échange, de 30 minutes, est gratuit et sans engagement.";
 
 /** "Support client IA" → "support client IA" (only the first letter; a leading acronym such as "AI" is kept). */
 export const lowerFirst = (s: string) => (/^[A-Z]{2}/.test(s) ? s : s.charAt(0).toLowerCase() + s.slice(1));
@@ -41,7 +41,11 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Quand faut-il un agent IA sur mesure ?",
-    a: "Quand votre processus a ses propres règles, validations et cas particuliers. D2S AIgency construit alors un agent autour de votre métier : atelier de cadrage, prototype testé sur vos cas réels, puis mise en service, mesure et amélioration continue.",
+    a: "Quand votre processus a ses propres règles, validations et cas particuliers. D2S AIgency construit alors un agent autour de votre métier, branché sur vos logiciels (CRM, ERP, comptabilité, outils internes) : atelier de cadrage, prototype testé sur vos cas réels, puis mise en service, mesure et amélioration continue.",
+  },
+  {
+    q: "Proposez-vous des logiciels IA sur mesure ?",
+    a: "Oui. Au-delà d’un agent, D2S AIgency conçoit des solutions IA sur mesure : une application métier pour un indépendant, un cabinet ou une PME, qui réunit e-mails, courrier, documents et agenda avec un agent qui connaît les règles de la profession ; ou, pour les grandes entreprises, un centre de pilotage où un agent coordinateur dirige des équipes d’agents par département (ventes, service client, logistique, finance, RH). Vos données restent dans vos outils et chaque décision sensible est validée par vos équipes.",
   },
   {
     q: "Comment se déroule un projet avec D2S AIgency ?",
@@ -59,11 +63,11 @@ export const FAQ: { q: string; a: string }[] = [
 
 /* ——— English ——— */
 
-const SITE_TITLE_EN = "D2S AIgency — AI agency: custom AI agents for your business";
+const SITE_TITLE_EN = "AI agency: AI agents and custom AI solutions — D2S AIgency";
 const SITE_DESCRIPTION_EN =
-  "D2S AIgency, an AI agency near Paris: 16 ready-to-use or custom AI agents for prospecting, customer support, content and back-office work.";
+  "D2S AIgency, an AI agency near Paris: 16 ready-to-use AI agents, custom AI agents and AI business software, up to AI command centres for large groups.";
 const SITE_SUMMARY_EN =
-  "D2S AIgency is an artificial intelligence agency based in Les Pavillons-sous-Bois, near Paris (Île-de-France, France), that designs, connects and keeps improving AI agents for businesses. Its five flagship agents (Déa for content, Loic for customer support, May for prospecting, Diva for HR and Morgan for data analysis) and eleven more experts (sales, marketing, operations, management) work in the company’s existing tools, 24/7, and always leave the decision to its teams. When a process is specific to the business, D2S AIgency builds a custom agent. The first 30-minute call is free and with no commitment.";
+  "D2S AIgency is an artificial intelligence agency based in Les Pavillons-sous-Bois, near Paris (Île-de-France, France), that designs, connects and keeps improving AI agents for businesses. Its five flagship agents (Déa for content, Loic for customer support, May for prospecting, Diva for HR and Morgan for data analysis) and eleven more experts (sales, marketing, operations, management) work in the company’s existing tools, 24/7, and always leave the decision to its teams. When a process is specific to the business, D2S AIgency builds a custom AI agent, connected to the company’s software. It also designs custom AI solutions: business applications for freelancers, practices and SMEs, and command centres where teams of agents work by department for large companies, in France and abroad. The first 30-minute call is free and with no commitment.";
 
 function faqEn() {
   const { services, steps, promises } = servicesText("en");
@@ -88,7 +92,11 @@ function faqEn() {
     },
     {
       q: "When do I need a custom AI agent?",
-      a: "When your process has its own rules, approvals and special cases. D2S AIgency then builds an agent around your business: a scoping workshop, a prototype tested on your real cases, then go-live, measurement and continuous improvement.",
+      a: "When your process has its own rules, approvals and special cases. D2S AIgency then builds an agent around your business, connected to your software (CRM, ERP, accounting, in-house tools): a scoping workshop, a prototype tested on your real cases, then go-live, measurement and continuous improvement.",
+    },
+    {
+      q: "Do you build custom AI software?",
+      a: "Yes. Beyond a single agent, D2S AIgency designs custom AI solutions: a business application for a freelancer, a practice or an SME, bringing together e-mails, mail, documents and calendar with an agent that knows the rules of the profession; or, for large companies, a command centre where a coordinating agent runs teams of agents by department (sales, customer care, logistics, finance, HR). Your data stays in your tools and every sensitive decision is approved by your teams.",
     },
     {
       q: "How does a project with D2S AIgency work?",
@@ -110,6 +118,11 @@ const KEYWORDS_FR = [
   "agent IA",
   "agents IA pour entreprise",
   "agent IA sur mesure",
+  "solution IA sur mesure",
+  "logiciel IA sur mesure",
+  "application IA métier",
+  "plateforme IA pour grandes entreprises",
+  "orchestration d’agents IA",
   "automatisation IA",
   "IA support client",
   "IA prospection commerciale",
@@ -121,6 +134,11 @@ const KEYWORDS_EN = [
   "AI agency",
   "AI agents",
   "custom AI agent",
+  "custom AI solutions",
+  "custom AI software",
+  "AI business application",
+  "AI command centre",
+  "AI agent orchestration",
   "AI for business",
   "AI automation",
   "AI customer support",

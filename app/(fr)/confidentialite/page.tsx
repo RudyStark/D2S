@@ -1,16 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { LegalPage, ToFill, type LegalSection } from "@/components/pages/LegalPage";
 import { LEGAL_HREF, PRIVACY_CONTACT, PROCESSORS, PUBLISHER } from "@/lib/legal";
-import { pageAlternates } from "@/lib/seo";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Politique de confidentialité",
-  description:
-    "Comment D2S AIgency traite les messages adressés à May, les demandes de contact, les prises de rendez-vous et les agendas Google ou Outlook connectés au hub de ses clients.",
-  alternates: pageAlternates("/confidentialite", "fr"),
-};
+export function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> {
+  return pageMetadata({ frPath: "/confidentialite", locale: "fr", title: "Politique de confidentialité", description: "Comment D2S AIgency traite les messages adressés à May, les demandes de contact, les prises de rendez-vous et les agendas Google ou Outlook connectés au hub de ses clients." }, parent);
+}
 
 /*
  * Describes what the site, and the hub's calendar connection, really do (keep it true when either changes):

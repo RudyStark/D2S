@@ -16,7 +16,7 @@ import type { Locale } from "./i18n";
 export const DIAGNOSTIC_INTRO = {
   kicker: "Comment ça marche",
   title: ["Comment choisir", "votre agent IA ?"],
-  lead: "Quelques questions sur votre activité, une minute. Parmi nos seize agents, nous vous disons lequel peut prendre le relais, ou s’il vous faut un agent sur mesure, construit autour de votre métier.",
+  lead: "Quelques questions sur votre activité, une minute. Nous vous disons lequel de nos seize agents peut prendre le relais, s’il vous faut un agent sur mesure, ou une solution IA complète pour votre métier ou vos équipes.",
 };
 
 export type { AgentKey } from "./agent-directory";
@@ -54,7 +54,17 @@ export type OptionIcon =
   | "software"
   | "standard"
   | "specific"
-  | "unique";
+  | "unique"
+  | "scope-task"
+  | "scope-trade"
+  | "scope-teams"
+  | "size-solo"
+  | "size-sme"
+  | "size-large"
+  | "post"
+  | "logistics"
+  | "finance"
+  | "marketing";
 
 export type AreaId = "sales" | "clients" | "marketing" | "admin" | "team" | "other";
 
@@ -75,10 +85,17 @@ export interface DiagnosticOption {
   pair?: AgentKey;
   /** Precise tasks: share of the work an agent typically takes over (low, high), see estimateHours. */
   share?: [number, number];
+  /** « Ce que la solution réunit »: the scope it belongs to (a trade's daily work, or the departments). */
+  scope?: ScopeId;
 }
 
+/** Ids of the agent questions (scored) and of the solution path (« Que voulez-vous confier à l’IA ? »). */
+type CoreId = "area" | "task" | "time" | "tools" | "process";
+type FlowId = "scope" | "size" | "parts";
+export type ScopeId = "task" | "trade" | "teams";
+
 export interface DiagnosticQuestion {
-  id: "area" | "task" | "time" | "tools" | "process";
+  id: CoreId | FlowId;
   title: string;
   help: string;
   multiple?: boolean;
@@ -203,10 +220,10 @@ type Words = { label: string; hint?: string; phrase?: string };
 const DIAGNOSTIC_INTRO_EN: typeof DIAGNOSTIC_INTRO = {
   kicker: "How it works",
   title: ["How to choose", "your AI agent?"],
-  lead: "A few questions about your business, one minute. Among our sixteen agents, we tell you which one can take over, or whether you need a custom agent, built around your trade.",
+  lead: "A few questions about your business, one minute. We tell you which of our sixteen agents can take over, whether you need a custom agent, or a complete AI solution for your trade or your teams.",
 };
 
-const QUESTION_WORDS_EN: Record<DiagnosticQuestion["id"], { title: string; help: string; options: Record<string, Words> }> = {
+const QUESTION_WORDS_EN: Record<CoreId, { title: string; help: string; options: Record<string, Words> }> = {
   area: {
     title: "Where would you like help first?",
     help: "Pick the area that costs you the most time. We narrow it down right after.",
@@ -278,7 +295,7 @@ const QUESTION_WORDS_EN: Record<DiagnosticQuestion["id"], { title: string; help:
 };
 
 const QUESTIONS_EN: DiagnosticQuestion[] = QUESTIONS.map((q) => {
-  const w = QUESTION_WORDS_EN[q.id];
+  const w = QUESTION_WORDS_EN[q.id as CoreId];
   return { ...q, title: w.title, help: w.help, options: q.options.map((o) => ({ ...o, ...w.options[o.id] })) };
 });
 
@@ -305,21 +322,125 @@ export function completeAnswers(answers: Answers): Answers {
   return out;
 }
 
-/** The questions to ask for these answers: the precise task is skipped for « Autre chose ». */
+/*
+ * The first question, and the short path it opens: one precise task → the agent questions above (scored); the
+ * daily work of a whole trade, or several departments → a custom AI solution (business application or command
+ * centre), sized by two questions. Not scored: the agent ranking only concerns the task path.
+ */
+const FLOW_QUESTIONS: DiagnosticQuestion[] = [
+  {
+    id: "scope",
+    title: "Que voulez-vous confier à l’IA ?",
+    help: "Une tâche précise, ou tout un ensemble : c’est ce qui oriente vers un agent ou vers une solution complète.",
+    options: [
+      { id: "task", label: "Une tâche précise", hint: "Prospection, service client, contenu, factures…", icon: "scope-task", score: {} },
+      { id: "trade", label: "Tout le quotidien de mon métier", hint: "E-mails, courrier, documents, agenda : un seul espace", icon: "scope-trade", score: {} },
+      { id: "teams", label: "Plusieurs services ou équipes", hint: "Ventes, service client, logistique, finance, RH…", icon: "scope-teams", score: {} },
+    ],
+  },
+  {
+    id: "size",
+    title: "Quelle est la taille de votre structure ?",
+    help: "Pour dimensionner la solution.",
+    options: [
+      { id: "solo", label: "Indépendant ou cabinet", hint: "Jusqu’à 5 personnes", icon: "size-solo", score: {} },
+      { id: "sme", label: "PME", hint: "De 5 à 250 personnes", icon: "size-sme", score: {} },
+      { id: "large", label: "Grande entreprise ou groupe", hint: "Plus de 250 personnes, plusieurs sites ou pays", icon: "size-large", score: {} },
+    ],
+  },
+  {
+    id: "parts",
+    title: "Que doit réunir votre solution ?",
+    help: "Plusieurs réponses possibles.",
+    multiple: true,
+    options: [
+      { id: "mail", scope: "trade", label: "E-mails", phrase: "vos e-mails", icon: "mail", score: {} },
+      { id: "post", scope: "trade", label: "Courrier papier", phrase: "votre courrier", icon: "post", score: {} },
+      { id: "docs", scope: "trade", label: "Dossiers et documents", phrase: "vos dossiers", icon: "docs", score: {} },
+      { id: "calendar", scope: "trade", label: "Agenda et échéances", phrase: "votre agenda", icon: "calendar", score: {} },
+      { id: "clients", scope: "trade", label: "Clients et demandes", phrase: "vos clients", icon: "support", score: {} },
+      { id: "billing", scope: "trade", label: "Factures et paiements", phrase: "vos factures", icon: "billing", score: {} },
+      { id: "sales", scope: "teams", label: "Ventes", phrase: "les ventes", icon: "prospection", score: {} },
+      { id: "care", scope: "teams", label: "Service client", phrase: "le service client", icon: "support", score: {} },
+      { id: "logistics", scope: "teams", label: "Logistique", phrase: "la logistique", icon: "logistics", score: {} },
+      { id: "finance", scope: "teams", label: "Finance", phrase: "la finance", icon: "finance", score: {} },
+      { id: "hr", scope: "teams", label: "RH", phrase: "les RH", icon: "hr", score: {} },
+      { id: "marketing", scope: "teams", label: "Marketing", phrase: "le marketing", icon: "marketing", score: {} },
+    ],
+  },
+];
+
+const FLOW_WORDS_EN: Record<FlowId, { title: string; help: string; options: Record<string, Words> }> = {
+  scope: {
+    title: "What do you want to hand over to AI?",
+    help: "One precise task, or a whole set: that is what points to an agent or to a complete solution.",
+    options: {
+      task: { label: "One precise task", hint: "Prospecting, customer care, content, invoices…" },
+      trade: { label: "The daily work of my whole trade", hint: "E-mails, mail, documents, calendar: one single place" },
+      teams: { label: "Several departments or teams", hint: "Sales, customer care, logistics, finance, HR…" },
+    },
+  },
+  size: {
+    title: "How large is your organisation?",
+    help: "To size the solution.",
+    options: {
+      solo: { label: "Freelancer or practice", hint: "Up to 5 people" },
+      sme: { label: "SME", hint: "From 5 to 250 people" },
+      large: { label: "Large company or group", hint: "Over 250 people, several sites or countries" },
+    },
+  },
+  parts: {
+    title: "What should your solution bring together?",
+    help: "Several answers possible.",
+    options: {
+      mail: { label: "E-mails", phrase: "your e-mails" },
+      post: { label: "Paper mail", phrase: "your mail" },
+      docs: { label: "Files and documents", phrase: "your files" },
+      calendar: { label: "Calendar and deadlines", phrase: "your calendar" },
+      clients: { label: "Customers and requests", phrase: "your customers" },
+      billing: { label: "Invoices and payments", phrase: "your invoices" },
+      sales: { label: "Sales", phrase: "sales" },
+      care: { label: "Customer care", phrase: "customer care" },
+      logistics: { label: "Logistics", phrase: "logistics" },
+      finance: { label: "Finance", phrase: "finance" },
+      hr: { label: "HR", phrase: "HR" },
+      marketing: { label: "Marketing", phrase: "marketing" },
+    },
+  },
+};
+
+const FLOW_QUESTIONS_EN: DiagnosticQuestion[] = FLOW_QUESTIONS.map((q) => {
+  const w = FLOW_WORDS_EN[q.id as FlowId];
+  return { ...q, title: w.title, help: w.help, options: q.options.map((o) => ({ ...o, ...w.options[o.id] })) };
+});
+
+const flowOf = (locale: Locale = "fr") => (locale === "en" ? FLOW_QUESTIONS_EN : FLOW_QUESTIONS);
+const flowQuestion = (id: FlowId, locale: Locale = "fr") => flowOf(locale).find((q) => q.id === id)!;
+
+/** A whole trade or several departments: the custom AI solution path. */
+export const isSolutionPath = (answers: Answers) => answers.scope?.[0] === "trade" || answers.scope?.[0] === "teams";
+
+/** The questions to ask for these answers: the scope first, then the solution path or the agent questions
+ *  (the precise task is skipped for « Autre chose »). */
 export function activeQuestions(answers: Answers, locale: Locale = "fr") {
-  return questionsOf(locale).filter((q) => !(q.id === "task" && answers.area?.[0] === "other"));
+  const [scope, size, parts] = flowOf(locale);
+  if (isSolutionPath(answers)) return [scope, size, parts];
+  return [scope, ...questionsOf(locale).filter((q) => !(q.id === "task" && answers.area?.[0] === "other"))];
 }
 
-/** Options shown for a question: the precise tasks of the chosen field only. */
+/** Options shown for a question: the precise tasks of the chosen field, the parts of the chosen scope. */
 export function optionsFor(q: DiagnosticQuestion, answers: Answers) {
+  if (q.id === "parts") return q.options.filter((o) => o.scope === answers.scope?.[0]);
   if (q.id !== "task") return q.options;
   const area = answers.area?.[0];
   return q.options.filter((o) => o.area === area && o.id !== "other");
 }
 
-/** New answers after a choice, keeping the task coherent with the field (a new field clears the task). */
+/** New answers after a choice, keeping the task coherent with the field (a new field clears the task) and
+ *  the parts coherent with the scope. */
 export function withAnswer(answers: Answers, id: DiagnosticQuestion["id"], values: string[]): Answers {
   const next: Answers = { ...answers, [id]: values };
+  if (id === "scope" && answers.scope?.[0] !== values[0]) delete next.parts;
   if (id === "area") {
     const area = values[0];
     if (area === "other") next.task = ["other"];
@@ -519,5 +640,38 @@ export function diagnosticSummary(input: Answers, result: DiagnosticResult, loca
     answers.tools?.length ? `Outils : ${labels("tools")}` : "",
     `Processus : ${labels("process").toLowerCase()}`,
     `Gain estimé : ${result.hours.min === result.hours.max ? `≈ ${result.hours.min}` : `${result.hours.min} à ${result.hours.max}`} h par mois`,
+  ].filter(Boolean);
+}
+
+/* ——— The custom AI solution path ——— */
+
+export type SolutionFormat = "app" | "command";
+
+export interface SolutionResult {
+  /** Business application (one trade) or command centre (several departments of a larger organisation). */
+  format: SolutionFormat;
+  scope: DiagnosticOption;
+  size: DiagnosticOption | null;
+  parts: DiagnosticOption[];
+}
+
+export function buildSolution(answers: Answers, locale: Locale = "fr"): SolutionResult {
+  const scopeId = answers.scope?.[0] ?? "trade";
+  const sizeId = answers.size?.[0];
+  // Several departments call for a command centre, unless the organisation is a single person or a small practice.
+  const format: SolutionFormat = scopeId === "teams" && sizeId !== "solo" ? "command" : "app";
+  const pick = (id: FlowId) => flowQuestion(id, locale).options.filter((o) => answers[id]?.includes(o.id));
+  return { format, scope: pick("scope")[0] ?? flowQuestion("scope", locale).options[1], size: pick("size")[0] ?? null, parts: pick("parts") };
+}
+
+/** The solution path in a few lines, attached to the contact request. */
+export function solutionSummary(solution: SolutionResult, locale: Locale = "fr") {
+  const en = locale === "en";
+  const name = solution.format === "command" ? (en ? "AI command centre" : "Centre de pilotage IA") : en ? "AI business application" : "Application métier IA";
+  return [
+    en ? `Recommendation: ${name} (custom AI solution)` : `Recommandation : ${name} (solution IA sur mesure)`,
+    en ? `Project: ${solution.scope.label.toLowerCase()}` : `Projet : ${solution.scope.label.toLowerCase()}`,
+    solution.size ? (en ? `Size: ${solution.size.label}` : `Taille : ${solution.size.label}`) : "",
+    solution.parts.length ? (en ? `Scope: ${solution.parts.map((o) => o.label).join(", ")}` : `Périmètre : ${solution.parts.map((o) => o.label).join(", ")}`) : "",
   ].filter(Boolean);
 }

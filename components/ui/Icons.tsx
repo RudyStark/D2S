@@ -287,3 +287,22 @@ export const Slides = ({ size = 20, ...p }: IconProps) => (
     <path d="M7.5 12.5v-2M11 12.5V8M14.5 12.5v-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 );
+
+/** Stacked layers: a complete application (custom AI solutions). */
+export const Layers = ({ size = 20, ...p }: IconProps) => (
+  <svg {...base(size, p)}>
+    <path d="m12 3.5 8.5 4.5-8.5 4.5L3.5 8 12 3.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="m3.5 12 8.5 4.5 8.5-4.5M3.5 16l8.5 4.5 8.5-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** An agent node wired to others (custom AI agent). */
+export const AgentNode = ({ size = 20, ...p }: IconProps) => (
+  <svg {...base(size, p)}>
+    <circle cx="12" cy="12" r="3.4" stroke="currentColor" strokeWidth="1.6" />
+    <circle cx="5" cy="5.5" r="1.8" stroke="currentColor" strokeWidth="1.5" />
+    <circle cx="19" cy="5.5" r="1.8" stroke="currentColor" strokeWidth="1.5" />
+    <circle cx="12" cy="20" r="1.8" stroke="currentColor" strokeWidth="1.5" />
+    <path d="m6.4 6.8 3.1 3M17.6 6.8l-3.1 3M12 15.4v2.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);

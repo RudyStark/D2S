@@ -39,6 +39,9 @@ import {
   scrollToMobileSection,
   type MobileContactIntent,
 } from "./mobile-navigation";
+import { MobileAgentFan } from "./MobileAgentFan";
+import { MobileCustom } from "./MobileCustom";
+import { offersOf } from "@/lib/offers";
 import styles from "./MobileHome.module.css";
 
 const TEXTS = {
@@ -52,6 +55,8 @@ const TEXTS = {
     badge: "L’IA, plus humaine, plus utile",
     hero: ["L’agence IA", "qui transforme", "votre temps en", "performance."],
     heroLead: "Des agents IA sur mesure pour automatiser vos tâches et libérer ce qui compte vraiment.",
+    proofs: [["16", "agents spécialisés"], ["24h/24", "dans vos outils"], ["Vous", "gardez la main"]],
+    sticky: "Parler à l’équipe",
     start: "Démarrer un projet",
     discover: "Découvrir nos agents",
     heroRoles: { content: "Création de contenu", support: "Support client" } as Record<string, string>,
@@ -84,6 +89,9 @@ const TEXTS = {
     agentsTitle: ["Une équipe IA.", "Vos ambitions."],
     agentsLead: "Cinq agents phares, et toute une équipe derrière eux.",
     discoverOne: (name: string, role: string) => `Découvrir ${name}, ${role}`,
+    fanCta: "Voir ses missions",
+    fanPrev: "Agent précédent",
+    fanNext: "Agent suivant",
     discoverShort: "Découvrir",
     experts: (n: number) => `+${n} experts dans l’équipe`,
     expertsText: "Chacun a son métier précis, et ils se passent le relais.",
@@ -107,6 +115,8 @@ const TEXTS = {
     badge: "AI, more human, more useful",
     hero: ["The AI agency", "that turns", "your time into", "performance."],
     heroLead: "Custom AI agents to automate your tasks and free up what really matters.",
+    proofs: [["16", "specialised agents"], ["24/7", "in your tools"], ["You", "stay in control"]],
+    sticky: "Talk to the team",
     start: "Start a project",
     discover: "Meet our agents",
     heroRoles: { content: "Content creation", support: "Customer support" } as Record<string, string>,
@@ -139,6 +149,9 @@ const TEXTS = {
     agentsTitle: ["An AI team.", "Your ambitions."],
     agentsLead: "Five flagship agents, and a whole team behind them.",
     discoverOne: (name: string, role: string) => `Meet ${name}, ${role}`,
+    fanCta: "See what they do",
+    fanPrev: "Previous agent",
+    fanNext: "Next agent",
     discoverShort: "Meet",
     experts: (n: number) => `+${n} experts on the team`,
     expertsText: "Each one has a precise trade, and they hand over to each other.",
@@ -185,8 +198,27 @@ export default function MobileHome() {
   // "Contact" in the menu: the same direct-message dialog as on desktop.
   const [contactOpen, setContactOpen] = useState(false);
   const [active, setActive] = useState("agence");
+  const [sticky, setSticky] = useState(false);
   const [agent, setAgent] = useState<AgentProfile | null>(null);
   const [intent, setIntent] = useState<MobileContactIntent | null>(null);
+
+  // The bottom action bar: shown once the hero has scrolled away, hidden while the contact form is on screen.
+  useEffect(() => {
+    const hero = document.getElementById("agence");
+    const form = document.getElementById("contact");
+    if (!hero || !form) return;
+    const state = { hero: true, form: false };
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.target === hero) state.hero = e.isIntersecting;
+        if (e.target === form) state.form = e.isIntersecting;
+      }
+      setSticky(!state.hero && !state.form);
+    }, { threshold: 0 });
+    io.observe(hero);
+    io.observe(form);
+    return () => io.disconnect();
+  }, []);
 
   const contact = useCallback((next: MobileContactIntent) => {
     setIntent({ ...next, stamp: Date.now() });
@@ -360,7 +392,7 @@ export default function MobileHome() {
         <section
           id="agence"
           tabIndex={-1}
-          className={`${styles.section} ${styles.hero}`}
+          className={`${styles.section} ${styles.hero} ${styles.dark}`}
           data-mobile-section
           aria-labelledby="mobile-hero-title"
         >
@@ -397,7 +429,16 @@ export default function MobileHome() {
                 <ChevronRight />
               </a>
             </div>
+            <ul className={styles.heroProofs}>
+              {t.proofs.map(([value, label]) => (
+                <li key={label}>
+                  <strong>{value}</strong>
+                  {label}
+                </li>
+              ))}
+            </ul>
             <div className={styles.heroAgents}>
+              <span className={styles.heroStage} aria-hidden="true" />
               {[TEAM[0], TEAM[1]].map((person) => (
                 <div key={person.type} className={styles.heroAgent}>
                   {/* Existing 2D cut-outs, never the GLB or a WebGL screenshot. */}
@@ -639,42 +680,14 @@ export default function MobileHome() {
               </h2>
               <p className={styles.lead}>{t.agentsLead}</p>
             </div>
-            <ul className={styles.agentList}>
-              {TEAM.map((person) => (
-                <li key={person.type} data-reveal>
-                  <button
-                    type="button"
-                    className={styles.agentCard}
-                    onClick={() => setAgent(person)}
-                    aria-label={t.discoverOne(person.name, person.role)}
-                  >
-                    <span
-                      className={styles.agentPortrait}
-                      style={{
-                        background: `linear-gradient(150deg, ${person.tint[0]}, ${person.tint[1]})`,
-                      }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`/images/agents/${person.type}.webp`}
-                        alt=""
-                        width={100}
-                        height={240}
-                        loading="lazy"
-                      />
-                    </span>
-                    <span className={styles.agentInfo}>
-                      <strong>{person.name}</strong>
-                      <span>{person.role}</span>
-                      <small>{t.discoverShort}</small>
-                    </span>
-                    <span className={styles.agentArrow}>
-                      <ChevronRight />
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <MobileAgentFan
+              team={TEAM}
+              label={t.discoverOne}
+              cta={t.fanCta}
+              prev={t.fanPrev}
+              next={t.fanNext}
+              onOpen={setAgent}
+            />
             {/* The rest of the team: a few concrete lines, not eleven more cards. */}
             <div className={styles.moreTeam} data-reveal>
               <div className={styles.moreHead}>
@@ -721,6 +734,25 @@ export default function MobileHome() {
           </div>
         </section>
 
+        <section
+          id="sur-mesure"
+          tabIndex={-1}
+          className={`${styles.section} ${styles.dark}`}
+          data-mobile-section
+          aria-labelledby="mobile-custom-title"
+        >
+          <div className={styles.inner}>
+            <div data-reveal>
+              <p className={styles.eyebrow}>{offersOf(locale).intro.kicker}</p>
+              <h2 id="mobile-custom-title" className={styles.title}>
+                {offersOf(locale).intro.title[0]} <span>{offersOf(locale).intro.title[1]}</span>
+              </h2>
+              <p className={styles.lead}>{offersOf(locale).intro.lead}</p>
+            </div>
+            <MobileCustom locale={locale} onContact={contact} />
+          </div>
+        </section>
+
         <MobileDiagnostic onContact={contact} onAgent={setAgent} />
 
         <section
@@ -762,6 +794,14 @@ export default function MobileHome() {
           }
         />
       </main>
+
+      <div className={styles.stickyCta} data-show={sticky} aria-hidden={!sticky}>
+        <button type="button" tabIndex={sticky ? 0 : -1} onClick={() => contact({ source: "mobile-sticky" })}>
+          <span className={styles.stickyDot} aria-hidden="true" />
+          {t.sticky}
+          <ArrowRight size={18} />
+        </button>
+      </div>
 
       <footer className={styles.footer}>
         <Logo width={110} animated={false} />

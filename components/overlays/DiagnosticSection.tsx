@@ -29,6 +29,7 @@ import {
   Target,
   TrendUp,
   Users,
+  Layers,
 } from "@/components/ui/Icons";
 import { useInView, useReducedMotion } from "@/hooks/useInView";
 import { useLocale } from "@/components/i18n/LocaleProvider";
@@ -40,6 +41,9 @@ import {
   AGENT_TOOLS,
   barFill,
   buildResult,
+  buildSolution,
+  isSolutionPath,
+  solutionSummary,
   CANDIDATES,
   customStepsOf,
   diagnosticIntroOf,
@@ -55,7 +59,11 @@ import {
   type Candidate,
   type DiagnosticResult,
   type OptionIcon,
+  type SolutionResult,
 } from "@/lib/diagnostic";
+import { offersOf, SOLUTIONS_ID } from "@/lib/offers";
+import { scrollToElement } from "@/lib/experience/director";
+import { AppMock, CommandMock } from "@/components/offers/SolutionMocks";
 import { contactClick } from "@/lib/contact";
 import { contactHrefOf } from "@/lib/navigation";
 import { allAgentsOf } from "@/lib/team-all";
@@ -96,6 +104,42 @@ const ICONS: Partial<Record<OptionIcon, (p: { size?: number }) => ReactNode>> = 
   standard: Check,
   specific: Gear,
   unique: Sparkle,
+  "scope-task": Target,
+  "scope-trade": Layers,
+  "scope-teams": People,
+  "size-solo": ContactCard,
+  "size-sme": Users,
+  "size-large": Globe,
+  post: Doc,
+  logistics: Package,
+  finance: Receipt,
+  marketing: Rocket,
+};
+
+/* Words of the custom AI solution path (the offer texts themselves come from lib/offers). */
+const SOL = {
+  fr: {
+    badge: "Solution sur mesure",
+    title: { app: ["Une application métier IA,", "conçue pour votre activité."], command: ["Un centre de pilotage IA", "pour vos équipes."] },
+    brings: (list: string) => `Votre point de départ : ${list}.`,
+    live: "Votre solution prend forme",
+    liveHelp: "Elle se dessine à chaque réponse.",
+    pending: "Choisissez ce qu’elle doit réunir",
+    cta: "Étudier votre projet",
+    see: "Voir la solution en détail",
+    note: "Chaque solution est conçue, livrée et maintenue par D2S AIgency, autour de vos outils et de vos règles.",
+  },
+  en: {
+    badge: "Custom solution",
+    title: { app: ["An AI business application,", "designed for your business."], command: ["An AI command centre", "for your teams."] },
+    brings: (list: string) => `Your starting point: ${list}.`,
+    live: "Your solution is taking shape",
+    liveHelp: "It is drawn with every answer.",
+    pending: "Choose what it should bring together",
+    cta: "Discuss your project",
+    see: "See the solution in detail",
+    note: "Every solution is designed, delivered and maintained by D2S AIgency, around your tools and your rules.",
+  },
 };
 
 const LEVEL: Partial<Record<OptionIcon, number>> = { "clock-low": 1, "clock-mid": 2, "clock-high": 3 };
@@ -258,6 +302,7 @@ export function DiagnosticSection() {
   const [dir, setDir] = useState<1 | -1>(1);
   const [answers, setAnswers] = useState<Answers>({});
   const [result, setResult] = useState<DiagnosticResult | null>(null);
+  const [solution, setSolution] = useState<SolutionResult | null>(null);
   const [dialogIndex, setDialogIndex] = useState<number | null>(null);
   const [origin, setOrigin] = useState<DOMRect | null>(null);
   const resultTitle = useRef<HTMLHeadingElement>(null);
@@ -283,14 +328,16 @@ export function DiagnosticSection() {
   useEffect(() => () => void (advance.current && window.clearTimeout(advance.current)), []);
 
   useEffect(() => {
-    if (result) resultTitle.current?.focus({ preventScroll: true });
-  }, [result]);
+    if (result || solution) resultTitle.current?.focus({ preventScroll: true });
+  }, [result, solution]);
 
   const next = useCallback(
     (current: Answers) => {
       if (step < activeQuestions(current, locale).length - 1) {
         setDir(1);
         setStep((s) => s + 1);
+      } else if (isSolutionPath(current)) {
+        setSolution(buildSolution(current, locale));
       } else {
         setResult(buildResult(current, locale));
       }
@@ -320,6 +367,7 @@ export function DiagnosticSection() {
   const restart = () => {
     setAnswers({});
     setResult(null);
+    setSolution(null);
     setDir(-1);
     setStep(0);
   };
@@ -342,11 +390,13 @@ export function DiagnosticSection() {
           ref={panel}
           className={`${styles.panel} ${glass.glass}`}
           data-glass={inView ? "in" : "out"}
-          data-phase={result ? "result" : "quiz"}
+          data-phase={result || solution ? "result" : "quiz"}
         >
           {/* ——— Left: the questions, then the recommendation ——— */}
           <div className={styles.main}>
-            {!result ? (
+            {solution ? (
+              <SolutionView solution={solution} titleRef={resultTitle} onRestart={restart} />
+            ) : !result ? (
               <form
                 className={styles.quiz}
                 onSubmit={(e) => {
@@ -532,7 +582,11 @@ export function DiagnosticSection() {
 
           {/* ——— Right: live compatibility, then the recommended agent (or the custom blueprint) ——— */}
           <div className={styles.side}>
-            {!result ? (
+            {solution ? (
+              <SolutionSide solution={solution} done />
+            ) : !result && isSolutionPath(answers) ? (
+              <SolutionSide solution={buildSolution(answers, locale)} done={false} />
+            ) : !result ? (
               <div className={styles.live}>
                 <p className={styles.liveTitle}>
                   <span className={styles.liveDot} aria-hidden="true" />
@@ -714,6 +768,105 @@ function Blueprint({ result }: { result: DiagnosticResult }) {
             {r}
           </li>
         ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Result of the solution path: the recommended format, what it brings together, the next step. */
+function SolutionView({
+  solution,
+  titleRef,
+  onRestart,
+}: {
+  solution: SolutionResult;
+  titleRef: React.RefObject<HTMLHeadingElement | null>;
+  onRestart: () => void;
+}) {
+  const locale = useLocale();
+  const tx = DIAG[locale];
+  const w = SOL[locale];
+  const format = offersOf(locale).solutions.formats.find((f) => f.id === solution.format)!;
+  const title = w.title[solution.format];
+  return (
+    <div className={styles.result} data-outcome="custom">
+      <p className={styles.resultKicker}>
+        {tx.yours}
+        <span className={styles.badge} data-outcome="custom">
+          {w.badge}
+        </span>
+      </p>
+      <h3 ref={titleRef} tabIndex={-1} className={styles.resultTitle}>
+        {title[0]} <span className={styles.accent}>{title[1]}</span>
+      </h3>
+      <p className={styles.resultText}>
+        {format.text}
+        {solution.parts.length > 0 && <> {w.brings(joinIn(solution.parts.map((p) => p.phrase ?? p.label), locale))}</>}
+      </p>
+      <ul className={styles.why}>
+        {format.points.map((line, i) => (
+          <li key={line} style={{ "--i": i } as React.CSSProperties}>
+            <Check size={15} />
+            {line}
+          </li>
+        ))}
+      </ul>
+      <div className={styles.resultActions}>
+        <Link
+          href={contactHrefOf(locale)}
+          className={styles.primary}
+          onClick={contactClick({ source: "diagnostic-solution", need: "custom", diagnostic: solutionSummary(solution, locale) })}
+        >
+          {w.cta}
+          <ArrowRight size={17} />
+        </Link>
+        <button
+          type="button"
+          className={styles.secondary}
+          onClick={() => {
+            const target = document.getElementById(SOLUTIONS_ID);
+            if (target) scrollToElement(target);
+          }}
+        >
+          {w.see}
+        </button>
+        <button type="button" className={styles.restart} onClick={onRestart}>
+          <Replay size={15} />
+          {tx.restart}
+        </button>
+      </div>
+      <p className={styles.footnote}>{w.note}</p>
+    </div>
+  );
+}
+
+/** Right column of the solution path: the format drawn live, and what it brings together. */
+function SolutionSide({ solution, done }: { solution: SolutionResult; done: boolean }) {
+  const locale = useLocale();
+  const w = SOL[locale];
+  const o = offersOf(locale).solutions;
+  const format = o.formats.find((f) => f.id === solution.format)!;
+  return (
+    <div className={styles.solSide} data-format={solution.format} data-done={done}>
+      <p className={styles.liveTitle}>
+        <span className={styles.liveDot} aria-hidden="true" />
+        {done ? format.title : w.live}
+      </p>
+      <p className={styles.liveHelp}>{done ? format.audience : w.liveHelp}</p>
+      <div className={styles.solStage} data-format={solution.format} aria-hidden="true">
+        {solution.format === "command" ? <CommandMock words={o.command} /> : <AppMock words={o.app} />}
+      </div>
+      <ul className={styles.solParts} aria-label={format.title}>
+        {solution.parts.length ? (
+          solution.parts.map((p, i) => (
+            <li key={p.id} style={{ "--i": i } as React.CSSProperties}>
+              <Check size={13} />
+              {p.label}
+            </li>
+          ))
+        ) : (
+          <li data-empty="true">{w.pending}</li>
+        )}
       </ul>
     </div>
   );

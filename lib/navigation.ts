@@ -16,6 +16,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Accueil", href: "/" },
   { label: "Nos services", href: "/nos-services", section: "nos-services" },
   { label: "Nos agents IA", href: "/nos-agents-ia", section: "nos-agents-ia" },
+  { label: "Sur mesure", href: "/sur-mesure", section: "sur-mesure" },
   { label: "Comment choisir", href: "/comment-choisir", section: "comment-choisir" },
 ];
 
@@ -23,6 +24,7 @@ const NAV_ITEMS_EN: NavItem[] = [
   { label: "Home", href: "/en" },
   { label: "Our services", href: "/en/services", section: "nos-services" },
   { label: "Our AI agents", href: "/en/ai-agents", section: "nos-agents-ia" },
+  { label: "Custom solutions", href: "/en/custom-solutions", section: "sur-mesure" },
   { label: "How to choose", href: "/en/how-to-choose", section: "comment-choisir" },
 ];
 
@@ -50,6 +52,11 @@ export const PLACEHOLDER_PAGES: Record<string, { title: string; kicker: string; 
     kicker: "Nos agents IA",
     title: "Rencontrez l’équipe.",
     text: "Automatisation, support client, prospection, création de contenu, analyse de données : chaque agent aura bientôt son bureau.",
+  },
+  "sur-mesure": {
+    kicker: "Sur mesure",
+    title: "Agents et solutions IA sur mesure.",
+    text: "Les agents IA sur mesure et les solutions IA sur mesure sont présentés sur la page d’accueil, après l’équipe.",
   },
   "a-propos": {
     kicker: "À propos",
@@ -82,6 +89,12 @@ export const PLACEHOLDER_PAGES_EN: Record<string, { title: string; kicker: strin
     kicker: "Our AI agents",
     title: "Meet the team.",
     text: "Automation, customer support, prospecting, content creation, data analysis: every agent will soon have its own office.",
+  },
+  "custom-solutions": {
+    fr: "sur-mesure",
+    kicker: "Custom solutions",
+    title: "Custom AI agents and solutions.",
+    text: "Custom AI agents and custom AI solutions are presented on the home page, after the team.",
   },
   about: {
     fr: "a-propos",

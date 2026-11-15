@@ -2,9 +2,11 @@ import { LOGO_SRC } from "@/lib/brand";
 import { contactIntroOf } from "@/lib/contact-content";
 import type { Locale } from "@/lib/i18n";
 import { OFFICE, PUBLISHER, SIRET } from "@/lib/legal";
+import { offersOf } from "@/lib/offers";
 import { servicesText } from "@/lib/services";
 import { abs, SITE_NAME, SITE_URL, siteText } from "@/lib/site";
 import { teamOf } from "@/lib/team";
+import { moreTeamOf } from "@/lib/team-more";
 
 /*
  * Schema.org description of the agency, read by search engines and AI assistants: who (Organization),
@@ -16,10 +18,9 @@ const ORG = `${SITE_URL}/#organization`;
 const WORDS = {
   fr: {
     plugType: "Agents IA prêts à l’emploi",
-    customName: "Agent IA sur mesure",
     customType: "Conception d’agents IA sur mesure",
-    customText:
-      "Un agent IA construit autour des règles, des validations et des cas particuliers de votre métier : atelier de cadrage, prototype testé sur vos cas réels, mise en service, mesure et amélioration continue.",
+    solutionType: "Développement de logiciels IA sur mesure",
+    international: "International",
     missions: "Missions",
     colon: " : ",
     slogan: "Votre équipe, augmentée par l’IA.",
@@ -32,17 +33,20 @@ const WORDS = {
       "Recrutement et RH",
       "Création de contenu",
       "Analyse de données",
+      "Logiciels IA sur mesure",
+      "Applications métier",
+      "Orchestration d’agents IA",
     ],
-    catalog: "Agents IA de D2S AIgency",
+    catalog: "Agents et solutions IA de D2S AIgency",
+    contactType: "commercial",
     lang: "fr-FR",
     home: "/",
   },
   en: {
     plugType: "Ready-to-use AI agents",
-    customName: "Custom AI agent",
     customType: "Custom AI agent design",
-    customText:
-      "An AI agent built around the rules, approvals and special cases of your business: scoping workshop, prototype tested on your real cases, go-live, measurement and continuous improvement.",
+    solutionType: "Custom AI software development",
+    international: "International",
     missions: "Tasks",
     colon: ": ",
     slogan: "Your team, augmented by AI.",
@@ -55,8 +59,12 @@ const WORDS = {
       "Recruiting and HR",
       "Content creation",
       "Data analysis",
+      "Custom AI software",
+      "Business applications",
+      "AI agent orchestration",
     ],
-    catalog: "D2S AIgency AI agents",
+    catalog: "D2S AIgency AI agents and solutions",
+    contactType: "sales",
     lang: "en",
     home: "/en",
   },
@@ -67,6 +75,9 @@ function graph(locale: Locale) {
   const site = siteText(locale);
   const { services: SERVICES } = servicesText(locale);
   const TEAM = teamOf(locale);
+  const MORE = moreTeamOf(locale);
+  const OFFERS = offersOf(locale);
+  const france = { "@type": "Country", name: "France" };
   // The organisation and the services are the same in both languages (same ids); the pages are not.
   const page = abs(w.home);
   const services = [
@@ -83,12 +94,35 @@ function graph(locale: Locale) {
     {
       "@type": "Service",
       "@id": `${SITE_URL}/#service-sur-mesure`,
-      name: w.customName,
+      name: OFFERS.agent.tag,
       serviceType: w.customType,
-      description: w.customText,
+      description: `${OFFERS.agent.text} ${OFFERS.agent.points.map((p) => `${p.title}${w.colon}${p.text}`).join(" ")} ${OFFERS.agent.steps.map((s) => s.title).join(", ")}.`,
       provider: { "@id": ORG },
-      areaServed: { "@type": "Country", name: "France" },
+      areaServed: france,
       availableLanguage: ["fr", "en"],
+    },
+    {
+      "@type": "Service",
+      "@id": `${SITE_URL}/#service-solutions-ia`,
+      name: OFFERS.solutions.tag,
+      serviceType: w.solutionType,
+      description: OFFERS.solutions.text,
+      provider: { "@id": ORG },
+      areaServed: [france, { "@type": "Place", name: w.international }],
+      availableLanguage: ["fr", "en"],
+      hasOfferCatalog: {
+        "@type": "OfferCatalog",
+        name: OFFERS.solutions.tag,
+        itemListElement: OFFERS.solutions.formats.map((f) => ({
+          "@type": "Offer",
+          itemOffered: {
+            "@type": "Service",
+            name: f.title,
+            audience: { "@type": "BusinessAudience", name: f.tag },
+            description: `${f.text} ${f.points.join(". ")}.`,
+          },
+        })),
+      },
     },
     ...TEAM.map((agent) => ({
       "@type": "Service",
@@ -99,6 +133,15 @@ function graph(locale: Locale) {
       description: `${agent.pitch} ${w.missions}${w.colon}${agent.missions.join(locale === "en" ? "; " : " ; ")}. ${agent.control}`,
       provider: { "@id": ORG },
       availableChannel: agent.channels.map((c) => ({ "@type": "ServiceChannel", name: c })),
+    })),
+    ...MORE.map((agent) => ({
+      "@type": "Service",
+      "@id": `${SITE_URL}/#agent-${agent.slug}`,
+      name: `${agent.name}, ${agent.role}`,
+      alternateName: agent.name,
+      serviceType: agent.role,
+      description: agent.blurb,
+      provider: { "@id": ORG },
     })),
   ];
 
@@ -122,12 +165,15 @@ function graph(locale: Locale) {
         },
         identifier: { "@type": "PropertyValue", propertyID: "SIRET", value: SIRET.replace(/\s/g, "") },
         ...(PUBLISHER.email ? { email: PUBLISHER.email } : {}),
+        ...(PUBLISHER.email
+          ? { contactPoint: { "@type": "ContactPoint", contactType: w.contactType, email: PUBLISHER.email, url: `${page}#contact`, availableLanguage: ["French", "English"], areaServed: "FR" } }
+          : {}),
         ...(PUBLISHER.phone ? { telephone: PUBLISHER.phone } : {}),
         image: abs("/opengraph-image.jpg"),
         description: site.summary,
         slogan: w.slogan,
         knowsAbout: w.knows,
-        areaServed: { "@type": "Country", name: "France" },
+        areaServed: france,
         hasOfferCatalog: {
           "@type": "OfferCatalog",
           name: w.catalog,

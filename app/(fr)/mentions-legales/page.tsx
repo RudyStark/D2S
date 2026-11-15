@@ -1,14 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { LegalPage, ToFill, type LegalSection } from "@/components/pages/LegalPage";
 import { HOST, PRIVACY_HREF, PUBLISHER } from "@/lib/legal";
-import { pageAlternates } from "@/lib/seo";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Mentions légales",
-  description: "Éditeur, hébergeur, propriété intellectuelle et crédits du site D2S AIgency.",
-  alternates: pageAlternates("/mentions-legales", "fr"),
-};
+export function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> {
+  return pageMetadata({ frPath: "/mentions-legales", locale: "fr", title: "Mentions légales", description: "Éditeur, hébergeur, propriété intellectuelle et crédits du site D2S AIgency." }, parent);
+}
 
 const SECTIONS: LegalSection[] = [
   {

@@ -14,7 +14,7 @@ import { contactHrefOf } from "@/lib/navigation";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { servicesText, type BenefitIcon } from "@/lib/services";
 import { AGENTS_ID } from "./AgentsSection";
-import { MethodProcess } from "./MethodProcess";
+import { OffersOverview } from "./OffersOverview";
 import { PlugDiagram } from "./PlugDiagram";
 import glass from "./Glass.module.css";
 import head from "./SectionHead.module.css";
@@ -93,6 +93,8 @@ export function ServicesSection() {
           <p className={head.lead}>{SERVICES_INTRO.lead}</p>
         </header>
 
+        <OffersOverview />
+
         <article
           ref={feature}
           className={`${styles.feature} ${glass.glass}`}
@@ -158,10 +160,6 @@ export function ServicesSection() {
             })}
           </ul>
         </article>
-
-        <div className={styles.methodWrap}>
-          <MethodProcess />
-        </div>
       </div>
     </section>
   );

@@ -31,6 +31,7 @@ export const MOBILE_SECTIONS = [
   { id: "mission", label: "Notre mission" },
   { id: "nos-services", label: "Nos services" },
   { id: "nos-agents-ia", label: "Nos agents IA" },
+  { id: "sur-mesure", label: "Sur mesure" },
   { id: "comment-choisir", label: "Comment choisir" },
   { id: "contact", label: "Parlons de votre projet" },
 ];
@@ -40,6 +41,7 @@ const MOBILE_SECTIONS_EN: typeof MOBILE_SECTIONS = [
   { id: "mission", label: "Our mission" },
   { id: "nos-services", label: "Our services" },
   { id: "nos-agents-ia", label: "Our AI agents" },
+  { id: "sur-mesure", label: "Custom solutions" },
   { id: "comment-choisir", label: "How to choose" },
   { id: "contact", label: "Let’s talk about your project" },
 ];
