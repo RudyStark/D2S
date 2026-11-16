@@ -67,8 +67,8 @@ const FIXED: Record<Locale, Record<string, Words>> = {
   fr: {
     support: {
       headline: "60 à 80 % de vos demandes clients traitées seules, 24 h/24, en moins d’une minute",
-      capacity: "Loic répond sur WhatsApp, le chat du site et l’e-mail, suit les commandes et ne passe à votre équipe que les cas qui le méritent",
-      hook: "En 30 minutes, l’équipe vous montre Loic répondant à vos vraies questions clients",
+      capacity: "Loic décroche votre téléphone, répond sur WhatsApp (notes vocales comprises) et sur votre site, dans la langue de chaque client, prend les rendez-vous dans votre agenda et ne vous passe que ce qui le mérite ; tout reste consultable dans votre espace",
+      hook: "En 30 minutes, l’équipe vous montre Loic répondant à vos vraies questions clients, au téléphone et sur WhatsApp",
       basis: "part habituelle des demandes répétitives (suivi, horaires, retours, questions produit) dans un service client",
     },
     inbox: {
@@ -153,8 +153,8 @@ const FIXED: Record<Locale, Record<string, Words>> = {
   en: {
     support: {
       headline: "60 to 80% of your customer requests handled on their own, 24/7, in under a minute",
-      capacity: "Loic answers on WhatsApp, the website chat and e-mail, tracks orders and only passes your team the cases that deserve it",
-      hook: "In 30 minutes, the team shows you Loic answering your real customer questions",
+      capacity: "Loic answers your phone, replies on WhatsApp (voice notes included) and on your website, in each customer’s language, books appointments in your calendar and only passes you what deserves it; everything stays available in your space",
+      hook: "In 30 minutes, the team shows you Loic answering your real customer questions, on the phone and on WhatsApp",
       basis: "usual share of repetitive requests (tracking, opening hours, returns, product questions) in customer service",
     },
     inbox: {

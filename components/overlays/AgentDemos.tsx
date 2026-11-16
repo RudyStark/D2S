@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AGENTS, type AgentType } from "@/components/experience/agents/agents.config";
 import { useLocale } from "@/components/i18n/LocaleProvider";
-import { Alert, Bars, Calendar, ChatDots, Check, Clock, ContactCard, Package, PlayBox, Star, Users } from "@/components/ui/Icons";
+import { Alert, Bars, Calendar, ChatDots, Check, Clock, ContactCard, PlayBox, Users } from "@/components/ui/Icons";
 import styles from "./AgentDemos.module.css";
 
 /*
@@ -334,50 +334,52 @@ function DeaDemo(props: DemoProps) {
 
 const LOIC = {
   fr: {
-    app: "WhatsApp · Service client",
-    track: ["Préparée", "Expédiée", "En livraison", "Livrée"],
+    app: "WhatsApp · Atelier Lefèvre",
     status: [
-      [0, "Loic veille sur vos messages…"],
-      [2, "Loic analyse la demande…"],
-      [3, "Loic consulte le suivi de commande…"],
-      [5, "Loic suit la conversation…"],
-      [7, "Loic recueille l’avis du client…"],
-      [8, "Résolu en 1 min, sans mobiliser votre équipe"],
+      [0, "Loic veille sur votre WhatsApp…"],
+      [2, "Loic lit le message…"],
+      [4, "Loic écoute la note vocale…"],
+      [5, "Loic consulte votre agenda…"],
+      [7, "Loic réserve le créneau…"],
+      [8, "Rendez-vous pris, sans mobiliser votre équipe"],
     ] as [number, string][],
-    process: ["Demande comprise", "Suivi de commande", "Échange", "Avis et résumé"],
+    process: ["Message compris", "Note vocale écoutée", "Créneaux de votre agenda", "Rendez-vous confirmé"],
     day: "Aujourd’hui · 21:47 · hors horaires d’ouverture",
-    m1: "Bonsoir, ma commande n’est toujours pas arrivée 😕",
-    m2: "Bonsoir Julie ! Je vérifie tout de suite 🔎",
-    order: "Commande n° 4821",
-    eta: "Livraison prévue demain avant 13 h",
-    m3: "Parfait, merci beaucoup !",
-    m4: "Avec plaisir ! Comment s’est passé notre échange ?",
-    stars: "5 étoiles sur 5",
-    done: "Avis 5/5 enregistré · résumé transmis à votre équipe",
-    t: ["21:47", "21:47", "21:48"],
+    m1: "Bonsoir, vous auriez un créneau cette semaine pour un devis ?",
+    m2: "Bonsoir ! Je suis Loic, l’assistant virtuel de l’Atelier Lefèvre. Avec plaisir : quel moment vous arrange ?",
+    voice: "Note vocale · 0:04",
+    heard: "« Plutôt jeudi, en fin de matinée »",
+    slotsTitle: "Jeudi 20 novembre · créneaux libres",
+    slots: ["10 h 30", "11 h", "11 h 30"],
+    pick: 1,
+    note: "Proposés depuis votre agenda, jamais deux rendez-vous au même moment",
+    m4: "C’est noté : jeudi 20 novembre à 11 h. Vous recevez la confirmation par SMS, et un rappel la veille. À jeudi !",
+    done: "Rendez-vous dans votre agenda · conversation consultable dans votre espace",
+    t: ["21:47", "21:47", "21:48", "21:49"],
   },
   en: {
-    app: "WhatsApp · Customer service",
-    track: ["Packed", "Shipped", "Out for delivery", "Delivered"],
+    app: "WhatsApp · Lefèvre Workshop",
     status: [
-      [0, "Loic is watching your messages…"],
-      [2, "Loic is reading the request…"],
-      [3, "Loic is checking the order tracking…"],
-      [5, "Loic is following the conversation…"],
-      [7, "Loic is collecting the customer’s feedback…"],
-      [8, "Solved in 1 min, without calling on your team"],
+      [0, "Loic is watching your WhatsApp…"],
+      [2, "Loic is reading the message…"],
+      [4, "Loic is listening to the voice note…"],
+      [5, "Loic is checking your calendar…"],
+      [7, "Loic is booking the slot…"],
+      [8, "Appointment booked, without calling on your team"],
     ] as [number, string][],
-    process: ["Request understood", "Order tracking", "Conversation", "Rating and summary"],
+    process: ["Message understood", "Voice note heard", "Slots from your calendar", "Appointment confirmed"],
     day: "Today · 9:47 pm · outside opening hours",
-    m1: "Hi, my order still hasn’t arrived 😕",
-    m2: "Good evening Julie! Let me check right away 🔎",
-    order: "Order no. 4821",
-    eta: "Delivery expected tomorrow before 1 pm",
-    m3: "Perfect, thanks a lot!",
-    m4: "My pleasure! How was our conversation?",
-    stars: "5 stars out of 5",
-    done: "5/5 rating saved · summary sent to your team",
-    t: ["9:47 pm", "9:47 pm", "9:48 pm"],
+    m1: "Hi, would you have a slot this week for a quote?",
+    m2: "Good evening! I’m Loic, the virtual assistant of Lefèvre Workshop. Happy to help: what time suits you?",
+    voice: "Voice note · 0:04",
+    heard: "“Thursday, late morning if possible”",
+    slotsTitle: "Thursday 20 November · free slots",
+    slots: ["10:30", "11:00", "11:30"],
+    pick: 1,
+    note: "Offered from your calendar, never two appointments at once",
+    m4: "Booked: Thursday 20 November at 11:00. You’ll get a text confirmation and a reminder the day before. See you Thursday!",
+    done: "Appointment in your calendar · conversation available in your space",
+    t: ["9:47 pm", "9:47 pm", "9:48 pm", "9:49 pm"],
   },
 };
 
@@ -385,7 +387,7 @@ function LoicDemo(props: DemoProps) {
   const w = LOIC[useLocale()];
   const step = useSequence([300, 1000, 1100, 1300, 1500, 1100, 1300, 1300], props);
   return (
-    <Frame app={w.app} icon={<ChatDots size={14} />} variant="chat" agent="support" status={narrate(step, w.status)} done={step >= 8} process={props.timeline ? stagesOf(w.process, [3, 4, 7, 8], [4, 11, 52, 60]) : undefined} step={step} reduced={props.reduced}>
+    <Frame app={w.app} icon={<ChatDots size={14} />} variant="chat" agent="support" status={narrate(step, w.status)} done={step >= 8} process={props.timeline ? stagesOf(w.process, [3, 4, 7, 8], [4, 9, 46, 70]) : undefined} step={step} reduced={props.reduced}>
       <p className={styles.day}>{w.day}</p>
       {step >= 1 && (
         <div className={`${styles.msg} ${styles.in}`}>
@@ -401,37 +403,35 @@ function LoicDemo(props: DemoProps) {
         </div>
       )}
       {step >= 4 && (
+        <div className={`${styles.msg} ${styles.in}`}>
+          <strong>▶ ▂▅▇▅▃▆▂▅ {w.voice}</strong>
+          <br />
+          <em>{w.heard}</em>
+          <span className={styles.time}>{w.t[2]}</span>
+        </div>
+      )}
+      {step >= 5 && (
         <div className={`${styles.card} ${styles.out}`}>
           <div className={styles.cardHead}>
-            <Package size={16} />
-            <strong>{w.order}</strong>
+            <Calendar size={16} />
+            <strong>{w.slotsTitle}</strong>
           </div>
           <ol className={styles.track}>
-            {w.track.map((t, i) => (
-              <li key={t} data-state={i < 2 ? "done" : i === 2 ? "now" : "todo"}>
+            {w.slots.map((t, i) => (
+              <li key={t} data-state={i === w.pick && step >= 7 ? "done" : i === w.pick ? "now" : "todo"}>
                 <span />
                 {t}
               </li>
             ))}
           </ol>
-          <p className={styles.cardNote}>{w.eta}</p>
-        </div>
-      )}
-      {step >= 5 && (
-        <div className={`${styles.msg} ${styles.in}`}>
-          {w.m3}
-          <span className={styles.time}>{w.t[2]}</span>
+          <p className={styles.cardNote}>{w.note}</p>
         </div>
       )}
       {step === 6 && <Typing />}
       {step >= 7 && (
         <div className={`${styles.msg} ${styles.out}`}>
           {w.m4}
-          <span className={styles.stars} aria-label={w.stars}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <Star key={i} size={16} style={{ animationDelay: `${0.15 + i * 0.09}s` }} />
-            ))}
-          </span>
+          <span className={styles.time}>{w.t[3]}</span>
         </div>
       )}
       {step >= 8 && (
