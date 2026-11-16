@@ -61,7 +61,7 @@ export const needLabel = (id: string) => {
 
 export const MESSAGE_HINTS: Record<NeedId, string> = {
   content: "Ex. : nous publions deux posts LinkedIn par semaine et une newsletter mensuelle, nous aimerions…",
-  support: "Ex. : nous recevons une centaine de demandes par semaine, surtout sur le suivi de commande…",
+  support: "Ex. : nous ratons des appels et recevons beaucoup de messages WhatsApp, surtout pour prendre rendez-vous…",
   prospection: "Ex. : nous ciblons des PME du BTP et voulons plus de rendez-vous qualifiés…",
   automation: "Ex. : nous recrutons quinze personnes cette année et l’onboarding nous prend beaucoup de temps…",
   data: "Ex. : nos chiffres sont éparpillés entre le CRM et des tableurs, nous voulons un point clair chaque lundi…",
@@ -136,7 +136,7 @@ const NEEDS_EN: Need[] = NEEDS.map((n) => ({
 
 const MESSAGE_HINTS_EN: Record<NeedId, string> = {
   content: "E.g. we publish two LinkedIn posts a week and a monthly newsletter, we would like to…",
-  support: "E.g. we get about a hundred requests a week, mostly about order tracking…",
+  support: "E.g. we miss calls and get lots of WhatsApp messages, mostly to book appointments…",
   prospection: "E.g. we target construction SMEs and want more qualified meetings…",
   automation: "E.g. we are hiring fifteen people this year and onboarding takes us a lot of time…",
   data: "E.g. our figures are scattered between the CRM and spreadsheets, we want a clear update every Monday…",
