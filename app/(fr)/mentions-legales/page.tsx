@@ -86,6 +86,18 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: "partenariat",
+    alias: "partnership",
+    title: "Partenariat",
+    body: (
+      <p>
+        {PUBLISHER.brand} est partenaire officiel de l’écosystème brAin et fait partie de son réseau d’agences partenaires. Le nom
+        et le logo brAin appartiennent à leur titulaire ; ils sont reproduits sur ce site dans le cadre de ce partenariat, sans
+        modification.
+      </p>
+    ),
+  },
+  {
     id: "credits",
     title: "Crédits",
     body: (

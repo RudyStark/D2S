@@ -164,6 +164,8 @@ function graph(locale: Locale) {
           addressCountry: OFFICE.country,
         },
         identifier: { "@type": "PropertyValue", propertyID: "SIRET", value: SIRET.replace(/\s/g, "") },
+        // Partner of the brAin network (badge shown on the home page).
+        memberOf: { "@type": "Organization", name: "brAin" },
         ...(PUBLISHER.email ? { email: PUBLISHER.email } : {}),
         ...(PUBLISHER.email
           ? { contactPoint: { "@type": "ContactPoint", contactType: w.contactType, email: PUBLISHER.email, url: `${page}#contact`, availableLanguage: ["French", "English"], areaServed: "FR" } }

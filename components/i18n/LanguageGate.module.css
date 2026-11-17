@@ -447,11 +447,27 @@
 :global(html[data-lang-gate="enter"]) .gate .title,
 :global(html[data-lang-gate="enter"]) .gate .subtitle,
 :global(html[data-lang-gate="enter"]) .gate .divider,
-:global(html[data-lang-gate="enter"]) .gate .notice {
+:global(html[data-lang-gate="enter"]) .gate .notice,
+:global(html[data-lang-gate="enter"]) .gate .partner {
   visibility: hidden;
 }
 :global(html[data-lang-gate="enter"]) .gate .brand {
   animation: none;
+}
+
+/* ---------- brAin Partner seal: small, bottom right, level with the notice ---------- */
+.partner {
+  position: absolute;
+  right: max(22px, 2.2vw);
+  /* The notice is 50 px high, the seal 30 px: centred on the same line. */
+  bottom: calc(max(18px, 3.4svh) + 10px);
+  animation: partnerIn 0.8s var(--ease-out) 0.9s both;
+}
+@keyframes partnerIn {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
 }
 
 /* ---------- Desktop notice (static): night-blue glass pill, at the bottom ---------- */
@@ -580,6 +596,10 @@
   .noticeText em::before {
     content: none;
   }
+  .partner {
+    position: static;
+    margin-top: 16px;
+  }
 }
 
 /* Short phones held upright (iPhone SE…): a smaller duo so everything fits without scrolling. */
@@ -623,6 +643,10 @@
   .noticeIcon {
     width: 26px;
     height: 26px;
+  }
+  .partner {
+    right: 14px;
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + 3px);
   }
 }
 
