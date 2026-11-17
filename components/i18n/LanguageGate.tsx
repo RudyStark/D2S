@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { gateState, rememberLanguage, setGateState, type GateState } from "@/lib/language-gate";
 import type { Locale } from "@/lib/i18n";
+import { BrainPartner } from "@/components/ui/BrainPartner";
 import { GateLogo } from "./GateLogo";
 import styles from "./LanguageGate.module.css";
 
@@ -188,6 +189,7 @@ export function LanguageGate() {
             <em lang="en">Best experienced on desktop</em>
           </span>
         </p>
+        <BrainPartner size="md" className={styles.partner} label="brAin Partner · Partenaire officiel du réseau brAin" />
       </div>
 
     </div>

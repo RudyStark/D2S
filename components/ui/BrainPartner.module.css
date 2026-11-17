@@ -1,0 +1,59 @@
+/* « brAin Partner » seal: the official lockup on pure black (brAin guidelines), a hairline, « PARTNER ». */
+
+.seal {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--bp-gap);
+  height: var(--bp-h);
+  padding: 0 var(--bp-pad-r) 0 var(--bp-pad-l);
+  border-radius: 999px;
+  background: #000;
+  box-shadow:
+    0 1px 1px rgb(0 0 0 / 0.12),
+    0 6px 16px -10px rgb(11 18 56 / 0.5),
+    inset 0 0 0 1px rgb(255 255 255 / 0.07);
+  vertical-align: middle;
+}
+
+.lockup {
+  display: block;
+  width: auto;
+  height: var(--bp-logo);
+}
+
+.divider {
+  width: 1px;
+  height: calc(var(--bp-logo) * 0.66);
+  background: rgb(255 255 255 / 0.22);
+}
+
+.partner {
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: var(--bp-tag);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(248 246 242 / 0.62);
+  /* The tracking adds space after the last letter: balance it. */
+  margin-right: -0.22em;
+}
+
+.sm {
+  --bp-gap: 7px;
+  --bp-h: 24px;
+  --bp-pad-l: 8px;
+  --bp-pad-r: 10px;
+  --bp-logo: 12px;
+  --bp-tag: 7.5px;
+}
+
+.md {
+  --bp-gap: 8px;
+  --bp-h: 30px;
+  --bp-pad-l: 10px;
+  --bp-pad-r: 12px;
+  --bp-logo: 15px;
+  --bp-tag: 8.5px;
+}

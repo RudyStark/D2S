@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AGENTS } from "@/components/experience/agents/agents.config";
 import { ArrowRight, Check, ChevronDown, Close, Doc, Replay, Sparkle } from "@/components/ui/Icons";
 import { Logo } from "@/components/ui/Logo";
+import { BrainPartner } from "@/components/ui/BrainPartner";
 import { useInView } from "@/hooks/useInView";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { channelsOf, contactIntroOf, messageHintsOf, needsOf, nextStepsOf } from "@/lib/contact-content";
@@ -107,6 +108,7 @@ const TEXTS = {
     legal: "Mentions légales",
     privacy: "Confidentialité",
     tagline: "Agence d’agents IA",
+    partner: "Partenaire officiel du réseau brAin",
   },
   en: {
     optional: " · optional",
@@ -156,6 +158,7 @@ const TEXTS = {
     legal: "Legal notice",
     privacy: "Privacy",
     tagline: "The AI agents agency",
+    partner: "Official partner of the brAin network",
   },
 };
 
@@ -649,6 +652,7 @@ export function ContactSection() {
           <p>
             © {new Date().getFullYear()} D2S AIgency · {t.tagline}
           </p>
+          <BrainPartner label={t.partner} className={styles.footerPartner} />
         </footer>
       </div>
     </section>

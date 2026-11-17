@@ -66,6 +66,17 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: "partnership",
+    alias: "partenariat",
+    title: "Partnership",
+    body: (
+      <p>
+        {PUBLISHER.brand} is an official partner of the brAin ecosystem and a member of its network of partner agencies. The brAin
+        name and logo belong to their owner; they are shown on this website within this partnership, unaltered.
+      </p>
+    ),
+  },
+  {
     id: "credits",
     title: "Credits",
     body: (

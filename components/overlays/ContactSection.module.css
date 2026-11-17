@@ -970,6 +970,11 @@ textarea.control {
   opacity: 0.85;
 }
 
+/* The brAin Partner seal, small, closing the line. */
+.footer .footerPartner {
+  margin-left: calc(16 * var(--u));
+}
+
 .footerLinks {
   display: flex;
   gap: calc(22 * var(--u));
