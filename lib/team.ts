@@ -55,8 +55,8 @@ export const TEAM: AgentProfile[] = [
   {
     type: "support",
     name: "Loic",
-    role: "Accueil & support client IA",
-    blurb: "Décroche, répond sur WhatsApp et prend vos rendez-vous, 24\u00a0h/24, dans toutes les langues.",
+    role: "Accueil & support IA",
+    blurb: "Appels, WhatsApp et rendez\u2011vous, 24\u00a0h/24, en toutes langues.",
     pitch:
       "Loic est votre accueil, jour et nuit. Il décroche votre téléphone, répond sur WhatsApp (notes vocales comprises) et sur votre site, renseigne vos clients et prend leurs rendez-vous dans votre agenda. Il parle la langue de chacun : un client qui écrit en anglais, en espagnol ou en indonésien reçoit sa réponse dans sa langue. Tout ce qu’il fait se retrouve dans votre espace.",
     missions: [
@@ -158,8 +158,8 @@ const TEAM_WORDS_EN: Record<AgentType, Words> = {
     demo: "From brief to scheduled post",
   },
   support: {
-    role: "AI front desk & customer support",
-    blurb: "Answers your phone and WhatsApp and books your appointments, 24/7, in any language.",
+    role: "AI front desk & support",
+    blurb: "Phone, WhatsApp and bookings, 24/7, in any language.",
     pitch: "Loic is your front desk, day and night. He answers your phone, replies on WhatsApp (voice notes included) and on your website, informs your customers and books their appointments in your calendar. He speaks each customer’s language: someone who writes in Spanish, Arabic or Indonesian gets the answer in their own language. Everything he does is in your space.",
     missions: [
       "Answers your phone 24/7 on your usual number, with a natural voice",
