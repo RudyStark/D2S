@@ -234,6 +234,8 @@
   font-size: max(13px, calc(16.5 * var(--u)));
   font-weight: 700;
   letter-spacing: -0.01em;
+  /* One line for every card, so that every caption has the same height. */
+  white-space: nowrap;
 }
 
 .blurb {
@@ -242,6 +244,8 @@
   font-size: max(11px, calc(13 * var(--u)));
   line-height: calc(18 * var(--u));
   color: var(--text);
+  /* Always three lines high (a shorter text keeps the room): the five captions line up. */
+  min-height: calc(3 * 18 * var(--u));
 }
 
 /* Interaction hint under the row of cards. */
