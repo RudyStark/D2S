@@ -1936,3 +1936,56 @@
     transition: none;
   }
 }
+
+/* ——— Diagnostic: many short choices → compact two-column grid (half the scroll) ——— */
+.options[data-compact] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.options[data-compact] .option {
+  min-height: 48px;
+  padding: 9px 10px 9px 11px;
+  gap: 9px;
+  border-radius: 14px;
+  transition-property: border-color, box-shadow, background-color, transform;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.options[data-compact] .option:active {
+  transform: scale(0.97);
+}
+.options[data-compact] .option input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+.options[data-compact] .option strong {
+  display: block;
+  font-size: 13.5px;
+  line-height: 1.25;
+  text-wrap: pretty;
+}
+/* An odd count: the last choice (« Autre chose ») takes the whole row, the grid stays square. */
+.options[data-compact] .option:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .options[data-compact] .option:active {
+    transform: none;
+  }
+}
+/* Very small phones (320–360 px): a little tighter so a long word never meets the edge. */
+@media (max-width: 360px) {
+  .options[data-compact] {
+    gap: 7px;
+  }
+  .options[data-compact] .option {
+    padding: 8px 8px 8px 9px;
+    gap: 7px;
+  }
+  .options[data-compact] .option strong {
+    font-size: 12.5px;
+    hyphens: auto;
+  }
+}

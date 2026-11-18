@@ -306,3 +306,22 @@ export const AgentNode = ({ size = 20, ...p }: IconProps) => (
     <path d="m6.4 6.8 3.1 3M17.6 6.8l-3.1 3M12 15.4v2.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 );
+
+export const Phone = ({ size = 20, ...p }: IconProps) => (
+  <svg {...base(size, p)}>
+    <path
+      d="M7.2 3.5h2.1l1.5 4.2-2.1 1.4a10.5 10.5 0 0 0 6.2 6.2l1.4-2.1 4.2 1.5v2.1A2.2 2.2 0 0 1 18.3 19 15.3 15.3 0 0 1 5 5.7a2.2 2.2 0 0 1 2.2-2.2Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const Cart = ({ size = 20, ...p }: IconProps) => (
+  <svg {...base(size, p)}>
+    <path d="M3.5 4.5h2.2l2 10.5h10.6l1.9-7.5H7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="9.5" cy="19" r="1.4" fill="currentColor" />
+    <circle cx="17" cy="19" r="1.4" fill="currentColor" />
+  </svg>
+);
