@@ -5,6 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import {
   ArrowRight,
   Bars,
+  Cart,
+  Phone,
+  Shield,
   Calendar,
   Chat,
   ChatDots,
@@ -114,6 +117,9 @@ const ICONS: Partial<Record<OptionIcon, (p: { size?: number }) => ReactNode>> = 
   logistics: Package,
   finance: Receipt,
   marketing: Rocket,
+  phone: Phone,
+  cart: Cart,
+  legal: Shield,
 };
 
 /* Words of the custom AI solution path (the offer texts themselves come from lib/offers). */

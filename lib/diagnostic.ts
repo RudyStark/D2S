@@ -64,7 +64,10 @@ export type OptionIcon =
   | "post"
   | "logistics"
   | "finance"
-  | "marketing";
+  | "marketing"
+  | "phone"
+  | "cart"
+  | "legal";
 
 export type AreaId = "sales" | "clients" | "marketing" | "admin" | "team" | "other";
 
@@ -350,7 +353,7 @@ const FLOW_QUESTIONS: DiagnosticQuestion[] = [
   },
   {
     id: "parts",
-    title: "Que doit réunir votre solution ?",
+    title: "Que doit réunir votre solution\u00a0?",
     help: "Plusieurs réponses possibles.",
     multiple: true,
     options: [
@@ -360,12 +363,22 @@ const FLOW_QUESTIONS: DiagnosticQuestion[] = [
       { id: "calendar", scope: "trade", label: "Agenda et échéances", phrase: "votre agenda", icon: "calendar", score: {} },
       { id: "clients", scope: "trade", label: "Clients et demandes", phrase: "vos clients", icon: "support", score: {} },
       { id: "billing", scope: "trade", label: "Factures et paiements", phrase: "vos factures", icon: "billing", score: {} },
+      { id: "phone", scope: "trade", label: "Téléphone et accueil", phrase: "votre téléphone", icon: "phone", score: {} },
+      { id: "quotes", scope: "trade", label: "Devis et propositions", phrase: "vos devis", icon: "proposals", score: {} },
+      { id: "orders", scope: "trade", label: "Commandes et stock", phrase: "vos commandes", icon: "shop", score: {} },
+      { id: "content", scope: "trade", label: "Réseaux sociaux", phrase: "vos réseaux sociaux", icon: "social", score: {} },
+      { id: "other-trade", scope: "trade", label: "Autre chose", phrase: "le reste de votre activité", icon: "custom", score: {} },
       { id: "sales", scope: "teams", label: "Ventes", phrase: "les ventes", icon: "prospection", score: {} },
       { id: "care", scope: "teams", label: "Service client", phrase: "le service client", icon: "support", score: {} },
       { id: "logistics", scope: "teams", label: "Logistique", phrase: "la logistique", icon: "logistics", score: {} },
       { id: "finance", scope: "teams", label: "Finance", phrase: "la finance", icon: "finance", score: {} },
       { id: "hr", scope: "teams", label: "RH", phrase: "les RH", icon: "hr", score: {} },
       { id: "marketing", scope: "teams", label: "Marketing", phrase: "le marketing", icon: "marketing", score: {} },
+      { id: "purchasing", scope: "teams", label: "Achats", phrase: "les achats", icon: "cart", score: {} },
+      { id: "legal", scope: "teams", label: "Juridique", phrase: "le juridique", icon: "legal", score: {} },
+      { id: "ops", scope: "teams", label: "Production et opérations", phrase: "la production", icon: "software", score: {} },
+      { id: "direction", scope: "teams", label: "Direction et pilotage", phrase: "le pilotage", icon: "data", score: {} },
+      { id: "other-teams", scope: "teams", label: "Autre chose", phrase: "vos autres services", icon: "custom", score: {} },
     ],
   },
 ];
@@ -405,6 +418,16 @@ const FLOW_WORDS_EN: Record<FlowId, { title: string; help: string; options: Reco
       finance: { label: "Finance", phrase: "finance" },
       hr: { label: "HR", phrase: "HR" },
       marketing: { label: "Marketing", phrase: "marketing" },
+      phone: { label: "Phone and front desk", phrase: "your phone" },
+      quotes: { label: "Quotes and proposals", phrase: "your quotes" },
+      orders: { label: "Orders and stock", phrase: "your orders" },
+      content: { label: "Social media", phrase: "your social media" },
+      "other-trade": { label: "Something else", phrase: "the rest of your business" },
+      purchasing: { label: "Purchasing", phrase: "purchasing" },
+      legal: { label: "Legal", phrase: "legal" },
+      ops: { label: "Production and operations", phrase: "operations" },
+      direction: { label: "Management and steering", phrase: "steering" },
+      "other-teams": { label: "Something else", phrase: "your other departments" },
     },
   },
 };

@@ -211,6 +211,8 @@ export function MobileDiagnostic({
               </p>
               <fieldset
                 className={styles.options}
+                // Many short choices (no sub-line) to tick: a compact two-column grid instead of a long list.
+                data-compact={question.multiple && options.length > 6 && !options.some((o) => o.hint) ? "" : undefined}
                 aria-labelledby="mobile-question-title"
                 aria-describedby="mobile-question-help"
               >
