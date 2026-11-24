@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { MayAction } from "@/lib/may";
 import { dayIn, hourIn, ISO_DAY, zonedMidnight } from "@/lib/may-dates";
-import { CalendlyConfigurationError, calendlyFallbackUrl, findSlots, listMeetingTypes, listSlotsBetween, type MeetingSlot } from "@/lib/server/calendly";
+import { CalendlyConfigurationError, calendlyFallbackUrl, findSlots, listMeetingTypes, listSlotsBetween, type MeetingSlot, SITE_SOURCE, withSource } from "@/lib/server/calendly";
 
 /*
  * May's booking shortcut, without AI: the real meeting types of D2S and their free slots from Calendly, as
@@ -40,7 +40,7 @@ function rateLimited(ip: string) {
 function safeLink(value: string | null | undefined) {
   try {
     const url = new URL(value ?? "");
-    return url.protocol === "https:" && /(^|\.)calendly\.com$/.test(url.hostname) ? url.toString() : "";
+    return url.protocol === "https:" && /(^|\.)calendly\.com$/.test(url.hostname) ? withSource(url.toString(), SITE_SOURCE.may) : "";
   } catch {
     return "";
   }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { NEED_IDS } from "@/lib/contact-content";
-import { bookSlot } from "@/lib/server/calendly";
+import { bookSlot, SITE_SOURCE, withSource } from "@/lib/server/calendly";
 import { ResendConfigurationError, sendContactEmails, type ContactLead } from "@/lib/server/resend";
 
 /*
@@ -145,10 +145,12 @@ export async function POST(request: Request) {
   let booking: { booked: boolean; confirmUrl?: string; label?: string } | undefined;
   if (slot) {
     const label = slotLabel(slot.start, timeZone, lead.locale === "en" ? "en-GB" : "fr-FR");
-    const result = await bookSlot({ eventTypeId: slot.meetingId, startTime: slot.start, name: lead.name, email: lead.email, timezone: timeZone });
+    // The form after May's chat (source « may-… ») counts as May's booking in the hub's agenda.
+    const source = /may/i.test(lead.source ?? "") ? SITE_SOURCE.may : SITE_SOURCE.form;
+    const result = await bookSlot({ eventTypeId: slot.meetingId, startTime: slot.start, name: lead.name, email: lead.email, timezone: timeZone, source });
     if (result.booked) booking = { booked: true, label };
     else {
-      const confirm = new URL(slot.url);
+      const confirm = new URL(withSource(slot.url, source));
       confirm.searchParams.set("name", lead.name);
       confirm.searchParams.set("email", lead.email);
       booking = { booked: false, confirmUrl: confirm.toString(), label };
