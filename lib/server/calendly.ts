@@ -210,25 +210,51 @@ const httpsOnly = (value: unknown) => {
  * the Free plan answers 403, and the visitor then confirms on the slot's own Calendly page instead.
  * Calendly sends the invitation, the video link and the reminders exactly as for a booking on its own page.
  */
-export async function bookSlot(input: { eventTypeId: string; startTime: string; name: string; email: string; timezone: string }): Promise<BookingResult> {
+/** Where a booking comes from, kept by Calendly (utm_source): the hub's agenda shows « Site vitrine » or « May · site ». */
+export const SITE_SOURCE = { form: "site-formulaire", may: "site-may" } as const;
+
+/** A Calendly page link that carries the booking's origin (utm_source), for the hub's agenda. */
+export function withSource(link: string, source: string) {
+  try {
+    const url = new URL(link);
+    url.searchParams.set("utm_source", source);
+    return url.toString();
+  } catch {
+    return link;
+  }
+}
+
+export async function bookSlot(input: { eventTypeId: string; startTime: string; name: string; email: string; timezone: string; source?: string }): Promise<BookingResult> {
   if (!/^[a-zA-Z0-9_-]+$/.test(input.eventTypeId)) return { booked: false, reason: "error" };
   try {
     // The location must match the event type's (a video tool needs only its kind: Calendly creates the link).
     const eventType = await calendlyFetch<{ resource?: { locations?: { kind?: string }[] | null } }>(`/event_types/${input.eventTypeId}`);
     const kind = eventType.resource?.locations?.[0]?.kind;
     const location = kind && /_conference$/.test(kind) ? { kind } : undefined;
-    const response = await fetch(`${CALENDLY_API}/invitees`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${token()}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        event_type: `${CALENDLY_API}/event_types/${input.eventTypeId}`,
-        start_time: input.startTime,
-        invitee: { name: input.name, email: input.email, timezone: input.timezone },
-        ...(location ? { location } : {}),
-      }),
-      signal: AbortSignal.timeout(10_000),
-      cache: "no-store",
-    });
+    const tracking = input.source ? { utm_campaign: null, utm_source: input.source, utm_medium: "site", utm_content: null, utm_term: null, salesforce_uuid: null } : null;
+    const send = (withTracking: boolean) =>
+      fetch(`${CALENDLY_API}/invitees`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token()}`, "content-type": "application/json" },
+        body: JSON.stringify({
+          event_type: `${CALENDLY_API}/event_types/${input.eventTypeId}`,
+          start_time: input.startTime,
+          invitee: { name: input.name, email: input.email, timezone: input.timezone },
+          ...(location ? { location } : {}),
+          ...(withTracking && tracking ? { tracking } : {}),
+        }),
+        signal: AbortSignal.timeout(10_000),
+        cache: "no-store",
+      });
+    let response = await send(true);
+    // The origin is a plus, never a reason to lose a booking: a refusal that names it is retried without it.
+    if (tracking && response.status === 400) {
+      const refused = ((await response.clone().json().catch(() => null)) as { details?: { parameter?: string }[] } | null)?.details?.some((d) => /tracking/.test(d.parameter ?? ""));
+      if (refused) {
+        console.error("[booking] Calendly refuse l’origine (tracking) : réservation sans elle");
+        response = await send(false);
+      }
+    }
     if (response.ok) {
       // The invitee gives the cancel / reschedule pages; the event gives the video link Calendly created.
       const invitee = ((await response.json().catch(() => null)) as { resource?: { event?: string; cancel_url?: string; reschedule_url?: string } } | null)?.resource;

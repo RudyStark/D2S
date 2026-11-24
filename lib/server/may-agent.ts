@@ -11,7 +11,7 @@ import type { MayAction, MayDraft, MayEvent, MayMessage } from "@/lib/may";
 import { TEAM } from "@/lib/team";
 import { MORE_TEAM } from "@/lib/team-more";
 import { ISO_DAY } from "@/lib/may-dates";
-import { CalendlyConfigurationError, calendlyFallbackUrl, findSlots, listMeetingTypes } from "./calendly";
+import { CalendlyConfigurationError, calendlyFallbackUrl, findSlots, listMeetingTypes, SITE_SOURCE, withSource } from "./calendly";
 
 /*
  * May, the reception agent of d2saigency.com (not the prospecting agent D2S sells to its clients).
@@ -199,7 +199,7 @@ const str = (value: unknown, max: number) => (typeof value === "string" ? value.
 function safeLink(value: string) {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" && /(^|\.)calendly\.com$/.test(url.hostname) ? url.toString() : "";
+    return url.protocol === "https:" && /(^|\.)calendly\.com$/.test(url.hostname) ? withSource(url.toString(), SITE_SOURCE.may) : "";
   } catch {
     return "";
   }
